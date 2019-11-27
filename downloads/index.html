@@ -272,7 +272,7 @@ languages and tools. The most notable changes between the versions can be found 
           <p class="mt-3" style="text-align:justify; margin-bottom: 5px">
             <strong>GraalVM 19.3.0</strong> is distributed as <strong>Community Edition</strong> and <strong>Enterprise
               Edition</strong>. Listed below are bundles available:
-            <ul style="padding-left: 0;">
+            <ul class="additional-item__list" style="padding-left: 0; line-height: 1.8;">
               <li>GraalVM Enterprise Edition based on Oracle Java 8u231</li>
               <li>GraalVM Community Edition based on OpenJDK 8u232</li>
               <li>GraalVM Enterprise Edition based on Oracle Java 11.0.5</li>
@@ -295,32 +295,37 @@ languages and tools. The most notable changes between the versions can be found 
               <h2 class="additional-item__title">Community Edition</h2>
               <div class="additional-item__text">
                 <p class="mb-3" style="text-align:justify;">
-                  GraalVM Community is available for free for evaluation, development and production use.
-                  It is built from the GraalVM sources available on
-                  <a href="https://github.com/oracle/graal/">GitHub</a>. We provide pre-built binaries for Linux, macOS X, and Windows platforms on x86 64-bit systems.
-                  Windows support is <a href="https://docs.oracle.com/en/graalvm/enterprise/19/guide/overview/license/licensing-information.html" target="_blank">experimental</a>.
+                GraalVM Community is available for free for any use. It is built
+                from the GraalVM sources available on <a
+                href="https://github.com/oracle/graal/">GitHub</a>. We provide
+                pre-built binaries for Linux/X86, Linux/ARM, macOS, and
+                Windows platforms on x86 64-bit systems. Support for the Windows
+                and Linux/ARM platforms, and the Python, Ruby and R languages is <a
+                href="https://docs.oracle.com/en/graalvm/enterprise/19/guide/overview/license/licensing-information.html"
+                target="_blank">experimental</a>.
                 </p>
-              </div>
-
-              <a href="https://github.com/graalvm/graalvm-ce-builds/releases" class="btn btn--sm btn-primary">DOWNLOAD FROM GITHUB</a>
-              <h6 class="additional-item__subtitle">License</h6>
-              <ul class="additional-item__list">
-                <li><a href="https://github.com/oracle/graal#license" target="_blank">Open Source Licenses</a></li>
-                <li>Free for development and production use</li>
-              </ul>
-              <h6 class="additional-item__subtitle">Benefits</h6>
-              <ul class="additional-item__list">
-                <li>Open-source license</li>
-                <li>Free community support via <a href="/community">public channels</a></li>
-                <li>Presence of all enterprise components</li>
-                <li>Bug fixes and enhancements</li>
-              </ul>
-              <h6 class="additional-item__subtitle">Available for</h6>
-              <ul class="additional-item__list additional-item__list--icon">
-                <li><svg class="icon icon-mac-os-logo"><use xlink:href="#icon-mac-os-logo"></use></svg>macOS</li>
-                <li><svg class="icon icon-linux"><use xlink:href="#icon-linux"></use></svg>Linux</li>
-                <li><svg class="icon icon-windows-logo"><use xlink:href="#icon-windows-logo"></use></svg>Windows</li>
-              </ul>
+                <h6 class="additional-item__subtitle" style="margin-top: 10px;">Note</h6>
+                <p class="mb-3" style="text-align:justify;">GraalVM Community
+                Edition  contains significant technology from other projects
+                including OpenJDK and Node.js which are not supported by the
+                GraalVM community. GraalVM Enterprise is recommended for
+                production applications. </p>
+                <h6 class="additional-item__subtitle">Benefits</h6>
+                <ul class="additional-item__list" style="line-height: 1.8;">
+                  <li>OSI-approved open-source licenses allow you to use for any purpose</li>
+                  <li>Free community support via <a href="/community">public channels</a></li>
+                  <li>Functionally equivalent to GraalVM Enterprise</li>
+                </ul>
+                <h6 class="additional-item__subtitle">Available for</h6>
+                <ul class="additional-item__list additional-item__list--icon">
+                  <li><svg class="icon icon-mac-os-logo"><use xlink:href="#icon-mac-os-logo"></use></svg>macOS</li>
+                  <li><svg class="icon icon-linux"><use xlink:href="#icon-linux"></use></svg>Linux</li>
+                  <li><svg class="icon icon-windows-logo"><use xlink:href="#icon-windows-logo"></use></svg>Windows</li>
+                </ul>
+                <p>
+                  <a href="https://github.com/graalvm/graalvm-ce-builds/releases" class="btn btn--sm btn-primary">DOWNLOAD FROM GITHUB</a>
+                  <p>
+             </div>
             </div>
           </div>
 
@@ -328,30 +333,34 @@ languages and tools. The most notable changes between the versions can be found 
             <div class="additional-item additional-item--custom">
               <h2 class="additional-item__title">Enterprise Edition</h2>
               <div class="additional-item__text">
-                <p class="mb-3" style="text-align:justify;"> GraalVM Enterprise provides additional performance,
-                security, and scalability relevant for running applications in
-                production. It is free for evaluation and available for
-                download from the <a
-                href="https://www.oracle.com/technetwork/graalvm/downloads/index.html">Oracle
-                Technology Network.</a> We provide binaries for
-                Linux, macOS X, and Windows platforms on x86 64-bit systems.
-                Windows support is <a href="https://docs.oracle.com/en/graalvm/enterprise/19/guide/overview/license/licensing-information.html" target="_blank">experimental</a>.
+              <p class="mb-3" style="text-align:justify;"> GraalVM Enterprise
+              provides additional performance, security, and scalability
+              relevant for running applications in production. You can get a
+              version of GraalVM Enterprise that is free for evaluation and
+              developing new applications via the <a
+              href="https://www.oracle.com/technetwork/graalvm/downloads/index.html"
+              target="_blank">Oracle Technology Network (OTN)</a>, or a
+              commercially licensed version for production use via the <a
+              href="https://shop.oracle.com/apex/f?p=dstore:4:9213481549158:::RIR:IR_ROWFILTER:graalvm"
+              target="_blank">Oracle Store</a>. We provide binaries for Linux,
+              macOS, and Windows platforms on x86 64-bit systems. Support for
+              the Windows and Linux/ARM platforms, and the Python, Ruby and R
+              languages is <a
+              href="https://docs.oracle.com/en/graalvm/enterprise/19/guide/overview/license/licensing-information.html"
+              target="_blank">experimental</a>.
               </p>
-              </div>
-
-              <a href="https://www.oracle.com/technetwork/graalvm/downloads/index.html" class="btn btn--sm btn-primary">Download from OTN</a>
-              <h6 class="additional-item__subtitle">License</h6>
-              <ul class="additional-item__list">
-                <li><a href="https://www.oracle.com/downloads/licenses/graalvm-otn-license.html" target="_blank">Oracle Master License Agreement</a></li>
-                <li>Free for evaluation and non-production use</li>
-                <li><a href="mailto:graalvm-enterprise_ww_grp@oracle.com">Contact us</a> for commercial use and support options</li>
-              </ul>
               <h6 class="additional-item__subtitle">Benefits</h6>
               <ul class="additional-item__list">
-                <li>Faster performance and smaller footprint</li>
-                <li>Enhanced security features</li>
-                <li>Managed capabilities for native code</li>
-                <li>Premier 24x7x365 support via <a href="https://support.oracle.com">MOS</a></li>
+                <li>Faster performance</li>
+                <li>Lower memory footprint for microservices</li>
+                  <ul style="line-height: 1.8; margin: 0;">
+                    <li>Enhanced security features, including managed capabilities for native code</li>
+                    <li>Free for evaluation and for developing new applications</li>
+                  </ul>
+                <li>Premier 24x7x365 support via <a href="https://support.oracle.com">Oracle Support</a> non-experimental features
+                <ul style="line-height: 1.8;">
+                  <li>GraalVM Native Image is supported</li>
+                </ul>
               </ul>
               <h6 class="additional-item__subtitle">Available for</h6>
               <ul class="additional-item__list additional-item__list--icon">
@@ -359,6 +368,11 @@ languages and tools. The most notable changes between the versions can be found 
                 <li><svg class="icon icon-linux"><use xlink:href="#icon-linux"></use></svg>Linux</li>
                 <li><svg class="icon icon-windows-logo"><use xlink:href="#icon-windows-logo"></use></svg>Windows</li>
               </ul>
+              <p>
+              <a href="https://www.oracle.com/technetwork/graalvm/downloads/index.html" class="btn btn--sm btn-primary">TRY FROM OTN</a>
+              <a href="https://shop.oracle.com/apex/f?p=dstore:4:9213481549158:::RIR:IR_ROWFILTER:graalvm" class="btn btn--sm btn-primary">BUY FROM ORAClE STORE</a>
+              </p>
+             </div>
             </div>
           </div>
         </div>
