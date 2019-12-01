@@ -689,20 +689,27 @@ downloaded and installed separately. These include:</p>
 </ul>
 
 <p>To assist you with the installation, these features are pre-packaged as
-<strong>Components</strong>. The GraalVM installation contains the <strong>GraalVM Updater</strong>
+<strong>components</strong>. The GraalVM installation contains the <strong>GraalVM Updater</strong>
 utility, <code>gu</code>, that can be used to manage components. GraalVM Updater also
 verifies whether the version of the component is appropriate for your GraalVM
 installation. Component packages are released for each GraalVM release with
 respective updates. Component packages downloaded for previous release(s) cannot
-be used with newer ones. Add the GraalVM <code>/bin</code> folder to your <code>PATH</code>
-environment variable in order to deploy the <code>gu</code> installer tool.</p>
+be used with newer ones.</p>
 
-<p>There is a command-line help available.
+<p>Add the GraalVM <code>/bin</code> folder to your <code>PATH</code>
+environment variable in order to deploy the installer tool.
+There is a command-line help available.
 Run <code>gu</code> or <code>gu -h</code> to get commands overview.
 Run <code>gu &lt;command&gt; -h</code> to get help specific for the particular command, for example <code>gu install -h</code>.</p>
 
+<p>A component may depend on requiring other components for its operation. GraalVM Updater
+verifies such requirements and will attempt to download the required dependencies, or
+abort the installation if component’s requirements are not met.</p>
+
+<p><strong>Warning:</strong> Components intended for GraalVM Enterprise Edition can not be installed into GraalVM Community Edition.</p>
+
 <h2 id="component-installation-modes">Component Installation Modes</h2>
-<p>Two modes of components installation are supported:</p>
+<p>Three modes of components installation are supported:</p>
 
 <p><strong>Manual Installation</strong></p>
 
@@ -718,7 +725,15 @@ Run <code>gu &lt;command&gt; -h</code> to get help specific for the particular c
 <p>With the already downloaded component JAR file, the component can be installed as</p>
 <pre><code>gu -L install component.jar
 </code></pre>
-<p>where <code>-L</code> option, equivalent to <code>--local-file</code> or <code>--file</code>, tells to install from a downloaded component archive.</p>
+<p>where <code>-L</code> option, equivalent to <code>--local-file</code> or <code>--file</code>, tells to install
+from the downloaded component archive. However, a component may depend on other
+components (e.g. Ruby language depends on the <a href="/docs/reference-manual/languages/llvm/#llvm-toolchain">LLVM toolchain</a>). For example, <code>gu
+-L install component.jar</code> will fail if the required components are not yet
+installed. If you download all the dependencies into the same directory, you may
+use:</p>
+<pre><code>gu -L install -D
+</code></pre>
+<p>Check <code>gu --help</code> or <code>gu -C</code> (see below) how to instruct GraalVM Updater to find and process required components as well.</p>
 
 <p><strong>Warning:</strong> For GraalVM Enterprise Edition users, a manual installation is required to
 prevent the use of a “community” component version.</p>
@@ -733,20 +748,44 @@ download the actual component package and installs it.</p>
 <p>To get a list of components available in the catalog, their IDs, and descriptive names, use</p>
 <pre><code>gu available
 </code></pre>
-<p>Then the <code>ComponentId</code>, for example <code>ruby</code>, can be used as</p>
+<p>Then the <code>ComponentId</code>, for example <code>ruby</code>, can be used as:</p>
 <pre><code>gu install ruby
 </code></pre>
-<p>and that is all!
-If you want to see more verbose messages during installation, you may use the
+<p>If you want to see more verbose messages during installation, you may use the
 <code>-v</code> or <code>--verbose</code> switch to see the download progress bar and verbose messages.</p>
 
+<p>If a component being installed requires other components to be present, GraalVM
+Updater will search the Catalog to find the appropriate component and install it
+as well. If required components could not be found, installation will fail.</p>
+
+<p>When using custom catalog URLs, it is possible, as a convenience, to set
+environment variable <code>GRAALVM_CATALOG</code> pointing to the custom catalog’s URL.
+GraalVM updater will use URL found defined by <code>GRAALVM_CATALOG</code> in preference to
+the builtin ones. You may setup the environment variable in startup or profile
+scripts.</p>
+
 <p><strong>Warning:</strong> The installation of the R language component is possible only from catalog.</p>
+
+<p><strong>Installation from Local Components Collection</strong></p>
+
+<p>Components can be downloaded manually in advance to a local file folder, or to a
+folder shared on the local network. GraalVM Updater can then use that folder
+instead of the catalog:</p>
+<pre><code>gu -C /path/to/download/directory
+</code></pre>
+<p>specifying the directory to use as components collection. It is possible to type
+components names (like <code>ruby</code>) instead of filenames. GraalVM Updater also
+attempts to find required dependencies in the local component collection.</p>
+
+<p>Similar to the installation from catalog, the path to the directory that
+contains local components collection can be defined in the <code>GRAALVM_CATALOG</code>
+environment variable.</p>
 
 <p>Installed on your machine components can be printed with:</p>
 
 <pre><code>gu list
 </code></pre>
-
+<h3 id="installation-configuration">Installation Configuration</h3>
 <p>The installation command of GraalVM Updater accepts multiple options and parameters and allows this syntax:</p>
 <pre><code>gu install [-0cCfFiLnorsuvyxY] param [param ...]
 </code></pre>
@@ -769,12 +808,12 @@ If you want to see more verbose messages during installation, you may use the
   <li><code>-Y, --validate-before</code>: download, verify, check file conflicts before any disk change is made</li>
 </ul>
 
-<p>Finally, customers using Oracle GraalVM Enterprise Edition could need to pass an
+<p>Finally, customers using Oracle GraalVM Enterprise Edition might need to pass an
 additional verification step to login to Oracle components repository. GraalVM
 Updater tool provides options for that:</p>
 <ul>
-  <li><code>--public-key / -k &lt;path&gt;</code> to set the path to a custom GPG public key path;</li>
-  <li><code>--username/-U</code> to enter a username.</li>
+  <li><code>--public-key / -k &lt;path&gt;</code> to set the path to a custom GPG public key path</li>
+  <li><code>--username/-U</code> to enter a username</li>
 </ul>
 
 <h2 id="rebuilding-images">Rebuilding Images</h2>
@@ -791,11 +830,10 @@ native C library may be out of sync, particularly:</p>
 </code></pre>
 
 <h2 id="uninstallation">Uninstallation</h2>
-<p>Components may be uninstalled from the GraalVM environment when you no longer
-need them. To uninstall a specific component you need to know its <code>ComponentId</code>,
-which can be <code>ruby</code>, or <code>r</code> or <code>python</code>. The command to uninstall the component
-is:</p>
-<pre><code>gu remove ruby
+<p>Components may be uninstalled from the GraalVM environment when no longer needed.
+To uninstall a specific component you need to know its <code>ComponentId</code>, which can be <code>ruby</code>, or <code>r</code> and so on.
+The command to uninstall the component is:</p>
+<pre><code>gu remove ComponentId
 </code></pre>
 <p>If more components end with, for example, <code>ruby</code>, the installer will print an
 error message that you need to use component’s full names (<code>org.graalvm.ruby</code>).
@@ -804,18 +842,31 @@ belongs to multiple components, it will be removed when the last component using
 it is removed.</p>
 
 <h2 id="proxies">Proxies</h2>
-<p>If <em>GraalVM Updater</em> needs to reach the component catalog, or download a
-component package, it may need to pass through your HTTP proxy, if your network
+<p>If GraalVM Updater needs to reach the component catalog, or download a
+component package, it may need to pass through the HTTP proxy, if your network
 uses one. On <em>macOS</em>, the proxy settings are automatically obtained from the OS.
 On <em>Linux</em>, you must ensure that the <code>http_proxy</code> and <code>https_proxy</code> environment
 variables are set appropriately <strong>before</strong> you launch <code>gu</code>. Please refer to your
 distribution and/or desktop environment documentation for the details.</p>
 
+<p>Sometimes, an intermediate (e.g. corporate) proxy may act as
+“man-in-the-middle”, intercepting https-secured communication and issuing its
+own host certificates, which cannot be verified by GraalVM Updater. If you see
+error messages with descriptions containing <code>ValidatorException</code> or
+<code>SunCertPathBuilderException</code>, it is obviously the culprit.</p>
+
+<p>GraalVM Updater <strong>intentionally does not support</strong>
+an option to disable certificate or hostname verification, for security reasons.
+You may try to add your proxy’s certificate to the GraalVM default security trust
+store (see JDK documentation for the details). You can also download the components
+manually to a folder, and then use <code>gu -L install /path/to/file</code> or
+<code>gu -C /path/to/download/dir install component</code> to install from a local filesystem.</p>
+
 <h2 id="replacing-components-and-files">Replacing Components and Files</h2>
 <p>A component may be only installed once. GraalVM Updater refuses to install a
-component if a component with the same ID is already installed. But the
+component if a component with the same <code>ComponentId</code> is already installed. But the
 installed component may be <strong>replaced</strong>. GraalVM Updater first uninstalls the
-component and then installs the new package. To replace a component, use the
+component and then installs a new package. To replace a component, use the
 <code>-r</code> option. The <code>-L</code> option, equivalent to <code>--file</code> or <code>--local-file</code>, tells to treat parameters as local filename of a packaged component.</p>
 <pre><code>gu install -L -r component.jar
 gu install -r ruby
@@ -835,7 +886,6 @@ component. By default, it will not alter anything. You can also use <code>-f</co
 non-matching versions.</p>
 
 <h2 id="troubleshooting">Troubleshooting</h2>
-
 <p>If a language component is not installed running the code that tries to initialize the language context can result in an exception like this:</p>
 <pre><code>java.lang.ExceptionInInitializerError
 Caused by: com.oracle.truffle.polyglot.PolyglotIllegalArgumentException: A language with id '$language' is not installed. Installed languages are: [js, llvm].
