@@ -38,7 +38,7 @@
 <li class="navBarCell1Rev">Index</li>
 <li><a href="help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.0.0-dev</b><br>786b4f16086b28a1b6cb04b34ad5f7911e09e6d2</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.0.0-dev</b><br>37e34b14de5b3c78c48e6605d2367c8b01abe657</div>
 </div>
 <div class="subNav">
 <ul class="navList">
@@ -68,7 +68,7 @@
 <!--   -->
 </a></div>
 <!-- ========= END OF TOP NAVBAR ========= -->
-<div class="contentContainer"><a href="#I:A">A</a>&nbsp;<a href="#I:B">B</a>&nbsp;<a href="#I:C">C</a>&nbsp;<a href="#I:D">D</a>&nbsp;<a href="#I:E">E</a>&nbsp;<a href="#I:F">F</a>&nbsp;<a href="#I:G">G</a>&nbsp;<a href="#I:H">H</a>&nbsp;<a href="#I:I">I</a>&nbsp;<a href="#I:J">J</a>&nbsp;<a href="#I:K">K</a>&nbsp;<a href="#I:L">L</a>&nbsp;<a href="#I:M">M</a>&nbsp;<a href="#I:N">N</a>&nbsp;<a href="#I:O">O</a>&nbsp;<a href="#I:P">P</a>&nbsp;<a href="#I:Q">Q</a>&nbsp;<a href="#I:R">R</a>&nbsp;<a href="#I:S">S</a>&nbsp;<a href="#I:T">T</a>&nbsp;<a href="#I:U">U</a>&nbsp;<a href="#I:V">V</a>&nbsp;<a href="#I:W">W</a>&nbsp;<a href="#I:X">X</a>&nbsp;<a href="#I:Z">Z</a>&nbsp;<a name="I:A">
+<div class="contentContainer"><a href="#I:A">A</a>&nbsp;<a href="#I:B">B</a>&nbsp;<a href="#I:C">C</a>&nbsp;<a href="#I:D">D</a>&nbsp;<a href="#I:E">E</a>&nbsp;<a href="#I:F">F</a>&nbsp;<a href="#I:G">G</a>&nbsp;<a href="#I:H">H</a>&nbsp;<a href="#I:I">I</a>&nbsp;<a href="#I:J">J</a>&nbsp;<a href="#I:L">L</a>&nbsp;<a href="#I:M">M</a>&nbsp;<a href="#I:N">N</a>&nbsp;<a href="#I:O">O</a>&nbsp;<a href="#I:P">P</a>&nbsp;<a href="#I:Q">Q</a>&nbsp;<a href="#I:R">R</a>&nbsp;<a href="#I:S">S</a>&nbsp;<a href="#I:T">T</a>&nbsp;<a href="#I:U">U</a>&nbsp;<a href="#I:V">V</a>&nbsp;<a href="#I:W">W</a>&nbsp;<a href="#I:X">X</a>&nbsp;<a href="#I:Z">Z</a>&nbsp;<a name="I:A">
 <!--   -->
 </a>
 <h2 class="title">A</h2>
@@ -967,14 +967,6 @@
 </dd>
 <dt><a href="com/oracle/truffle/api/object/BooleanLocation.html" title="interface in com.oracle.truffle.api.object"><span class="typeNameLink">BooleanLocation</span></a> - Interface in <a href="com/oracle/truffle/api/object/package-summary.html">com.oracle.truffle.api.object</a></dt>
 <dd>&nbsp;</dd>
-<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/instrumentation/TruffleInstrument.Env.html#boxPrimitive-com.oracle.truffle.api.nodes.LanguageInfo-java.lang.Object-">boxPrimitive(LanguageInfo, Object)</a></span> - Method in class com.oracle.truffle.api.instrumentation.<a href="com/oracle/truffle/api/instrumentation/TruffleInstrument.Env.html" title="class in com.oracle.truffle.api.instrumentation">TruffleInstrument.Env</a></dt>
-<dd>
-<div class="block">Box a primitive value into a language-specific TruffleObject.</div>
-</dd>
-<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/TruffleLanguage.html#boxPrimitive-C-java.lang.Object-">boxPrimitive(C, Object)</a></span> - Method in class com.oracle.truffle.api.<a href="com/oracle/truffle/api/TruffleLanguage.html" title="class in com.oracle.truffle.api">TruffleLanguage</a></dt>
-<dd>
-<div class="block">Try to box a primitive value into a language-specific TruffleObject of this language.</div>
-</dd>
 <dt><a href="com/oracle/truffle/api/profiles/BranchProfile.html" title="class in com.oracle.truffle.api.profiles"><span class="typeNameLink">BranchProfile</span></a> - Class in <a href="com/oracle/truffle/api/profiles/package-summary.html">com.oracle.truffle.api.profiles</a></dt>
 <dd>
 <div class="block">
@@ -1696,10 +1688,6 @@
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/object/Shape.Allocator.html#constantLocation-java.lang.Object-">constantLocation(Object)</a></span> - Method in class com.oracle.truffle.api.object.<a href="com/oracle/truffle/api/object/Shape.Allocator.html" title="class in com.oracle.truffle.api.object">Shape.Allocator</a></dt>
 <dd>
 <div class="block">Creates a new location from a constant value.</div>
-</dd>
-<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/instrumentation/StandardTags.DeclarationTag.html#CONTAINER">CONTAINER</a></span> - Static variable in class com.oracle.truffle.api.instrumentation.<a href="com/oracle/truffle/api/instrumentation/StandardTags.DeclarationTag.html" title="class in com.oracle.truffle.api.instrumentation">StandardTags.DeclarationTag</a></dt>
-<dd>
-<div class="block">Property of the node object that contains the container name of the declared element.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="org/graalvm/collections/UnmodifiableEconomicSet.html#contains-E-">contains(E)</a></span> - Method in interface org.graalvm.collections.<a href="org/graalvm/collections/UnmodifiableEconomicSet.html" title="interface in org.graalvm.collections">UnmodifiableEconomicSet</a></dt>
 <dd>
@@ -2541,17 +2529,9 @@
 <dd>
 <div class="block">Denies bidirectional evaluation of code between the given languages.</div>
 </dd>
-<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/instrumentation/StandardTags.DeclarationTag.html#DEPRECATED">DEPRECATED</a></span> - Static variable in class com.oracle.truffle.api.instrumentation.<a href="com/oracle/truffle/api/instrumentation/StandardTags.DeclarationTag.html" title="class in com.oracle.truffle.api.instrumentation">StandardTags.DeclarationTag</a></dt>
-<dd>
-<div class="block">Whether this declared element is deprecated.</div>
-</dd>
 <dt><span class="memberNameLink"><a href="org/graalvm/options/OptionDescriptor.Builder.html#deprecated-boolean-">deprecated(boolean)</a></span> - Method in class org.graalvm.options.<a href="org/graalvm/options/OptionDescriptor.Builder.html" title="class in org.graalvm.options">OptionDescriptor.Builder</a></dt>
 <dd>
 <div class="block">Defines if this option is deprecated.</div>
-</dd>
-<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/instrumentation/StandardTags.DeclarationTag.html#DESCRIPTION">DESCRIPTION</a></span> - Static variable in class com.oracle.truffle.api.instrumentation.<a href="com/oracle/truffle/api/instrumentation/StandardTags.DeclarationTag.html" title="class in com.oracle.truffle.api.instrumentation">StandardTags.DeclarationTag</a></dt>
-<dd>
-<div class="block">Description of the declared language element.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="org/graalvm/nativeimage/ObjectHandles.html#destroy-org.graalvm.nativeimage.ObjectHandle-">destroy(ObjectHandle)</a></span> - Method in interface org.graalvm.nativeimage.<a href="org/graalvm/nativeimage/ObjectHandles.html" title="interface in org.graalvm.nativeimage">ObjectHandles</a></dt>
 <dd>
@@ -3107,7 +3087,7 @@
 </dd>
 <dt><a href="com/oracle/truffle/api/nodes/ExplodeLoop.LoopExplosionKind.html" title="enum in com.oracle.truffle.api.nodes"><span class="typeNameLink">ExplodeLoop.LoopExplosionKind</span></a> - Enum in <a href="com/oracle/truffle/api/nodes/package-summary.html">com.oracle.truffle.api.nodes</a></dt>
 <dd>
-<div class="block">Controls behavior of <a href="com/oracle/truffle/api/nodes/ExplodeLoop.html" title="annotation in com.oracle.truffle.api.nodes"><code>ExplodeLoop</code></a> annotation.</div>
+<div class="block">Controls the behavior of the <a href="com/oracle/truffle/api/nodes/ExplodeLoop.html" title="annotation in com.oracle.truffle.api.nodes"><code>ExplodeLoop</code></a> annotation.</div>
 </dd>
 <dt><a href="com/oracle/truffle/api/library/ExportLibrary.html" title="annotation in com.oracle.truffle.api.library"><span class="typeNameLink">ExportLibrary</span></a> - Annotation Type in <a href="com/oracle/truffle/api/library/package-summary.html">com.oracle.truffle.api.library</a></dt>
 <dd>
@@ -4012,10 +3992,6 @@
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/nodes/RootNode.html#getCompilerOptions--">getCompilerOptions()</a></span> - Method in class com.oracle.truffle.api.nodes.<a href="com/oracle/truffle/api/nodes/RootNode.html" title="class in com.oracle.truffle.api.nodes">RootNode</a></dt>
 <dd>
 <div class="block">Get compiler options specific to this <code>RootNode</code>.</div>
-</dd>
-<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/instrumentation/TruffleInstrument.Env.html#getCompletionTriggerCharacters-com.oracle.truffle.api.nodes.LanguageInfo-">getCompletionTriggerCharacters(LanguageInfo)</a></span> - Method in class com.oracle.truffle.api.instrumentation.<a href="com/oracle/truffle/api/instrumentation/TruffleInstrument.Env.html" title="class in com.oracle.truffle.api.instrumentation">TruffleInstrument.Env</a></dt>
-<dd>
-<div class="block">Get a list of completion trigger characters of a language.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/Breakpoint.html#getCondition--">getCondition()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/Breakpoint.html" title="class in com.oracle.truffle.api.debug">Breakpoint</a></dt>
 <dd>
@@ -5378,10 +5354,6 @@
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/object/Shape.html#getSharedData--">getSharedData()</a></span> - Method in class com.oracle.truffle.api.object.<a href="com/oracle/truffle/api/object/Shape.html" title="class in com.oracle.truffle.api.object">Shape</a></dt>
 <dd>
 <div class="block">Get the shape's shared data.</div>
-</dd>
-<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/instrumentation/TruffleInstrument.Env.html#getSignatureHelpTriggerCharacters-com.oracle.truffle.api.nodes.LanguageInfo-">getSignatureHelpTriggerCharacters(LanguageInfo)</a></span> - Method in class com.oracle.truffle.api.instrumentation.<a href="com/oracle/truffle/api/instrumentation/TruffleInstrument.Env.html" title="class in com.oracle.truffle.api.instrumentation">TruffleInstrument.Env</a></dt>
-<dd>
-<div class="block">Get a list of signature help trigger characters of a language.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/library/Message.html#getSimpleName--">getSimpleName()</a></span> - Method in class com.oracle.truffle.api.library.<a href="com/oracle/truffle/api/library/Message.html" title="class in com.oracle.truffle.api.library">Message</a></dt>
 <dd>
@@ -7277,16 +7249,6 @@
 <dt><a href="com/oracle/truffle/api/utilities/JSONHelper.JSONStringBuilder.html" title="class in com.oracle.truffle.api.utilities"><span class="typeNameLink">JSONHelper.JSONStringBuilder</span></a> - Class in <a href="com/oracle/truffle/api/utilities/package-summary.html">com.oracle.truffle.api.utilities</a></dt>
 <dd>&nbsp;</dd>
 </dl>
-<a name="I:K">
-<!--   -->
-</a>
-<h2 class="title">K</h2>
-<dl>
-<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/instrumentation/StandardTags.DeclarationTag.html#KIND">KIND</a></span> - Static variable in class com.oracle.truffle.api.instrumentation.<a href="com/oracle/truffle/api/instrumentation/StandardTags.DeclarationTag.html" title="class in com.oracle.truffle.api.instrumentation">StandardTags.DeclarationTag</a></dt>
-<dd>
-<div class="block">Property of the node object that contains kind of the declared element.</div>
-</dd>
-</dl>
 <a name="I:L">
 <!--   -->
 </a>
@@ -7845,18 +7807,6 @@
 </a>
 <h2 class="title">N</h2>
 <dl>
-<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/instrumentation/StandardTags.DeclarationTag.html#NAME">NAME</a></span> - Static variable in class com.oracle.truffle.api.instrumentation.<a href="com/oracle/truffle/api/instrumentation/StandardTags.DeclarationTag.html" title="class in com.oracle.truffle.api.instrumentation">StandardTags.DeclarationTag</a></dt>
-<dd>
-<div class="block">Property of the node object that contains name of the declared element.</div>
-</dd>
-<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/instrumentation/StandardTags.ReadVariableTag.html#NAME">NAME</a></span> - Static variable in class com.oracle.truffle.api.instrumentation.<a href="com/oracle/truffle/api/instrumentation/StandardTags.ReadVariableTag.html" title="class in com.oracle.truffle.api.instrumentation">StandardTags.ReadVariableTag</a></dt>
-<dd>
-<div class="block">Property of the node object that contains name of the variable.</div>
-</dd>
-<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/instrumentation/StandardTags.WriteVariableTag.html#NAME">NAME</a></span> - Static variable in class com.oracle.truffle.api.instrumentation.<a href="com/oracle/truffle/api/instrumentation/StandardTags.WriteVariableTag.html" title="class in com.oracle.truffle.api.instrumentation">StandardTags.WriteVariableTag</a></dt>
-<dd>
-<div class="block">Property of the node object that contains name of the variable.</div>
-</dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/source/Source.LiteralBuilder.html#name-java.lang.String-">name(String)</a></span> - Method in class com.oracle.truffle.api.source.<a href="com/oracle/truffle/api/source/Source.LiteralBuilder.html" title="class in com.oracle.truffle.api.source">Source.LiteralBuilder</a></dt>
 <dd>
 <div class="block">Specifies a name to the <a href="com/oracle/truffle/api/source/Source.SourceBuilder.html#build--"><code>to-be-built</code></a> <a href="com/oracle/truffle/api/source/Source.html" title="class in com.oracle.truffle.api.source"><code>Source</code></a>.</div>
@@ -8278,7 +8228,7 @@
 </dd>
 <dt><span class="memberNameLink"><a href="org/graalvm/nativeimage/hosted/Feature.html#onAnalysisExit-org.graalvm.nativeimage.hosted.Feature.OnAnalysisExitAccess-">onAnalysisExit(Feature.OnAnalysisExitAccess)</a></span> - Method in interface org.graalvm.nativeimage.hosted.<a href="org/graalvm/nativeimage/hosted/Feature.html" title="interface in org.graalvm.nativeimage.hosted">Feature</a></dt>
 <dd>
-<div class="block">Handler for code that needs to run after the analysis, even if an error has occured, e.g.,
+<div class="block">Handler for code that needs to run after the analysis, even if an error has occurred, e.g.,
  like reporting code.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/instrumentation/ContextsListener.html#onContextClosed-com.oracle.truffle.api.TruffleContext-">onContextClosed(TruffleContext)</a></span> - Method in interface com.oracle.truffle.api.instrumentation.<a href="com/oracle/truffle/api/instrumentation/ContextsListener.html" title="interface in com.oracle.truffle.api.instrumentation">ContextsListener</a></dt>
@@ -9828,6 +9778,10 @@
 <dd>
 <div class="block">Provides the test execution data.</div>
 </dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebuggerSession.html#resume-java.lang.Thread-">resume(Thread)</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebuggerSession.html" title="class in com.oracle.truffle.api.debug">DebuggerSession</a></dt>
+<dd>
+<div class="block">Resumes the execution on a given thread if it has not been suspended yet.</div>
+</dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebuggerSession.html#resumeAll--">resumeAll()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebuggerSession.html" title="class in com.oracle.truffle.api.debug">DebuggerSession</a></dt>
 <dd>
 <div class="block">Resumes all suspended executions that have not yet been notified.</div>
@@ -9920,14 +9874,6 @@
 <dt><a href="com/oracle/truffle/api/Scope.Builder.html" title="class in com.oracle.truffle.api"><span class="typeNameLink">Scope.Builder</span></a> - Class in <a href="com/oracle/truffle/api/package-summary.html">com.oracle.truffle.api</a></dt>
 <dd>
 <div class="block">Builder to create a new <a href="com/oracle/truffle/api/Scope.html" title="class in com.oracle.truffle.api"><code>Scope</code></a> object.</div>
-</dd>
-<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/instrumentation/StandardTags.DeclarationTag.html#SCOPE_SECTION">SCOPE_SECTION</a></span> - Static variable in class com.oracle.truffle.api.instrumentation.<a href="com/oracle/truffle/api/instrumentation/StandardTags.DeclarationTag.html" title="class in com.oracle.truffle.api.instrumentation">StandardTags.DeclarationTag</a></dt>
-<dd>
-<div class="block">An optional section of the scope where this declared element is valid.</div>
-</dd>
-<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/instrumentation/StandardTags.WriteVariableTag.html#SCOPE_SECTION">SCOPE_SECTION</a></span> - Static variable in class com.oracle.truffle.api.instrumentation.<a href="com/oracle/truffle/api/instrumentation/StandardTags.WriteVariableTag.html" title="class in com.oracle.truffle.api.instrumentation">StandardTags.WriteVariableTag</a></dt>
-<dd>
-<div class="block">An optional section of the scope where the written variable of the given type is valid.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/library/ReflectionLibrary.html#send-java.lang.Object-com.oracle.truffle.api.library.Message-java.lang.Object...-">send(Object, Message, Object...)</a></span> - Method in class com.oracle.truffle.api.library.<a href="com/oracle/truffle/api/library/ReflectionLibrary.html" title="class in com.oracle.truffle.api.library">ReflectionLibrary</a></dt>
 <dd>
@@ -10476,17 +10422,9 @@
 <div class="block">Marks program locations that represent a call to other guest language functions, methods or
  closures.</div>
 </dd>
-<dt><a href="com/oracle/truffle/api/instrumentation/StandardTags.DeclarationTag.html" title="class in com.oracle.truffle.api.instrumentation"><span class="typeNameLink">StandardTags.DeclarationTag</span></a> - Class in <a href="com/oracle/truffle/api/instrumentation/package-summary.html">com.oracle.truffle.api.instrumentation</a></dt>
-<dd>
-<div class="block">Marks program locations to be considered as named declarations of the language elements.</div>
-</dd>
 <dt><a href="com/oracle/truffle/api/instrumentation/StandardTags.ExpressionTag.html" title="class in com.oracle.truffle.api.instrumentation"><span class="typeNameLink">StandardTags.ExpressionTag</span></a> - Class in <a href="com/oracle/truffle/api/instrumentation/package-summary.html">com.oracle.truffle.api.instrumentation</a></dt>
 <dd>
 <div class="block">Marks program locations as to be considered expressions of the languages.</div>
-</dd>
-<dt><a href="com/oracle/truffle/api/instrumentation/StandardTags.ReadVariableTag.html" title="class in com.oracle.truffle.api.instrumentation"><span class="typeNameLink">StandardTags.ReadVariableTag</span></a> - Class in <a href="com/oracle/truffle/api/instrumentation/package-summary.html">com.oracle.truffle.api.instrumentation</a></dt>
-<dd>
-<div class="block">Marks program locations to be considered as reads of variables of the languages.</div>
 </dd>
 <dt><a href="com/oracle/truffle/api/instrumentation/StandardTags.RootBodyTag.html" title="class in com.oracle.truffle.api.instrumentation"><span class="typeNameLink">StandardTags.RootBodyTag</span></a> - Class in <a href="com/oracle/truffle/api/instrumentation/package-summary.html">com.oracle.truffle.api.instrumentation</a></dt>
 <dd>
@@ -10503,10 +10441,6 @@
 <dt><a href="com/oracle/truffle/api/instrumentation/StandardTags.TryBlockTag.html" title="class in com.oracle.truffle.api.instrumentation"><span class="typeNameLink">StandardTags.TryBlockTag</span></a> - Class in <a href="com/oracle/truffle/api/instrumentation/package-summary.html">com.oracle.truffle.api.instrumentation</a></dt>
 <dd>
 <div class="block">Marks program locations to be considered as try blocks, that are followed by catch.</div>
-</dd>
-<dt><a href="com/oracle/truffle/api/instrumentation/StandardTags.WriteVariableTag.html" title="class in com.oracle.truffle.api.instrumentation"><span class="typeNameLink">StandardTags.WriteVariableTag</span></a> - Class in <a href="com/oracle/truffle/api/instrumentation/package-summary.html">com.oracle.truffle.api.instrumentation</a></dt>
-<dd>
-<div class="block">Marks program locations to be considered as writes of variables of the languages.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/io/TruffleProcessBuilder.html#start--">start()</a></span> - Method in class com.oracle.truffle.api.io.<a href="com/oracle/truffle/api/io/TruffleProcessBuilder.html" title="class in com.oracle.truffle.api.io">TruffleProcessBuilder</a></dt>
 <dd>
@@ -10595,6 +10529,14 @@
 </dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/CompilerOptions.html#supportsOption-java.lang.String-">supportsOption(String)</a></span> - Method in interface com.oracle.truffle.api.<a href="com/oracle/truffle/api/CompilerOptions.html" title="interface in com.oracle.truffle.api">CompilerOptions</a></dt>
 <dd>&nbsp;</dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebuggerSession.html#suspend-java.lang.Thread-">suspend(Thread)</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebuggerSession.html" title="class in com.oracle.truffle.api.debug">DebuggerSession</a></dt>
+<dd>
+<div class="block">Suspends the current or the next execution of a given thread.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebuggerSession.html#suspendAll--">suspendAll()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebuggerSession.html" title="class in com.oracle.truffle.api.debug">DebuggerSession</a></dt>
+<dd>
+<div class="block">Suspends the current or the next execution on all threads.</div>
+</dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/Breakpoint.Builder.html#suspendAnchor-com.oracle.truffle.api.debug.SuspendAnchor-">suspendAnchor(SuspendAnchor)</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/Breakpoint.Builder.html" title="class in com.oracle.truffle.api.debug">Breakpoint.Builder</a></dt>
 <dd>
 <div class="block">Specify the breakpoint suspension anchor within the guest language source location.</div>
@@ -11061,14 +11003,6 @@
 <dd>
 <div class="block">Try to merge two related shapes to a more general shape that has the same properties and can
  store at least the values of both shapes.</div>
-</dd>
-<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/instrumentation/StandardTags.DeclarationTag.html#TYPE">TYPE</a></span> - Static variable in class com.oracle.truffle.api.instrumentation.<a href="com/oracle/truffle/api/instrumentation/StandardTags.DeclarationTag.html" title="class in com.oracle.truffle.api.instrumentation">StandardTags.DeclarationTag</a></dt>
-<dd>
-<div class="block">Type of this declaration.</div>
-</dd>
-<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/instrumentation/StandardTags.WriteVariableTag.html#TYPE">TYPE</a></span> - Static variable in class com.oracle.truffle.api.instrumentation.<a href="com/oracle/truffle/api/instrumentation/StandardTags.WriteVariableTag.html" title="class in com.oracle.truffle.api.instrumentation">StandardTags.WriteVariableTag</a></dt>
-<dd>
-<div class="block">Type of the variable after write operation.</div>
 </dd>
 <dt><a href="com/oracle/truffle/api/dsl/TypeCast.html" title="annotation in com.oracle.truffle.api.dsl"><span class="typeNameLink">TypeCast</span></a> - Annotation Type in <a href="com/oracle/truffle/api/dsl/package-summary.html">com.oracle.truffle.api.dsl</a></dt>
 <dd>
@@ -11863,7 +11797,7 @@ the order they are declared.</div>
 <div class="block">The constant 0, i.e., the word with no bits set.</div>
 </dd>
 </dl>
-<a href="#I:A">A</a>&nbsp;<a href="#I:B">B</a>&nbsp;<a href="#I:C">C</a>&nbsp;<a href="#I:D">D</a>&nbsp;<a href="#I:E">E</a>&nbsp;<a href="#I:F">F</a>&nbsp;<a href="#I:G">G</a>&nbsp;<a href="#I:H">H</a>&nbsp;<a href="#I:I">I</a>&nbsp;<a href="#I:J">J</a>&nbsp;<a href="#I:K">K</a>&nbsp;<a href="#I:L">L</a>&nbsp;<a href="#I:M">M</a>&nbsp;<a href="#I:N">N</a>&nbsp;<a href="#I:O">O</a>&nbsp;<a href="#I:P">P</a>&nbsp;<a href="#I:Q">Q</a>&nbsp;<a href="#I:R">R</a>&nbsp;<a href="#I:S">S</a>&nbsp;<a href="#I:T">T</a>&nbsp;<a href="#I:U">U</a>&nbsp;<a href="#I:V">V</a>&nbsp;<a href="#I:W">W</a>&nbsp;<a href="#I:X">X</a>&nbsp;<a href="#I:Z">Z</a>&nbsp;</div>
+<a href="#I:A">A</a>&nbsp;<a href="#I:B">B</a>&nbsp;<a href="#I:C">C</a>&nbsp;<a href="#I:D">D</a>&nbsp;<a href="#I:E">E</a>&nbsp;<a href="#I:F">F</a>&nbsp;<a href="#I:G">G</a>&nbsp;<a href="#I:H">H</a>&nbsp;<a href="#I:I">I</a>&nbsp;<a href="#I:J">J</a>&nbsp;<a href="#I:L">L</a>&nbsp;<a href="#I:M">M</a>&nbsp;<a href="#I:N">N</a>&nbsp;<a href="#I:O">O</a>&nbsp;<a href="#I:P">P</a>&nbsp;<a href="#I:Q">Q</a>&nbsp;<a href="#I:R">R</a>&nbsp;<a href="#I:S">S</a>&nbsp;<a href="#I:T">T</a>&nbsp;<a href="#I:U">U</a>&nbsp;<a href="#I:V">V</a>&nbsp;<a href="#I:W">W</a>&nbsp;<a href="#I:X">X</a>&nbsp;<a href="#I:Z">Z</a>&nbsp;</div>
 <!-- ======= START OF BOTTOM NAVBAR ====== -->
 <div class="bottomNav"><a name="navbar.bottom">
 <!--   -->
@@ -11881,7 +11815,7 @@ the order they are declared.</div>
 <li class="navBarCell1Rev">Index</li>
 <li><a href="help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.0.0-dev</b><br>786b4f16086b28a1b6cb04b34ad5f7911e09e6d2</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.0.0-dev</b><br>37e34b14de5b3c78c48e6605d2367c8b01abe657</div>
 </div>
 <div class="subNav">
 <ul class="navList">
