@@ -559,7 +559,7 @@ $(document).ready(function(){
               <div id="content-wrapper" class="docs-content docs-content--with-sidebar">
                 <h2 id="getting-started-with-instruments-in-graalvm">Getting started with Instruments in GraalVM</h2>
 
-<p>Tools are sometimes referred as <em>Instruments</em> within the GraalVM platform.
+<p>Tools are sometimes referred to as <em>Instruments</em> within the GraalVM platform.
 The <a href="http://www.graalvm.org/truffle/javadoc/com/oracle/truffle/api/instrumentation/package-summary.html">Truffle Instrument API</a> is used to implement such instruments.
 Instruments can track very fine-grained VM-level runtime events to profile, inspect, and analyze the runtime behavior of applications running on GraalVM.</p>
 
@@ -576,7 +576,7 @@ as the running example. These sections do not cover all the features of the
 <h3 id="the-requirements">The Requirements</h3>
 <p>As mentioned before, Simple Tool is a code coverage tool. Ultimately, it
 should provide the developer with information on what percentage of source code
-lines is executed, as well as exactly which lines are executed. With that in
+lines was executed, as well as exactly which lines were executed. With that in
 mind, we can define some high level requirements from our tool:</p>
 
 <ol>
@@ -681,12 +681,12 @@ In this method we check that the proper option has been set and, if so, calculat
 
 <p>This is a simple way of providing useful information to a user, but it is definitely not the only one.
 A tool could dump its data directly to a file, or run a web endpoint which shows the information, etc..
-One of the mechanisms that the Truffle Instrumentation framework allows is to register instruments as a service to be looked up by other instruments.
+One of the mechanisms that the Truffle Instrumentation framework provides users is registering instruments as services to be looked up by other instruments.
 If we look at the <a href="https://github.com/graalvm/simpletool/blob/master/src/main/java/com/oracle/truffle/st/SimpleCoverageInstrument.java#L83">Registration</a> annotation of our instrument we can see that it provides a <code>services</code> field where we can specify which services the instrument provides to other instruments.
 These services need to be explicitly <a href="https://github.com/graalvm/simpletool/blob/master/src/main/java/com/oracle/truffle/st/SimpleCoverageInstrument.java#L134">registered</a>.
 This allows a nicer separation of concerns among instruments so that, for example, we could have a “real time coverage” instrument which would use our <code>SimpleCoverageInstrument</code> to provide on demand coverage information to a user through a REST API, and a “aborts on low coverage” instrument which stops the execution if coverage drops bellow a threshold, both using the <code>SimpleCoverageInstrument</code> as a service.</p>
 
-<p>Note, for reasons of isolation, instrument services are not available to application code, and instrument services can only be used from other instruments or Truffle languages.</p>
+<p>Note that, for reasons of isolation, instrument services are not available to application code, and instrument services can only be used from other instruments or Truffle languages.</p>
 
 <h3 id="installing-a-tool-into-graalvm">Installing a Tool into GraalVM</h3>
 
