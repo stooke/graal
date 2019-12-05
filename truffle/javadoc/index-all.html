@@ -38,7 +38,7 @@
 <li class="navBarCell1Rev">Index</li>
 <li><a href="help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.0.0-dev</b><br>4f5b7798887d093c23f1bdee3967e01007161657</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.0.0-dev</b><br>f75e15821d45f25ab77714ff3df38688381bd532</div>
 </div>
 <div class="subNav">
 <ul class="navList">
@@ -876,11 +876,6 @@
  <a href="com/oracle/truffle/api/instrumentation/ExecutionEventNodeFactory.html" title="interface in com.oracle.truffle.api.instrumentation"><code>factory</code></a>.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/instrumentation/Instrumenter.html#attachExecutionEventListener-com.oracle.truffle.api.instrumentation.SourceSectionFilter-T-">attachExecutionEventListener(SourceSectionFilter, T)</a></span> - Method in class com.oracle.truffle.api.instrumentation.<a href="com/oracle/truffle/api/instrumentation/Instrumenter.html" title="class in com.oracle.truffle.api.instrumentation">Instrumenter</a></dt>
-<dd>
-<div class="block">Starts execution event notification for a given <a href="com/oracle/truffle/api/instrumentation/SourceSectionFilter.html" title="class in com.oracle.truffle.api.instrumentation"><code>event filter</code></a> and
- <a href="com/oracle/truffle/api/instrumentation/ExecutionEventListener.html" title="interface in com.oracle.truffle.api.instrumentation"><code>listener</code></a>.</div>
-</dd>
-<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/instrumentation/Instrumenter.html#attachExecutionEventListener-com.oracle.truffle.api.instrumentation.SourceSectionFilter-com.oracle.truffle.api.instrumentation.SourceSectionFilter-T-">attachExecutionEventListener(SourceSectionFilter, SourceSectionFilter, T)</a></span> - Method in class com.oracle.truffle.api.instrumentation.<a href="com/oracle/truffle/api/instrumentation/Instrumenter.html" title="class in com.oracle.truffle.api.instrumentation">Instrumenter</a></dt>
 <dd>
 <div class="block">Starts execution event notification for a given <a href="com/oracle/truffle/api/instrumentation/SourceSectionFilter.html" title="class in com.oracle.truffle.api.instrumentation"><code>event filter</code></a> and
  <a href="com/oracle/truffle/api/instrumentation/ExecutionEventListener.html" title="interface in com.oracle.truffle.api.instrumentation"><code>listener</code></a>.</div>
@@ -2107,6 +2102,10 @@
 <dd>
 <div class="block">
  Returns a value profile that profiles the object equality of a value.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/instrumentation/EventContext.html#createError-java.lang.RuntimeException-">createError(RuntimeException)</a></span> - Method in class com.oracle.truffle.api.instrumentation.<a href="com/oracle/truffle/api/instrumentation/EventContext.html" title="class in com.oracle.truffle.api.instrumentation">EventContext</a></dt>
+<dd>
+<div class="block">Creates a runtime exception that when thrown is observable to the guest language application.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="org/graalvm/polyglot/tck/LanguageProvider.html#createExpressions-org.graalvm.polyglot.Context-">createExpressions(Context)</a></span> - Method in interface org.graalvm.polyglot.tck.<a href="org/graalvm/polyglot/tck/LanguageProvider.html" title="interface in org.graalvm.polyglot.tck">LanguageProvider</a></dt>
 <dd>
@@ -8293,11 +8292,6 @@
  languages are going to be disposed, possibly because the underlying
  <a href="org/graalvm/polyglot/Engine.html" title="class in org.graalvm.polyglot">engine</a> is going to be closed.</div>
 </dd>
-<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/instrumentation/ExecutionEventListener.html#onInputValue-com.oracle.truffle.api.instrumentation.EventContext-com.oracle.truffle.api.frame.VirtualFrame-com.oracle.truffle.api.instrumentation.EventContext-int-java.lang.Object-">onInputValue(EventContext, VirtualFrame, EventContext, int, Object)</a></span> - Method in interface com.oracle.truffle.api.instrumentation.<a href="com/oracle/truffle/api/instrumentation/ExecutionEventListener.html" title="interface in com.oracle.truffle.api.instrumentation">ExecutionEventListener</a></dt>
-<dd>
-<div class="block">Invoked immediately after each return value event of child nodes that match the
- <a href="com/oracle/truffle/api/instrumentation/Instrumenter.html#attachExecutionEventListener-com.oracle.truffle.api.instrumentation.SourceSectionFilter-com.oracle.truffle.api.instrumentation.SourceSectionFilter-T-"><code>input filter</code></a>.</div>
-</dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/instrumentation/ExecutionEventNode.html#onInputValue-com.oracle.truffle.api.frame.VirtualFrame-com.oracle.truffle.api.instrumentation.EventContext-int-java.lang.Object-">onInputValue(VirtualFrame, EventContext, int, Object)</a></span> - Method in class com.oracle.truffle.api.instrumentation.<a href="com/oracle/truffle/api/instrumentation/ExecutionEventNode.html" title="class in com.oracle.truffle.api.instrumentation">ExecutionEventNode</a></dt>
 <dd>
 <div class="block">Invoked immediately after each return value event of instrumented input child node that match
@@ -11815,7 +11809,7 @@ the order they are declared.</div>
 <li class="navBarCell1Rev">Index</li>
 <li><a href="help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.0.0-dev</b><br>4f5b7798887d093c23f1bdee3967e01007161657</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.0.0-dev</b><br>f75e15821d45f25ab77714ff3df38688381bd532</div>
 </div>
 <div class="subNav">
 <ul class="navList">
