@@ -680,7 +680,7 @@ $(document).ready(function(){
               <div id="content-wrapper" class="docs-content docs-content--with-sidebar">
                 <h2 id="running-llvm-on-graalvm">Running LLVM on GraalVM</h2>
 <p>GraalVM provides an implementation of the <code>lli</code> tool to directly execute
-programs from LLVM bitcode.</p>
+programs in LLVM bitcode form.</p>
 
 <p>In contrast to static compilation that is normally used for LLVM based
 languages, LLI first interprets the bitcode and then dynamically compiles the
@@ -688,9 +688,9 @@ hot parts of the program using the GraalVM compiler. This allows seamless
 interoperability with the dynamic languages supported by GraalVM.</p>
 
 <p>Run programs in LLVM bitcode format:</p>
-<pre><code class="language-shell">lli [LLI Options] [GraalVM Options] [Polyglot Options] filename.bc [program args]
+<pre><code class="language-shell">lli [LLI Options] [GraalVM Options] [Polyglot Options] filename [program args]
 </code></pre>
-<p>Where <code>filename.bc</code> is a single program source file in LLVM bitcode format.</p>
+<p>Where <code>filename</code> is a single executable that contains LLVM bitcode.</p>
 
 <p><strong>Note:</strong> LLVM bitcode is platform dependent. The program must be compiled to
 bitcode for the appropriate platform.</p>
@@ -699,7 +699,14 @@ bitcode for the appropriate platform.</p>
 <p>GraalVM can execute C/C++, Rust, and other languages that can be compiled to
 LLVM bitcode. As a first step, you have to compile the program to LLVM bitcode
 using an LLVM frontend such as <code>clang</code>. C/C++ code can be compiled to LLVM
-bitcode using <code>clang</code> with the <code>-emit-llvm</code> option.</p>
+bitcode using the <code>clang</code> shipped with GraalVM.</p>
+
+<p>To download a pre-built LLVM toolchain for GraalVM, execute the following
+commands:</p>
+
+<pre><code class="language-shell">$ gu install llvm-toolchain
+$ export LLVM_TOOLCHAIN=$(lli --print-toolchain-path)
+</code></pre>
 
 <p>Here is some example C code named <code>hello.c</code>:</p>
 
@@ -711,18 +718,18 @@ int main() {
 }
 </code></pre>
 
-<p>You can compile <code>hello.c</code> to an LLVM bitcode file named <code>hello.bc</code> as follows:</p>
-<pre><code class="language-shell">$ clang -c -O1 -emit-llvm hello.c
+<p>You can compile <code>hello.c</code> to an executable with embedded LLVM bitcode as follows:</p>
+<pre><code class="language-shell">$ $LLVM_TOOLCHAIN/clang hello.c -o hello
 </code></pre>
 
-<p>You can then run <code>hello.bc</code> on GraalVM like this:</p>
-<pre><code class="language-shell">$ lli hello.bc
+<p>You can then run <code>hello</code> on GraalVM like this:</p>
+<pre><code class="language-shell">$ lli hello
 Hello from GraalVM!
 </code></pre>
 
 <h3 id="external-library-dependencies">External library dependencies</h3>
-<p>If the bitcode file depends on external libraries, they can be loaded using the
-<code>--lib</code> argument.</p>
+<p>If the bitcode file depends on external libraries, GraalVM will automatically
+pick up the dependencies from the binary headers.</p>
 
 <p>For example:</p>
 <pre><code class="language-c">#include &lt;unistd.h&gt;
@@ -739,14 +746,14 @@ int main() {
 </code></pre>
 
 <p>This can be run with:</p>
-<pre><code class="language-shell">$ clang -c -O1 -emit-llvm hello-curses.c
-$ lli --lib /usr/lib/libncursesw.so hello-curses.bc
+<pre><code class="language-shell">$ $LLVM_TOOLCHAIN/clang hello-curses.c -lncurses -o hello-curses
+$ lli hello-curses
 </code></pre>
-<p>For Mac OS users, <code>ncurses</code> library path is <code>/usr/lib/libncurses.dylib</code>.</p>
 
 <h2 id="running-c">Running C++</h2>
-<p>For running C++ code, LLI requires the <code>libc++</code> standard library from the LLVM
-project. If you are using Ubuntu Linux, install the package <code>libc++1</code>.</p>
+<p>For running C++ code, the GraalVM LLVM runtime requires the
+<a href="https://libcxx.llvm.org"><code>libc++</code></a> standard library from the LLVM project. The
+LLVM toolchain shipped with GraalVM automatically links against <code>libc++</code>.</p>
 
 <pre><code class="language-c++">#include &lt;iostream&gt;
 
@@ -755,124 +762,37 @@ int main() {
 }
 </code></pre>
 
-<p>Make sure you compile your C++ code with the correct standard library:</p>
+<p>Compile the code with <code>clang++</code>:</p>
 
-<pre><code class="language-shell">$ clang++ -c -O1 -emit-llvm -stdlib=libc++ hello-c++.cpp
-$ lli hello-c++.bc
+<pre><code class="language-shell">$ $LLVM_TOOLCHAIN/clang++ hello-c++.cpp -o hello-c++
+$ lli hello-c++
 Hello, C++ World!
 </code></pre>
 
 <h2 id="running-rust">Running Rust</h2>
-<p>LLI does not load the Rust standard libraries automatically.
-To install Rust, run the following in your terminal, then follow the onscreen instructions:</p>
+
+<p>The LLVM toolchain that is bundled with GraalVM does not come with the Rust
+compiler. To install Rust, run the following in your terminal, then follow the
+onscreen instructions:</p>
 <pre><code class="language-shell">curl https://sh.rustup.rs -sSf | sh
 </code></pre>
-<p>To run Rust code,
-the required Rust libraries have to be specified manually.</p>
+
+<p>Here is an example Rust program:</p>
 
 <pre><code>fn main() {
     println!("Hello Rust!");
 }
 </code></pre>
 
-<p>This can be run with:</p>
+<p>This can be compiled to bitcode with the <code>--emit=llvm-bc</code> flag:</p>
 <pre><code class="language-shell">$ rustc --emit=llvm-bc hello-rust.rs
-$ lli --lib $(rustc --print sysroot)/lib/libstd-* hello-rust.bc
+</code></pre>
+
+<p>To run the Rust program, we have to tell GraalVM where to find the Rust
+standard libraries.</p>
+
+<pre><code class="language-shell">$ lli --lib $(rustc --print sysroot)/lib/libstd-* hello-rust.bc
 Hello Rust!
-</code></pre>
-
-<h2 id="llvm-toolchain">LLVM Toolchain</h2>
-
-<p>The toolchain is a set of tools and APIs for compiling native programs, such as
-C and C++, to bitcode that can be executed with the GraalVM LLVM runtime. To
-simplify compiling C/C++ to LLVM bitcode, we provide launchers that invoke the
-compiler with special flags to produce results that can be executed by the
-GraalVM LLVM runtime. Depending on the execution mode, the launchers location is
-<code>$GRAALVM/jre/languages/llvm/{native|managed}/bin/*</code> (in the native execution
-mode, the path is <code>$GRAALVM/jre/languages/llvm/native/bin/*</code>, in the managed
-mode – <code>$GRAALVM/jre/languages/llvm/managed/bin/*</code>). They are meant to be
-drop-in replacements for the C/C++ compiler when compiling a native program. The
-goal is to produce a GraalVM LLVM runtime executable by simply pointing the
-build system to those launchers, for example via <code>CC</code>/<code>CXX</code> environment
-variables or by setting <code>PATH</code>.</p>
-
-<p>The LLVM toolchain is pre-packaged as a component and can be installed with <a href="/docs/reference-manual/graal-updater/">GraalVM Updater</a> tool:</p>
-<pre><code>gu install llvm-toolchain
-</code></pre>
-
-<p>The following example shows how the toolchain can be used to compile a <code>make</code>-based project.
-Let us assume that the <code>CC</code> variable is used in the <code>Makefile</code> to specify the C
-compiler that produces an executable named <code>myprogram</code>.
-We compile the project as follows:</p>
-<pre><code>$ make CC=${GRAALVM}/jre/languages/llvm/native/bin/clang myprogram
-</code></pre>
-<p>Afterwards, the resulting <code>myprogram</code> can be executed by the LLVM runtime:</p>
-<pre><code>$ ${GRAALVM}/bin/lli myprogram
-</code></pre>
-
-<h3 id="use-cases">Use Cases</h3>
-<ul>
-  <li>
-    <p><strong>Simplify the compilation to bitcode:</strong> GraalVM users who want to run native projects via the GraalVM LLVM runtime must
-first compile these projects to LLVM bitcode. Although it is possible to do this
-with the standard LLVM tools (<code>clang</code>, <code>llvm-link</code>, etc.), there are several
-additional considerations, such as optimizations and manual linking. The
-toolchain aims to simplify this process, by providing an out-of-the-box drop-in
-replacement for the compiler when building native projects targeting the GraalVM
-LLVM runtime.</p>
-  </li>
-  <li>
-    <p><strong>Compile native extensions:</strong> GraalVM language implementers often use the GraalVM LLVM runtime to execute
- native extensions, and these extensions are commonly installed by a package
- manager. For example, packages in Python are usually added via <code>pip install</code>,
- which means that the Python implementation is required to be able to compile
- these native extensions on demand. The toolchain provides a Java API for
- languages to access the tools bundled with GraalVM.</p>
-  </li>
-  <li>
-    <p><strong>Compile to bitcode at build time:</strong> GraalVM supported languages that integrate with the GraalVM LLVM runtime usually need to build bitcode libraries to integrate with the native pieces of their
-implementation. The toolchain can be used as a build-time dependency to achieve
-this in a standardized and compatible way.</p>
-  </li>
-</ul>
-
-<h3 id="file-format">File Format</h3>
-<p>To be compatible with existing build systems, by default, the toolchain will
-produce native executables with embedded bitcode (ELF files on Linux, Mach-O
-files on macOS).</p>
-
-<h3 id="toolchain-identifier">Toolchain Identifier</h3>
-<p>The GraalVM LLVM runtime can be ran in different configurations, which can
-differ in how the bitcode is being compiled. Generally, toolchain users do not
-need to be concerned, as the GraalVM LLVM runtime knows the mode it is running
-and will always provide the right toolchain. However, if a language
-implementation wants to store the bitcode compilation for later use, it will
-need to be able to identify the toolchain and its configurations used to compile
-the bitcode. To do so, each toolchain has an <em>identifier</em>. Conventionally, the
-identifier denotes the compilation output directory. The internal GraalVM LLVM
-runtime library layout follows the same approach.</p>
-
-<h3 id="java-api-toolchain-service">Java API Toolchain Service</h3>
-<p>Language implementations can access the toolchain via the <code>Toolchain</code> service. The service provides two methods:</p>
-
-<ul>
-  <li><code>TruffleFile getToolPath(String tool)</code> returns the path to the executable for a
-given tool. Every implementation is free to choose its own set of supported
-tools. The command line interface of the executable is specific to the tool. If
-a tool is not supported or not known, <code>null</code> is returned.</li>
-  <li><code>String getIdentifier()</code> returns the identifier for the toolchain. It can be
-used to distinguish results produced by different toolchains. The identifier can
-be used as a path suffix to place results in distinct locations, therefore it
-does not contain special characters like slashes or spaces.</li>
-</ul>
-
-<p>The <code>Toolchain</code> lives in the <code>SULONG_API</code> distribution. The LLVM runtime will
-always provide a toolchain that matches its current mode. The service can be
-looked-up via the <code>Env</code>:</p>
-<pre><code>LanguageInfo llvmInfo = env.getInternalLanguages().get("llvm");
-Toolchain toolchain = env.lookup(llvmInfo, Toolchain.class);
-TruffleFile toolPath = toolchain.getToolPath("CC");
-String toolchainId = toolchain.getIdentifier();
 </code></pre>
 
 <h2 id="interoperability">Interoperability</h2>
@@ -883,7 +803,8 @@ any other language that GraalVM supports.</p>
 
 <p>Dynamic languages like JavaScript usually access object members by name. Since
 normally names are not preserved in LLVM bitcode, it must be compiled with debug
-info enabled.</p>
+info enabled (the LLVM toolchain shipped with GraalVM will automatically enable
+debug info).</p>
 
 <p>The following example demonstrates how you can use the API for interoperability
 with other programming languages.</p>
@@ -922,8 +843,10 @@ void printPoint(struct Point *p) {
 }
 </code></pre>
 
-<p>Make sure <code>GRAALVM_HOME</code> resolves to the GraalVM installation directory, then compile the <em>cpart.c</em> file with:</p>
-<pre><code class="language-shell">$ clang -g -O1 -c -emit-llvm -I$GRAALVM_HOME/jre/languages/llvm/include cpart.c
+<p>Make sure <code>LLVM_TOOLCHAIN</code> resolves to the GraalVM LLVM toolchain (<code>lli --print-toolchain-path</code>),
+then compile <em>cpart.c</em> with (the polyglot-mock library defines the polyglot
+API functions used in the example):</p>
+<pre><code class="language-shell">$ $LLVM_TOOLCHAIN/clang -shared cpart.c -lpolyglot-mock -o cpart.so
 </code></pre>
 
 <p>You can access your C/C++ code from other languages like JavaScript:</p>
@@ -931,7 +854,7 @@ void printPoint(struct Point *p) {
 <pre><code class="language-js">// jspart.js
 
 // Load and parse the LLVM bitcode into GraalVM
-var cpart = Polyglot.evalFile("llvm" ,"cpart.bc");
+var cpart = Polyglot.evalFile("llvm" ,"cpart.so");
 
 // Allocate a light-weight C struct
 var point = cpart.allocNativePoint();
@@ -993,13 +916,13 @@ int main() {
 
 <p>Compile it to LLVM bitcode:</p>
 
-<pre><code class="language-shell">$ clang -g -O1 -c -emit-llvm -I$GRAALVM_HOME/jre/languages/llvm/include polyglot.c
+<pre><code class="language-shell">$ $LLVM_TOOLCHAIN/clang polyglot.c -lpolyglot-mock -o polyglot
 </code></pre>
 
 <p>And run it, using the <code>--jvm</code> argument to run GraalVM in the JVM mode, since we are
 using a Java type:</p>
 
-<pre><code class="language-shell">$ lli --jvm polyglot.bc
+<pre><code class="language-shell">$ lli --jvm polyglot
 24
 </code></pre>
 
@@ -1017,7 +940,7 @@ class Polyglot {
     public static void main(String[] args) throws IOException {
         Context polyglot = Context.newBuilder().
         		               allowAllAccess(true).build();
-        File file = new File("polyglot.bc");
+        File file = new File("polyglot");
         Source source = Source.newBuilder("llvm", file).build();
         Value cpart = polyglot.eval(source);
         cpart.execute();
@@ -1039,15 +962,16 @@ for more information.</p>
 <p>You can use <a href="/docs/reference-manual/tools/#debugger">GraalVM’s Debugger</a> to debug the program
 you compiled to LLVM bitcode.
 To use this feature, please make sure to compile your program with debug information by specifying the <code>-g</code>
-argument when compiling with <code>clang</code>.
-This gives you the ability to step through the program’s source code and set breakpoints in it.
+argument when compiling with <code>clang</code> (the LLVM toolchain shipped with GraalVM will automatically enable
+debug info). This gives you the ability to step through the program’s source code and set breakpoints in it.
 To also be able to inspect the local and global variables of your program you may pass
 <code>--llvm.enableLVI=true</code> as argument to <code>lli</code>.
 This option is not enabled per default as it can significantly decrease your program’s run-time performance.</p>
 
 <h2 id="llvm-compatibility">LLVM Compatibility</h2>
 
-<p>GraalVM works with LLVM bitcode versions 3.8 to 7.0.</p>
+<p>GraalVM works with LLVM bitcode versions 3.8 to 9.0. We recommend using the
+version of LLVM that is shipped with GraalVM.</p>
 
 <h3 id="optimization-flags">Optimization Flags</h3>
 
@@ -1061,6 +985,9 @@ during dynamic compilation. Some optimizations are better when done
 ahead-of-time on the bitcode, while other optimizations are better left for the
 dynamic compilation of the GraalVM compiler, when profiling information is available.</p>
 
+<p>The LLVM toolchain that is shipped with GraalVM automatically selects the
+recommended flags by default.</p>
+
 <p>In principle, all optimization levels should work, but for best results we
 suggest compiling the bitcode with optimization level <code>-O1</code>.</p>
 
@@ -1070,6 +997,10 @@ performed on the bitcode (compiled with at least <code>-O1</code>, or explicitly
 <code>opt</code> tool).</p>
 
 <h2 id="lli-command-options">LLI Command Options</h2>
+
+<p><code>--print-toolchain-path</code>: print the path of the LLVM toolchain bundled with
+GraalVM. This directory contains compilers and tools that can be used to
+compile C/C++ programs to LLVM bitcode for execution with GraalVM.</p>
 
 <p><code>-L &lt;path&gt;</code>/<code>--llvm.libraryPath=&lt;path&gt;</code>: a list of paths where GraalVM will
 search for library dependencies. Paths are delimited by <code>:</code>.</p>

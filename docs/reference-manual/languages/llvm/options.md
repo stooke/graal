@@ -1,5 +1,9 @@
 ## LLI Command Options
 
+`--print-toolchain-path`: print the path of the LLVM toolchain bundled with
+GraalVM. This directory contains compilers and tools that can be used to
+compile C/C++ programs to LLVM bitcode for execution with GraalVM.
+
 `-L <path>`/`--llvm.libraryPath=<path>`: a list of paths where GraalVM will
 search for library dependencies. Paths are delimited by `:`.
 
