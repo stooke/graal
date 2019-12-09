@@ -829,11 +829,20 @@ and supports all Node.js APIs.</p>
 
 <p>More information on compatibility with the Node.js and configuring GraalVM read the <a href="/docs/reference-manual/languages/js/">reference manual on JavaScript in GraalVM</a>.</p>
 
-<h2 id="running-llvm-interpreter">Running LLVM Interpreter</h2>
+<h2 id="running-llvm-bitcode">Running LLVM Bitcode</h2>
 
-<p>The LLVM interpreter in GraalVM executes LLVM bitcode, and therefore any programming language that can be compiled to LLVM bitcode.</p>
+<p>The GraalVM LLVM runtime can execute C/C++, Rust, and other programming
+language that can be compiled to LLVM bitcode. A native program has to be
+compiled to LLVM bitcode using an LLVM frontend such as <code>clang</code>. C/C++ code can
+be compiled to LLVM bitcode using <code>clang</code> shipped with GraalVM via a pre-built
+LLVM toolchain.</p>
 
-<p>Put this C <code>HelloWorld</code> into a file named <code>hello.c</code>:</p>
+<p>To set up the LLVM toolchain support for GraalVM, execute the following commands:</p>
+<pre><code>$ gu install llvm-toolchain
+$ export LLVM_TOOLCHAIN=$(lli --print-toolchain-path)
+</code></pre>
+
+<p>Put this C code example into a file named <code>hello.c</code>:</p>
 
 <pre><code class="language-c">#include &lt;stdio.h&gt;
 
@@ -843,16 +852,12 @@ int main() {
 }
 </code></pre>
 
-<p>You can compile <code>hello.c</code> to an LLVM bitcode file named <code>hello.bc</code> using the following command:</p>
-<pre><code>$ clang -c -O1 -emit-llvm hello.c
+<p>Then compile <code>hello.c</code> to an executable <code>hello</code> with embedded LLVM bitcode and run it as follows:</p>
+<pre><code>$ $LLVM_TOOLCHAIN/clang hello.c -o hello
+$ lli hello
 </code></pre>
 
-<p>You can then run <code>hello.bc</code> on GraalVM like this:</p>
-<pre><code>$ lli hello.bc
-Hello from GraalVM!
-</code></pre>
-
-<p>More examples and information on what languages and runtimes are supported can be found in the <a href="/docs/reference-manual/languages/llvm/">reference manual for LLVM</a>.</p>
+<p>More examples and information on running LLVM bitcode with GraalVM can be found in the <a href="/docs/reference-manual/languages/llvm/">reference manual for LLVM</a>.</p>
 
 <h2 id="running-ruby">Running Ruby</h2>
 
