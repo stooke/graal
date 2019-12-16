@@ -7,7 +7,7 @@ to GraalVM.
 
 To debug guest language applications, pass the `--inspect` option to the
 command-line launcher, as in the following
-example with a node.js hello world program:
+example with a Node.js hello world program:
 
 ```
 var http = require('http');
