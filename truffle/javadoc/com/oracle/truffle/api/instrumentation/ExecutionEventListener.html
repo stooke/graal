@@ -17,7 +17,7 @@
     catch(err) {
     }
 //-->
-var methods = {"i0":6,"i1":6,"i2":6,"i3":18};
+var methods = {"i0":6,"i1":18,"i2":6,"i3":6,"i4":18};
 var tabs = {65535:["t0","All Methods"],2:["t2","Instance Methods"],4:["t3","Abstract Methods"],16:["t5","Default Methods"]};
 var altColor = "altColor";
 var rowColor = "rowColor";
@@ -44,7 +44,7 @@ var activeTableTab = "activeTableTab";
 <li><a href="../../../../../index-all.html">Index</a></li>
 <li><a href="../../../../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.0.0-dev</b><br>9fc56d996946718d7675c874bdf2411071ed330d</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>19.3.0.1-dev</b><br>144bc3c188610a22020812940aeb3c130dc83d4c</div>
 </div>
 <div class="subNav">
 <ul class="navList">
@@ -134,6 +134,17 @@ var activeTableTab = "activeTableTab";
 </td>
 </tr>
 <tr id="i1" class="rowColor">
+<td class="colFirst"><code>default void</code></td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/api/instrumentation/ExecutionEventListener.html#onInputValue-com.oracle.truffle.api.instrumentation.EventContext-com.oracle.truffle.api.frame.VirtualFrame-com.oracle.truffle.api.instrumentation.EventContext-int-java.lang.Object-">onInputValue</a></span>(<a href="../../../../../com/oracle/truffle/api/instrumentation/EventContext.html" title="class in com.oracle.truffle.api.instrumentation">EventContext</a>&nbsp;context,
+            <a href="../../../../../com/oracle/truffle/api/frame/VirtualFrame.html" title="interface in com.oracle.truffle.api.frame">VirtualFrame</a>&nbsp;frame,
+            <a href="../../../../../com/oracle/truffle/api/instrumentation/EventContext.html" title="class in com.oracle.truffle.api.instrumentation">EventContext</a>&nbsp;inputContext,
+            int&nbsp;inputIndex,
+            <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true" title="class or interface in java.lang">Object</a>&nbsp;inputValue)</code>
+<div class="block">Invoked immediately after each return value event of child nodes that match the
+ <a href="../../../../../com/oracle/truffle/api/instrumentation/Instrumenter.html#attachExecutionEventListener-com.oracle.truffle.api.instrumentation.SourceSectionFilter-com.oracle.truffle.api.instrumentation.SourceSectionFilter-T-"><code>input filter</code></a>.</div>
+</td>
+</tr>
+<tr id="i2" class="altColor">
 <td class="colFirst"><code>void</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/api/instrumentation/ExecutionEventListener.html#onReturnExceptional-com.oracle.truffle.api.instrumentation.EventContext-com.oracle.truffle.api.frame.VirtualFrame-java.lang.Throwable-">onReturnExceptional</a></span>(<a href="../../../../../com/oracle/truffle/api/instrumentation/EventContext.html" title="class in com.oracle.truffle.api.instrumentation">EventContext</a>&nbsp;context,
                    <a href="../../../../../com/oracle/truffle/api/frame/VirtualFrame.html" title="interface in com.oracle.truffle.api.frame">VirtualFrame</a>&nbsp;frame,
@@ -142,7 +153,7 @@ var activeTableTab = "activeTableTab";
  not successfully execute.</div>
 </td>
 </tr>
-<tr id="i2" class="altColor">
+<tr id="i3" class="rowColor">
 <td class="colFirst"><code>void</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/api/instrumentation/ExecutionEventListener.html#onReturnValue-com.oracle.truffle.api.instrumentation.EventContext-com.oracle.truffle.api.frame.VirtualFrame-java.lang.Object-">onReturnValue</a></span>(<a href="../../../../../com/oracle/truffle/api/instrumentation/EventContext.html" title="class in com.oracle.truffle.api.instrumentation">EventContext</a>&nbsp;context,
              <a href="../../../../../com/oracle/truffle/api/frame/VirtualFrame.html" title="interface in com.oracle.truffle.api.frame">VirtualFrame</a>&nbsp;frame,
@@ -151,7 +162,7 @@ var activeTableTab = "activeTableTab";
  successfully executed.</div>
 </td>
 </tr>
-<tr id="i3" class="rowColor">
+<tr id="i4" class="altColor">
 <td class="colFirst"><code>default <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true" title="class or interface in java.lang">Object</a></code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/api/instrumentation/ExecutionEventListener.html#onUnwind-com.oracle.truffle.api.instrumentation.EventContext-com.oracle.truffle.api.frame.VirtualFrame-java.lang.Object-">onUnwind</a></span>(<a href="../../../../../com/oracle/truffle/api/instrumentation/EventContext.html" title="class in com.oracle.truffle.api.instrumentation">EventContext</a>&nbsp;context,
         <a href="../../../../../com/oracle/truffle/api/frame/VirtualFrame.html" title="interface in com.oracle.truffle.api.frame">VirtualFrame</a>&nbsp;frame,
@@ -194,6 +205,32 @@ var activeTableTab = "activeTableTab";
 <dd><code>frame</code> - the frame that was used for executing instrumented node</dd>
 <dt><span class="simpleTagLabel">Since:</span></dt>
 <dd>0.12</dd>
+</dl>
+</li>
+</ul>
+<a name="onInputValue-com.oracle.truffle.api.instrumentation.EventContext-com.oracle.truffle.api.frame.VirtualFrame-com.oracle.truffle.api.instrumentation.EventContext-int-java.lang.Object-">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>onInputValue</h4>
+<pre>default&nbsp;void&nbsp;onInputValue(<a href="../../../../../com/oracle/truffle/api/instrumentation/EventContext.html" title="class in com.oracle.truffle.api.instrumentation">EventContext</a>&nbsp;context,
+                          <a href="../../../../../com/oracle/truffle/api/frame/VirtualFrame.html" title="interface in com.oracle.truffle.api.frame">VirtualFrame</a>&nbsp;frame,
+                          <a href="../../../../../com/oracle/truffle/api/instrumentation/EventContext.html" title="class in com.oracle.truffle.api.instrumentation">EventContext</a>&nbsp;inputContext,
+                          int&nbsp;inputIndex,
+                          <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true" title="class or interface in java.lang">Object</a>&nbsp;inputValue)</pre>
+<div class="block">Invoked immediately after each return value event of child nodes that match the
+ <a href="../../../../../com/oracle/truffle/api/instrumentation/Instrumenter.html#attachExecutionEventListener-com.oracle.truffle.api.instrumentation.SourceSectionFilter-com.oracle.truffle.api.instrumentation.SourceSectionFilter-T-"><code>input filter</code></a>. Event listeners cannot save input values for later events. If that is required
+ attach an event node factory instead.</div>
+<dl>
+<dt><span class="paramLabel">Parameters:</span></dt>
+<dd><code>context</code> - indicating the current location in the guest language AST</dd>
+<dd><code>frame</code> - the current frame in use</dd>
+<dd><code>inputContext</code> - the event context of the input child node</dd>
+<dd><code>inputIndex</code> - the child index of the input</dd>
+<dd><code>inputValue</code> - the return value of the input child</dd>
+<dt><span class="simpleTagLabel">Since:</span></dt>
+<dd>0.30</dd>
 </dl>
 </li>
 </ul>
@@ -300,7 +337,7 @@ var activeTableTab = "activeTableTab";
 <li><a href="../../../../../index-all.html">Index</a></li>
 <li><a href="../../../../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.0.0-dev</b><br>9fc56d996946718d7675c874bdf2411071ed330d</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>19.3.0.1-dev</b><br>144bc3c188610a22020812940aeb3c130dc83d4c</div>
 </div>
 <div class="subNav">
 <ul class="navList">
