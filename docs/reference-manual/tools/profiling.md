@@ -264,7 +264,7 @@ is false.
 
 ### Memory Tracer Command Options
 
-**Warning**: The memory tracer tool is currently an [experimental](https://docs.oracle.com/en/graalvm/enterprise/19/guide/overview/license/licensing-information.html) tool. Make sure to prepend `--experimental-options` flag to enable `--memtracer`.
+Warning: The memory tracer tool is currently an [experimental](https://docs.oracle.com/en/graalvm/enterprise/19/guide/overview/license/licensing-information.html) tool. Make sure to prepend `--experimental-options` flag to enable `--memtracer`.
 
 - `--experimental-options --memtracer`: enables the memory tracer. Disabled by default.
 - `--memtracer.FilterFile=<Expression>`: applies a wildcard filter for source file paths. For example, `*program*.sl`. The default is &lowast;.

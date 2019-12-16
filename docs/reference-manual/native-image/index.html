@@ -702,10 +702,8 @@ itself. Polyglot embeddings can also be compiled ahead-of-time. To inform
 <code>native-image</code> of guest languages used by an application, specify
 <code>--language:&lt;languageId&gt;</code> for each guest language used (e.g., <code>--language:js</code>).</p>
 
-<p><strong>Warning:</strong> GraalVM Native Image is
-available as an <a href="https://docs.oracle.com/en/graalvm/enterprise/19/guide/overview/license/licensing-information.html">Early Adopter technology</a>, meaning it can be used in production
-and will be supported by Oracle as part of the Oracle GraalVM Enterprise Edition
-subscription, but is not covered by Oracle’s standard warranty.</p>
+<p>Warning: GraalVM Native Image is
+available as an <a href="https://docs.oracle.com/en/graalvm/enterprise/19/guide/overview/license/licensing-information.html">Early Adopter technology</a>.</p>
 
 <h2 id="install-native-image">Install Native Image</h2>
 
@@ -813,13 +811,13 @@ options.</p>
     <p><code>--shared</code> builds a shared library</p>
   </li>
   <li>
-    <p><code>--static</code> builds a statically linked executable. This option prevents linking against shared libraries. This requires the static <code>libc</code> and <code>libstdc++</code> libraries to be available on the host system. <strong>Warning:</strong>  On systems other than Linux, this option has no effect</p>
+    <p><code>--static</code> builds a statically linked executable. This option prevents linking against shared libraries. This requires the static <code>libc</code> and <code>libstdc++</code> libraries to be available on the host system. Warning:  On systems other than Linux, this option has no effect</p>
   </li>
   <li>
     <p><code>--verbose</code> makes image building output more verbose</p>
   </li>
   <li>
-    <p><code>-g</code> enables the debugging info generation. <strong>Warning:</strong> The option is available only with GraalVM Enterprise Edition</p>
+    <p><code>-g</code> enables the debugging info generation. Warning: The option is available only with GraalVM Enterprise Edition</p>
   </li>
 </ul>
 
@@ -930,7 +928,7 @@ specified as <code>NativeImageArgs</code>, plus the arguments specified on comma
 
 <p>For a more comprehensive list of options please check the <a href="https://github.com/oracle/graal/blob/master/substratevm/OPTIONS.md">documentation on Github</a>.</p>
 
-<p><strong>Warning:</strong>
+<p>Warning:
 Python source code or LLVM bitcode interpreted or compiled with GraalVM
 Community Edition will not have the same security characteristics as the same
 code interpreted or compiled using GraalVM Enterprise Edition. There is a
@@ -967,7 +965,7 @@ PGO, you can collect the profiling data in advance and then feed it to the
 GraalVM <code>native-image</code> utility, which will use this information to optimize the
 performance of the resulting binary.</p>
 
-<p><strong>Warning:</strong> Profile-guided optimizations (PGO) is a GraalVM Enterprise feature.</p>
+<p>Warning: Profile-guided optimizations (PGO) is a GraalVM Enterprise feature.</p>
 
 <p>In GraalVM versions prior to 19.2.0, a commonly used technique to mitigate the
 missing just-in-time (JIT) optimization is to gather the execution profiles at one run
@@ -1018,7 +1016,7 @@ of a Java application running on GraalVM or any other compatible JVM that
 supports Java VM Tool Interface (JVMTI). The tracing agent is supported in both
 GraalVM Enterprise and Community Editions.</p>
 
-<p><strong>Warning:</strong> The tracing agent is part of the GraalVM Native Image component, which must be <a href="/docs/reference-manual/aot-compilation/">installed</a> first.</p>
+<p>Warning: The tracing agent is part of the GraalVM Native Image component, which must be <a href="/docs/reference-manual/aot-compilation/">installed</a> first.</p>
 
 <p>The tracing agent helps to deal with such features as <a href="https://github.com/oracle/graal/blob/master/substratevm/REFLECTION.md">Reflection</a>, <a href="https://github.com/oracle/graal/blob/master/substratevm/JNI.md">Java Native Interface</a>, <a href="https://github.com/oracle/graal/blob/master/substratevm/RESOURCES.md">Class Path Resources</a>, and <a href="https://github.com/oracle/graal/blob/master/substratevm/DYNAMIC_PROXY.md">Dynamic Proxy</a> in the GraalVM environment. It is applicable when the static analysis cannot automatically determine what to put into a native image and undetected usages of these dynamic features need to be provided to the generation process in the form of configuration files. The tracing agent observes the application behavior and builds configuration files when running on the Java HotSpot VM, thus it can be enabled on the command line with the <code>java</code> command:</p>
 <pre><code>$JAVA_HOME/bin/java -agentlib:native-image-agent=config-output-dir=/path/to/config-dir/ ...
@@ -1188,7 +1186,7 @@ accessible too.</p>
 
 <p>GraalVM also supports monitoring and generating heap dumps of the Native Image processes.</p>
 
-<p><strong>Warning:</strong> This functionality is available in the <a href="http://www.oracle.com/technetwork/oracle-labs/program-languages/downloads/index.html">Enterprise Edition of GraalVM</a>.</p>
+<p>Warning: This functionality is available in the <a href="http://www.oracle.com/technetwork/oracle-labs/program-languages/downloads/index.html">Enterprise Edition of GraalVM</a>.</p>
 
 <p>To find out more about generating heap dumps of the native image processes,
 refer to the <a href="/docs/reference-manual/native_heapdump/">step-by-step documentation</a>.</p>

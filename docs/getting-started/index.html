@@ -559,9 +559,9 @@ The base installation includes the JVM, the GraalVM compiler, the LLVM bitcode
 interpreter, and the JavaScript runtime with Node.js support – all in one
 package. GraalVM environment can be extended with:</p>
 <ul>
-  <li><a href="/docs/reference-manual/aot-compilation/">GraalVM Native Image</a> – a technology to compile an application ahead-of-time into a binary that runs natively on the system. <strong>Warning:</strong> GraalVM Native Image is
+  <li><a href="/docs/reference-manual/aot-compilation/">GraalVM Native Image</a> – a technology to compile an application ahead-of-time into a binary that runs natively on the system. Warning: GraalVM Native Image is
 available as an <a href="https://docs.oracle.com/en/graalvm/enterprise/19/guide/overview/license/licensing-information.html">Early Adopter technology</a>.</li>
-  <li>R, Ruby and Python languages interpreters. <strong>Warning:</strong> The support for Ruby, R and Python languages is  <a href="https://docs.oracle.com/en/graalvm/enterprise/19/guide/overview/license/licensing-information.html">experimental</a>.</li>
+  <li>R, Ruby and Python languages interpreters. Warning: The support for Ruby, R and Python languages is  <a href="https://docs.oracle.com/en/graalvm/enterprise/19/guide/overview/license/licensing-information.html">experimental</a>.</li>
   <li><a href="/docs/reference-manual/languages/llvm/#llvm-toolchain">LLVM toolchain</a> –  a set of tools and APIs for compiling native programs to
 bitcode that can be executed with the GraalVM LLVM runtime.</li>
 </ul>
@@ -579,26 +579,11 @@ note, unlike Java HotSpot VM or OpenJDK distributions for macOS that come as a
     <ul>
       <li>Add the GraalVM <code>bin</code> folder to the <code>PATH</code> environment variable: <code>$ export PATH=&lt;path to GraalVM&gt;/Contents/Home/bin:$PATH</code>. Verify whether you are using GraalVM with the echo command: <code>$ echo $PATH</code>.</li>
       <li>Set the <code>JAVA_HOME</code> environment variable to resolve to the GraalVM installation directory:
-  <code>$ export JAVA_HOME=&lt;path to GraalVM&gt;/Contents/Home</code>.</li>
+  <code>$ export JAVA_HOME=&lt;path to GraalVM&gt;/Contents/Home</code>. Please also see the <a href="/docs/getting-started/note/">notice on <code>java_home</code></a> command.</li>
     </ul>
   </li>
   <li>You can also specify GraalVM as the JRE or JDK installation in your Java IDE.</li>
 </ol>
-
-<p>Optionally set the <code>JAVA_HOME</code> environment variable to resolve to the GraalVM installation directory. You can also specify GraalVM as the JRE or JDK installation in your Java IDE.</p>
-
-<p><strong>Note on macOS java_home command</strong></p>
-
-<p>The information property file, <em>Info.plist</em>, is in the top level <em>Contents</em>
-folder. This means that GraalVM participates in the macOS specific
-<code>/usr/libexec/java_home</code> mechanism. Depending on other JDK 8 installation(s)
-available, it is now possible that <code>/usr/libexec/java_home -v1.8</code> returns
-<code>/Library/Java/JavaVirtualMachines/graalvm-ee-19.3.0/Contents/Home</code>.
-You can run <code>/usr/libexec/java_home -v1.8 -V</code> to see the complete list of 1.8
-JVMs available to the <code>java_home</code> command. This command appears to sort the JVMs
-in decreasing version order and chooses the top one as the default for the
-specified version. Within a specific version, the sort order appears to be
-stable but is unspecified.</p>
 
 <p>Since the executables of all language runtimes in GraalVM emulate the
 behavior of the languages’ default runtimes, setting GraalVM on your <code>PATH</code>
