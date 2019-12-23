@@ -913,15 +913,232 @@ options.</p>
   </li>
 </ul>
 
-<p>If the environment variable <code>NATIVE_IMAGE_CONFIG_FILE</code> is set to a Java
-properties file, a native image will use the defaults defined in there on each
-invocation.</p>
+<p>For a more comprehensive list of options please check the <a href="https://github.com/oracle/graal/blob/master/substratevm/OPTIONS.md">documentation on Github</a>.</p>
 
-<p>Here is an example of configuration file (saved as <code>~/.native-image/default.properties</code>) :</p>
+<!-- ## Native Image Configuration -->
+
+<h2 id="native-image-configuration">Native Image Configuration</h2>
+
+<p>The <code>native-image</code> tool supports a wide range of options to configure a native image build process.</p>
+
+<p>A recommended way to provide configuration is to embed a
+<strong>native-image.properties</strong> file into a project jar file. The Native Image tool
+will automatically pick up all configuration options provided anywhere below the
+resource location <code>META-INF/native-image/</code> and use it to construct
+<code>native-image</code> command line arguments.</p>
+
+<p>To avoid a situation when constituent parts of a non-trivial project are built
+with overlapping configurations, we recommend to use “subdirectories” within
+<code>META-INF/native-image</code>. That way a jar file built from multiple maven projects
+cannot suffer from overlapping <code>native-image</code> configurations. For example:</p>
+<ul>
+  <li><em>foo.jar</em> has its configurations in <code>META-INF/native-image/foo_groupID/foo_artifactID</code></li>
+  <li><em>bar.jar</em> has its configurations in <code>META-INF/native-image/bar_groupID/bar_artifactID</code></li>
+</ul>
+
+<p>A jar file that contains <code>foo</code> and <code>bar</code> will then contain both configurations
+without conflicting with one another. Therefore the recommended layout for
+storing native-image configuration data in jar files is the following:</p>
+<pre><code>META-INF/
+└── native-image
+    └── groupID
+        └── artifactID
+            └── native-image.properties
+</code></pre>
+
+<p>Note that the use of <code>${.}</code> in a native-image.properties file expands to the
+resource location that contains that exact configuration file. This can be
+useful if the native-image.properties file wants to refer to resources within
+its “subfolder”, for example,
+<code>-H:SubstitutionResources=${.}/substitutions.json</code>.</p>
+
+<p>By having such a composable <em>native-image.properties</em> file, building an image
+does not require any additional arguments specified on command line. It is
+sufficient to just run the following command:</p>
+<pre><code>$JAVA_HOME/bin/native-image -jar target/&lt;name&gt;.jar
+</code></pre>
+
+<p>To debug which configuration data gets applied for the image building use <code>native-image
+--verbose</code>. This will show from where <code>native-image</code> picks up the
+configurations to construct the final composite configuration command line
+options for the image builder.</p>
+<pre><code>$ native-image --verbose -jar build/basic-app-0.1-all.jar
+Apply jar:file://~/build/basic-app-0.1-all.jar!/META-INF/native-image/io.netty/common/native-image.properties
+Apply jar:file://~/build/basic-app-0.1-all.jar!/META-INF/native-image/io.netty/buffer/native-image.properties
+Apply jar:file://~/build/basic-app-0.1-all.jar!/META-INF/native-image/io.netty/transport/native-image.properties
+Apply jar:file://~/build/basic-app-0.1-all.jar!/META-INF/native-image/io.netty/handler/native-image.properties
+Apply jar:file://~/build/basic-app-0.1-all.jar!/META-INF/native-image/io.netty/codec-http/native-image.properties
+...
+Executing [
+    &lt;composite configuration command line options for the image builder&gt;
+]
+</code></pre>
+
+<p>Typical examples of <code>META-INF/native-image</code> based native image configuration can be found in <a href="https://github.com/graalvm/graalvm-demos/tree/master/native-image-configure-examples">Native Image configuration examples</a>.</p>
+
+<h3 id="properties-file-format">Properties File Format</h3>
+<p>A <code>native-image.properties</code> file is a regular Java properties file that can be
+used to specify native image configurations. The following properties are
+supported.</p>
+
+<p><strong>Args</strong></p>
+
+<p>Use this property if your project requires custom <code>native-image</code> command line options to build correctly. For example, the <code>native-image-configure-examples/configure-at-runtime-example</code> has <code>Args = --initialize-at-build-time=com.fasterxml.jackson.annotation.JsonProperty$Access</code>  in its <code>native-image.properties</code> file to ensure the class <code>com.fasterxml.jackson.annotation.JsonProperty$Access</code> gets initialized at image built time.</p>
+
+<p><strong>JavaArgs</strong></p>
+
+<p>Sometimes it can be necessary to provide custom options to the JVM that runs the
+image builder. The <code>JavaArgs</code> property can used in this case.</p>
+
+<p><strong>ImageName</strong></p>
+
+<p>This property can be used to specify a user-defined name for the image. If
+<code>ImageName</code> is not used, a name gets automatically chosen:</p>
+<ul>
+  <li><code>native-image -jar &lt;name.jar&gt;</code> has a default image name <code>&lt;name&gt;</code></li>
+  <li><code>native-image -cp ... fully.qualified.MainClass</code> has a default image name <code>fully.qualified.mainclass</code></li>
+</ul>
+
+<p>Note that using <code>ImageName</code> does not prevent the user to override the name later via command line. For example, if <code>foo.bar</code> contains <code>ImageName=foo_app</code>,</p>
+<ul>
+  <li><code>native-image -jar foo.bar</code> generates the image <code>foo_app</code> but</li>
+  <li><code>native-image -jar foo.bar application</code> generates the image <code>application</code>.</li>
+</ul>
+
+<h3 id="order-of-arguments-evaluation">Order of Arguments Evaluation</h3>
+
+<p>The arguments passed to <code>native-image</code> are evaluated left-to-right. This also
+extends to arguments that get passed indirectly via <code>META-INF/native-image</code>
+based native-image configuration. Suppose you have a jar file that contains
+<em>native-image.properties</em> with <code>Args = -H:Optimize=0</code>. Then by using the
+<code>-H:Optimize=2</code> option after <code>-cp &lt;jar-file&gt;</code> you can override the setting that
+comes from the jar file.</p>
+
+<h3 id="specifying-default-options-for-native-image">Specifying Default Options for Native Image</h3>
+
+<p>If there is a need to pass some options for every image build unconditionally, for
+example, to always generate an image in verbose mode (<code>--verbose</code>), we can
+make use of the <code>NATIVE_IMAGE_CONFIG_FILE</code> environment variable.
+If it is set to a Java properties file, the Native Image builder will use the
+default setting defined in there on each invocation. We have to write a
+configuration file and export
+<code>NATIVE_IMAGE_CONFIG_FILE=$HOME/.native-image/default.properties</code> in
+<code>~/.bash_profile</code>. Every time <code>native-image</code> gets used, it will implicitly use
+the arguments specified as <code>NativeImageArgs</code>, plus the arguments specified on the
+command line. Here is an example of a configuration file, saved as
+<code>~/.native-image/default.properties</code>:</p>
 
 <pre><code>NativeImageArgs = --configurations-path /home/user/custom-image-configs \
                   -O1
 </code></pre>
+
+<h2 id="runtime-vs-build-time-initialization">Runtime vs Build Time Initialization</h2>
+
+<p>Building your application into a native image allows you to decide which parts
+of your application should be run at image build time and which parts have to
+run at image runtime.</p>
+
+<p>Since GraalVM 19.0 all class-initialization code (static initializers and static
+field initialization) of the application you build an image for will be executed
+at image runtime by default. Sometimes it is beneficial to allow class
+initialization code to get executed at image build time for faster startup (e.g.
+if some static fields get initialized to runtime independent data). This can be
+controlled with the following native-image options:</p>
+
+<ul>
+  <li><code>--initialize-at-build-time=&lt;comma-separated list of packages and classes&gt;</code></li>
+  <li><code>--initialize-at-run-time=&lt;comma-separated list of packages and classes&gt;</code></li>
+</ul>
+
+<p>In addition to that we allow arbitrary computations at built time that can be put into <code>ImageSingletons</code> that are
+accessible at image runtime. For more information please have a look at <a href="https://github.com/graalvm/graalvm-demos/tree/master/native-image-configure-examples">Native Image configuration examples</a>.</p>
+
+<p>To learn more on the topic, continue reading on <a href="http://www.christianwimmer.at/Publications/Wimmer19a/Wimmer19a.pdf">Application Initialization at Build Time</a>.</p>
+
+<h2 id="integration-with-maven">Integration with Maven</h2>
+
+<p>To simplify the generation of native images, GraalVM Native Image now works out
+of <a href="https://maven.apache.org/what-is-maven.html">Maven</a> with the <a href="https://search.maven.org/artifact/com.oracle.substratevm/native-image-maven-plugin/">Native Image Maven Plugin</a>.</p>
+
+<p>As demonstrated in the <a href="https://github.com/graalvm/graalvm-demos/tree/master/native-image-configure-examples">Native Image configuration examples</a>, one can build a native image directly with Maven
+using the <code>mvn package</code> command without running the <code>native-image</code> tool as a
+separate step. It is sufficient to add <code>native-image-maven-plugin</code> into the
+<code>&lt;plugins&gt;</code> section of the <code>pom.xml</code> file:</p>
+<pre><code>&lt;plugin&gt;
+    &lt;groupId&gt;org.graalvm.nativeimage&lt;/groupId&gt;
+    &lt;artifactId&gt;native-image-maven-plugin&lt;/artifactId&gt;
+    &lt;version&gt;${graalvm.version}&lt;/version&gt;
+    &lt;executions&gt;
+        &lt;execution&gt;
+            &lt;goals&gt;
+                &lt;goal&gt;native-image&lt;/goal&gt;
+            &lt;/goals&gt;
+            &lt;phase&gt;package&lt;/phase&gt;
+        &lt;/execution&gt;
+    &lt;/executions&gt;
+    &lt;configuration&gt;
+        &lt;skip&gt;false&lt;/skip&gt;
+        &lt;imageName&gt;example&lt;/imageName&gt;
+        &lt;buildArgs&gt;
+            --no-fallback
+        &lt;/buildArgs&gt;
+    &lt;/configuration&gt;
+&lt;/plugin&gt;
+</code></pre>
+<p>and the <code>org.graalvm.sdk</code> library dependency in the <code>&lt;dependencies&gt;</code> list:</p>
+
+<pre><code>&lt;dependency&gt;
+    &lt;groupId&gt;org.graalvm.sdk&lt;/groupId&gt;
+    &lt;artifactId&gt;graal-sdk&lt;/artifactId&gt;
+    &lt;version&gt;${graalvm.version}&lt;/version&gt;
+    &lt;scope&gt;provided&lt;/scope&gt;
+&lt;/dependency&gt;
+</code></pre>
+
+<p>The plugin figures out what jar files it needs to pass to the native image and
+what the executable main class should be. If the heuristics fails with the <code>no
+main manifest attribute, in target/&lt;name&gt;.jar</code> error, the main class should be
+specified in the <code>&lt;configuration&gt;</code> node of the plugin (see Plugin Customization
+section). When <code>mvn package</code> completes, an executable, generated in the <em>target</em>
+directory of the project, is ready for use.</p>
+
+<p><strong>Warning:</strong> As of the GraalVM version 19.3, the Maven <code>&lt;groupId&gt;</code> for the GraalVM Native
+Image related artifacts, including the plugin, changes from
+<code>com.oracle.substratevm</code> to <code>org.graalvm.nativeimage</code>
+(<code>&lt;groupId&gt;org.graalvm.nativeimage&lt;/groupId&gt;</code>).</p>
+
+<h3 id="plugin-customization">Plugin Customization</h3>
+
+<p>When using <a href="https://docs.oracle.com/en/graalvm/index.html">GraalVM Enterprise Edition</a> as the <code>JAVA_HOME</code>
+environment, the plugin builds a native image with enterprise features enabled, e.g., an executable will automatically be built with <a href="https://medium.com/graalvm/isolates-and-compressed-references-more-flexible-and-efficient-memory-management-for-graalvm-a044cc50b67e">compressed references</a>
+and other optimizations enabled.</p>
+
+<p>It is also possible to customize <code>native-image-maven-plugin</code> within a
+<code>&lt;configuration&gt;</code> node. The following configurations are available.</p>
+
+<ol>
+  <li>Configuration parameter <code>&lt;mainClass&gt;</code>. If the execution fails with the <code>no main manifest attribute, in target/&lt;name&gt;.jar</code> error, the main class should be specified. By default the plugin consults several locations in the  <code>pom.xml</code> file in the following order to determine what the main class of the image should be:
+    <ul>
+      <li><code>&lt;maven-shade-plugin&gt; &lt;transformers&gt; &lt;transformer&gt; &lt;mainClass&gt;</code></li>
+      <li><code>&lt;maven-assembly-plugin&gt; &lt;archive&gt; &lt;manifest&gt; &lt;mainClass&gt;</code></li>
+      <li><code>&lt;maven-jar-plugin&gt; &lt;archive&gt; &lt;manifest&gt; &lt;mainClass&gt;</code></li>
+    </ul>
+  </li>
+  <li>Configuration parameter <code>&lt;imageName&gt;</code>. If an image filename is not set explicitly, use parameter <code>&lt;imageName&gt;</code> to provide a custom filename for the image.</li>
+  <li>Configuration parameter <code>&lt;buildArgs&gt;</code>. If you want to pass additional options for the image building, use the <code>&lt;buildArgs&gt;</code> parameter the definition of the plugin. For example, to build a native image with assertions enabled that uses <em>com.test.classname</em> as a main class, add:</li>
+</ol>
+
+<pre><code>&lt;configuration&gt;
+    &lt;imageName&gt;executable-name&lt;/imageName&gt;
+    &lt;mainClass&gt;com.test.classname&lt;/mainClass&gt;
+    &lt;buildArgs&gt;
+        --no-fallback
+    &lt;/buildArgs&gt;
+    &lt;skip&gt;false&lt;/skip&gt;
+&lt;/configuration&gt;
+</code></pre>
+
+<h3 id="how-to-determine-what-version-of-graalvm-an-image-is-generated-with">How to Determine What Version of GraalVM an Image Is Generated With?</h3>
 
 <p>If the user has a configuration file and export <code>NATIVE_IMAGE_CONFIG_FILE=$HOME/.native-image/default.properties</code> in <code>~/.bash_profile</code>, every time the native image gets used, it will implicitly use the arguments
 specified as <code>NativeImageArgs</code>, plus the arguments specified on command line.</p>
@@ -955,6 +1172,16 @@ Enterprise Edition? Run this command:</p>
 
 <p>The expected output should match the following:</p>
 <pre><code>com.oracle.svm.core.VM GraalVM 19.3.0 CE
+</code></pre>
+
+<p><strong>Warning:</strong>
+Python source code or LLVM bitcode interpreted or compiled with GraalVM
+Community Edition will not have the same security characteristics as the same
+code interpreted or compiled using GraalVM Enterprise Edition. There is a
+GraalVM string embedded in each image that allows to figure out the version and
+variant of the base (Community or Enterprise) used to build an image.
+The following command will query that information from an image:</p>
+<pre><code>strings &lt;path to native-image exe or shared object&gt; | grep com.oracle.svm.core.VM
 </code></pre>
 
 <h2 id="profile-guided-optimizations">Profile-guided Optimizations</h2>
@@ -997,7 +1224,7 @@ a highly-optimized native binary. This maximizes the performance even more.</p>
   </li>
 </ol>
 
-<h3 id="limitations-of-aot-compilation">Limitations of AOT Compilation</h3>
+<h2 id="aot-compilation-limitations">AOT Compilation Limitations</h2>
 
 <p>There is a small portion of Java features are not susceptible to ahead-of-time
 compilation, and will therefore miss out on the performance advantages. To be
