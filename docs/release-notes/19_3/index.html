@@ -612,7 +612,22 @@ $(document).ready(function(){
 
             <div class="col-sm-9">
               <div id="content-wrapper" class="docs-content docs-content--with-sidebar">
-                <h2 id="1930">19.3.0</h2>
+                <h2 id="19302">19.3.0.2</h2>
+<p>(2019-12-24)</p>
+
+<p>This is a bugfix update including fixes to the JVM Compiler Interface (JVMCI) and necessary updates to the JDK 11 support.
+The following issues were addressed:</p>
+
+<ul>
+  <li>Approached the issue of <code>DynamicProxySupport</code> being not thread safe when <code>DynamicProxySupport.addProxyClass</code> is called from multiple threads (see <a href="https://github.com/oracle/graal/issues/1927">#1927</a>).</li>
+  <li>Resolved a problem leading to a wrong execution of the code produced with the GraalVM <code>native-image</code> builder at optimization level 2 <code>-H:Optimize=2</code> (see <a href="https://github.com/oracle/graal/issues/1995">#1995</a>).</li>
+  <li>Fixed a problem when JavaFX applications misbehave with <code>GraalArithmeticStubs</code> (see <a href="https://github.com/oracle/graal/issues/1867">#1867</a>).</li>
+  <li>Resolved an issue of VM crashing when run with Serial GC (see <a href="https://github.com/oracle/graal/issues/1892">#1892</a>).</li>
+  <li><code>ReduceInitialCardMarks</code> is unsafe with <code>OptBulkAllocation</code> in JDK 11 (see <a href="https://github.com/oracle/graal/issues/1915">#1915</a>).</li>
+  <li>Fixed a transient crash while building native images with GraalVM based on JDK11 (see <a href="https://github.com/oracle/graal/issues/1906">#1906</a>).</li>
+</ul>
+
+<h2 id="1930">19.3.0</h2>
 <p>(2019-11-19)</p>
 
 <p>GraalVM 19.3 is the first planned long-term support (LTS) release built from the
