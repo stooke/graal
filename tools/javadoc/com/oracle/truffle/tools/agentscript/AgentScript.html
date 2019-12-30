@@ -220,22 +220,14 @@ access.registerAgentScript(agentSrc);
  * {&#064;link <a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html" title="interface in com.oracle.truffle.tools.agentscript"><code>AgentScript</code></a>#registerAgentScript registered scripts}.
  */
 <b>public</b> <b>interface</b> AgentScriptAPI {
-    /** Version of the API. Version {&#064;code 0.1} has been released as
-     * part of GraalVM 19.3.0 release.
+    /** Version of the API.
      *
      * &#064;<b>return</b> same value of {&#064;link <a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html" title="interface in com.oracle.truffle.tools.agentscript"><code>AgentScript</code></a>#VERSION}
-     * &#064;since 0.1
      */
     <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> version();
 
-    /** Marker <b>interface</b> <b>for</b> any handler.
-     * &#064;since 0.1
-     */
-    <b>interface</b> Handler {
-    }
-
     &#064;<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/FunctionalInterface.html?is-external=true" title="class or interface in java.lang"><code>FunctionalInterface</code></a>
-    <b>interface</b> OnSourceLoadedHandler <b>extends</b> Handler {
+    <b>interface</b> OnSourceLoadedHandler {
         <b>interface</b> Info {
             /** Name of the {&#064;link #sourceLoaded}.
              * &#064;<b>return</b> name of the loaded source
@@ -269,7 +261,7 @@ access.registerAgentScript(agentSrc);
     <b>void</b> on(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> event, OnSourceLoadedHandler handler);
 
     &#064;<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/FunctionalInterface.html?is-external=true" title="class or interface in java.lang"><code>FunctionalInterface</code></a>
-    <b>interface</b> OnEventHandler <b>extends</b> Handler {
+    <b>interface</b> OnEventHandler {
         <b>interface</b> Context {
             <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> name();
         }
@@ -291,7 +283,7 @@ access.registerAgentScript(agentSrc);
     <b>void</b> on(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> event, OnEventHandler handler, OnConfig config);
 
     &#064;<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/FunctionalInterface.html?is-external=true" title="class or interface in java.lang"><code>FunctionalInterface</code></a>
-    <b>interface</b> OnCloseHandler <b>extends</b> Handler {
+    <b>interface</b> OnCloseHandler {
         <b>void</b> closed();
     }
     /** Register on close handler.
@@ -300,15 +292,6 @@ access.registerAgentScript(agentSrc);
      * &#064;param handler no args function to be notified when execution ends
      */
     <b>void</b> on(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> event, OnCloseHandler handler);
-
-    /** Unregisters a handler.
-     * 
-     * &#064;param event the event type to unregister from
-     * &#064;param handler the instance of handler registered 
-     *   by one of the {&#064;code on} methods
-     * &#064;since 0.2
-     */
-    <b>void</b> off(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> event, Handler handler);
 }
 </pre></div>
 <dl>
