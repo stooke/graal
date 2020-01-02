@@ -38,12 +38,12 @@
 <li><a href="../../../../../../index-all.html">Index</a></li>
 <li><a href="../../../../../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>19.3.1-dev</b><br>32d3c038942b8ffddd8a0b9bbcdc5a4a3327bea1</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.0.0-dev</b><br>1f2a70329341f1d6d6d818e8a3351147cb33309d</div>
 </div>
 <div class="subNav">
 <ul class="navList">
 <li>Prev&nbsp;Class</li>
-<li><a href="../../../../../../com/oracle/truffle/api/object/dsl/Nullable.html" title="annotation in com.oracle.truffle.api.object.dsl"><span class="typeNameLink">Next&nbsp;Class</span></a></li>
+<li><a href="../../../../../../com/oracle/truffle/api/object/dsl/Layout.DispatchDefaultValue.html" title="class in com.oracle.truffle.api.object.dsl"><span class="typeNameLink">Next&nbsp;Class</span></a></li>
 </ul>
 <ul class="navList">
 <li><a href="../../../../../../index.html?com/oracle/truffle/api/object/dsl/Layout.html" target="_top">Frames</a></li>
@@ -390,14 +390,20 @@ BaseImpl.INSTANCE.getA(object);
 <th class="colLast" scope="col">Optional Element and Description</th>
 </tr>
 <tr class="altColor">
-<td class="colFirst"><code>boolean</code></td>
-<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../../com/oracle/truffle/api/object/dsl/Layout.html#implicitCastIntToDouble--">implicitCastIntToDouble</a></span></code>&nbsp;</td>
+<td class="colFirst"><code><a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;?&gt;</code></td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../../com/oracle/truffle/api/object/dsl/Layout.html#dispatch--">dispatch</a></span></code>
+<div class="block">Generate override of <a href="../../../../../../com/oracle/truffle/api/object/ObjectType.html#dispatch--"><code>ObjectType.dispatch()</code></a> method in the generated inner *Type class.</div>
+</td>
 </tr>
 <tr class="rowColor">
 <td class="colFirst"><code>boolean</code></td>
-<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../../com/oracle/truffle/api/object/dsl/Layout.html#implicitCastIntToLong--">implicitCastIntToLong</a></span></code>&nbsp;</td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../../com/oracle/truffle/api/object/dsl/Layout.html#implicitCastIntToDouble--">implicitCastIntToDouble</a></span></code>&nbsp;</td>
 </tr>
 <tr class="altColor">
+<td class="colFirst"><code>boolean</code></td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../../com/oracle/truffle/api/object/dsl/Layout.html#implicitCastIntToLong--">implicitCastIntToLong</a></span></code>&nbsp;</td>
+</tr>
+<tr class="rowColor">
 <td class="colFirst"><code><a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;? extends <a href="../../../../../../com/oracle/truffle/api/object/ObjectType.html" title="class in com.oracle.truffle.api.object">ObjectType</a>&gt;</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../../../com/oracle/truffle/api/object/dsl/Layout.html#objectTypeSuperclass--">objectTypeSuperclass</a></span></code>&nbsp;</td>
 </tr>
@@ -459,7 +465,7 @@ BaseImpl.INSTANCE.getA(object);
 <li class="blockList"><a name="implicitCastIntToDouble--">
 <!--   -->
 </a>
-<ul class="blockListLast">
+<ul class="blockList">
 <li class="blockList">
 <h4>implicitCastIntToDouble</h4>
 <pre>public abstract&nbsp;boolean&nbsp;implicitCastIntToDouble</pre>
@@ -470,6 +476,27 @@ BaseImpl.INSTANCE.getA(object);
 <dl>
 <dt>Default:</dt>
 <dd>false</dd>
+</dl>
+</li>
+</ul>
+</li>
+</ul>
+<ul class="blockList">
+<li class="blockList"><a name="dispatch--">
+<!--   -->
+</a>
+<ul class="blockListLast">
+<li class="blockList">
+<h4>dispatch</h4>
+<pre>public abstract&nbsp;<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;?&gt;&nbsp;dispatch</pre>
+<div class="block">Generate override of <a href="../../../../../../com/oracle/truffle/api/object/ObjectType.html#dispatch--"><code>ObjectType.dispatch()</code></a> method in the generated inner *Type class.</div>
+<dl>
+<dt><span class="simpleTagLabel">Since:</span></dt>
+<dd>20.0</dd>
+</dl>
+<dl>
+<dt>Default:</dt>
+<dd>com.oracle.truffle.api.object.dsl.Layout.DispatchDefaultValue.class</dd>
 </dl>
 </li>
 </ul>
@@ -497,12 +524,12 @@ BaseImpl.INSTANCE.getA(object);
 <li><a href="../../../../../../index-all.html">Index</a></li>
 <li><a href="../../../../../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>19.3.1-dev</b><br>32d3c038942b8ffddd8a0b9bbcdc5a4a3327bea1</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.0.0-dev</b><br>1f2a70329341f1d6d6d818e8a3351147cb33309d</div>
 </div>
 <div class="subNav">
 <ul class="navList">
 <li>Prev&nbsp;Class</li>
-<li><a href="../../../../../../com/oracle/truffle/api/object/dsl/Nullable.html" title="annotation in com.oracle.truffle.api.object.dsl"><span class="typeNameLink">Next&nbsp;Class</span></a></li>
+<li><a href="../../../../../../com/oracle/truffle/api/object/dsl/Layout.DispatchDefaultValue.html" title="class in com.oracle.truffle.api.object.dsl"><span class="typeNameLink">Next&nbsp;Class</span></a></li>
 </ul>
 <ul class="navList">
 <li><a href="../../../../../../index.html?com/oracle/truffle/api/object/dsl/Layout.html" target="_top">Frames</a></li>
@@ -540,6 +567,6 @@ BaseImpl.INSTANCE.getA(object);
 <!--   -->
 </a></div>
 <!-- ======== END OF BOTTOM NAVBAR ======= -->
-<p class="legalCopy"><small><center>Copyright &copy; 2012, 2019, Oracle and/or its affiliates. All rights reserved.</center></small></p>
+<p class="legalCopy"><small><center>Copyright &copy; 2012, 2020, Oracle and/or its affiliates. All rights reserved.</center></small></p>
 </body>
 </html>
