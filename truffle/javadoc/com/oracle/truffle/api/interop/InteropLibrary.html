@@ -44,7 +44,7 @@ var activeTableTab = "activeTableTab";
 <li><a href="../../../../../index-all.html">Index</a></li>
 <li><a href="../../../../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.0.0-dev</b><br>291bfd6051bccab45d2b48cd74f146379cfd001d</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>19.3.1-dev</b><br>3c84631bd7f7573b03f14d099cccf7419fc74517</div>
 </div>
 <div class="subNav">
 <ul class="navList">
@@ -685,8 +685,7 @@ extends <a href="../../../../../com/oracle/truffle/api/library/Library.html" tit
 <tr id="i64" class="altColor">
 <td class="colFirst"><code>void</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#toNative-java.lang.Object-">toNative</a></span>(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true" title="class or interface in java.lang">Object</a>&nbsp;receiver)</code>
-<div class="block">Attempts to transform a <a href="../../../../../com/oracle/truffle/api/interop/TruffleObject.html" title="interface in com.oracle.truffle.api.interop"><code>receiver</code></a> to a value that represents a raw
- native pointer.</div>
+<div class="block">Transforms a <a href="../../../../../com/oracle/truffle/api/interop/TruffleObject.html" title="interface in com.oracle.truffle.api.interop"><code>receiver</code></a> to a value that represents a raw native pointer.</div>
 </td>
 </tr>
 <tr id="i65" class="rowColor">
@@ -1888,10 +1887,9 @@ extends <a href="../../../../../com/oracle/truffle/api/library/Library.html" tit
 <li class="blockList">
 <h4>toNative</h4>
 <pre>public&nbsp;void&nbsp;toNative(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true" title="class or interface in java.lang">Object</a>&nbsp;receiver)</pre>
-<div class="block">Attempts to transform a <a href="../../../../../com/oracle/truffle/api/interop/TruffleObject.html" title="interface in com.oracle.truffle.api.interop"><code>receiver</code></a> to a value that represents a raw
- native pointer. After a successful transformation, the provided receiver returns true for
- <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#isPointer-java.lang.Object-"><code>InteropLibrary.isPointer(Object)</code></a> and can be unwrapped using the <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#asPointer-java.lang.Object-"><code>InteropLibrary.asPointer(Object)</code></a> message.
- If transformation cannot be done <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#isPointer-java.lang.Object-"><code>InteropLibrary.isPointer(Object)</code></a> will keep returning false.</div>
+<div class="block">Transforms a <a href="../../../../../com/oracle/truffle/api/interop/TruffleObject.html" title="interface in com.oracle.truffle.api.interop"><code>receiver</code></a> to a value that represents a raw native pointer.
+ After the transformation, the provided receiver returns true for <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#isPointer-java.lang.Object-"><code>InteropLibrary.isPointer(Object)</code></a>
+ and can be unwrapped using the <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#asPointer-java.lang.Object-"><code>InteropLibrary.asPointer(Object)</code></a> message.</div>
 <dl>
 <dt><span class="simpleTagLabel">Since:</span></dt>
 <dd>19.0</dd>
@@ -1977,10 +1975,9 @@ extends <a href="../../../../../com/oracle/truffle/api/library/Library.html" tit
  <li>If <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#isDate-java.lang.Object-"><code>InteropLibrary.isDate(Object)</code></a> and <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#isTime-java.lang.Object-"><code>InteropLibrary.isTime(Object)</code></a> returns <code>false</code>, then
  it represents just timezone information.
  </ul>
- Objects with only date information must not have timezone information attached and objects
- with only time information must have either none, or <a href="http://docs.oracle.com/javase/8/docs/api/java/time/zone/ZoneRules.html?is-external=true#isFixedOffset--" title="class or interface in java.time.zone"><code>fixed
- zone</code></a> only. If this rule is violated then an <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/AssertionError.html?is-external=true" title="class or interface in java.lang"><code>AssertionError</code></a> is thrown if assertions
- are enabled.
+ Objects with only time or only date information must not have timezone information attached,
+ as aware date or time information always consist of both date and time. If this rule is
+ violated then an <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/AssertionError.html?is-external=true" title="class or interface in java.lang"><code>AssertionError</code></a> is thrown if assertions are enabled.
  <p>
  If this method is implemented then also <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#asTimeZone-java.lang.Object-"><code>InteropLibrary.asTimeZone(Object)</code></a> must be implemented.</div>
 <dl>
@@ -2228,7 +2225,7 @@ extends <a href="../../../../../com/oracle/truffle/api/library/Library.html" tit
 <li><a href="../../../../../index-all.html">Index</a></li>
 <li><a href="../../../../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.0.0-dev</b><br>291bfd6051bccab45d2b48cd74f146379cfd001d</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>19.3.1-dev</b><br>3c84631bd7f7573b03f14d099cccf7419fc74517</div>
 </div>
 <div class="subNav">
 <ul class="navList">
