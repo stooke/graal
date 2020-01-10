@@ -5,6 +5,39 @@ It will also be compliant to ECMAScript 2020 once this updated specification is 
 More than 100,000 npm packages are regularly tested and are compatible with GraalVM, including modules like express, react, async, request, browserify, grunt, mocha, and underscore.
 The latest release of GraalVM is based on Node.js version 12.10.0.
 
+## Nashorn Compatibility Mode
+
+[GraalVM announced support for Nashorn migration](https://medium.com/graalvm/oracle-graalvm-announces-support-for-nashorn-migration-c04810d75c1f) due to the announced deprecation of Nashorn in the JDK.
+GraalVM JavaScript provides a Nashorn compatibility mode for some of the
+functionality not exposed by default, but necessary to run an application that was built for Nashorn specifically.
+[Check the list of extensions](https://github.com/graalvm/graaljs/blob/master/docs/user/NashornMigrationGuide.md#extensions-only-available-in-nashorn-compatibility-mode) to JavaScript (ECMAScript) that are available in GraalVM JavaScript. Some of them provide features that are available in Nashorn as well. For ECMAScript compatibility, most of those features are deactivated by default in GraalVM but can be activated with flags.
+
+If the source code includes some Nashorn-specific extensions, the Nashorn
+compatibility mode should be enabled. It can be activated:
+1. with the `js.nashorn-compat` option from the command line:
+```
+js --experimental-options --js.nashorn-compat=true
+```
+2. by using the Polyglot API:
+```
+import org.graalvm.polyglot.Context;
+try (Context context = Context.newBuilder().allowExperimentalOptions(true).option("js.nashorn-compat", "true").build()) {
+  context.eval("js", "print(__LINE__)");
+}
+```
+3. by using a system property when starting a Java application:
+```
+java -Dpolyglot.js.nashorn-compat=true MyApplication
+```
+
+We strongly encourage you to use the Nashorn compatibility mode only as a means of getting your application running on GraalVM JavaScript initially. Features of the Nashorn compatiblity mode might in the future conflict with new ECMAScript and/or GraalVM JavaScript features. It is highly recommended to only use features available in GraalVM by default (i.e., without Nashorn compatibility mode) for the best long-term experience. This might require some modifications to your source base.
+
+We provide migration guides for code previously targeted to the [Nashorn](https://github.com/graalvm/graaljs/blob/master/docs/user/NashornMigrationGuide.md) or [Rhino](https://github.com/graalvm/graaljs/blob/master/docs/user/RhinoMigrationGuide.md) engines.
+See the [JavaInterop.md](https://github.com/graalvm/graaljs/blob/master/docs/user/JavaInterop.md) for an overview of supported Java interoperability features.
+For additional information, see the [Polyglot Reference]({{ "/docs/reference-manual/polyglot/" | relative_url }}) and the
+[Embedding documentation]({{ "/docs/graalvm-as-a-platform/embed/" | relative_url }})
+for more information about interoperability with other programming languages.
+
 ### Is GraalVM compatible with the JavaScript language?
 
 _What version of ECMAScript do we support?_

@@ -808,18 +808,47 @@ example:</p>
 0.8198353068437427
 </code></pre>
 
-<p>We provide migration guides for code previously targeted to the <a href="https://github.com/graalvm/graaljs/blob/master/docs/user/RhinoMigrationGuide.md">Rhino</a> or <a href="https://github.com/graalvm/graaljs/blob/master/docs/user/NashornMigrationGuide.md">Nashorn</a> engines.
-See the <a href="https://github.com/graalvm/graaljs/blob/master/docs/user/JavaInterop.md">JavaInterop.md</a> for an overview of supported Java interoperability features.
-For additional information, see the <a href="/docs/reference-manual/polyglot/">Polyglot Reference</a> and the
-<a href="/docs/graalvm-as-a-platform/embed/">Embedding documentation</a>
-for more information about interoperability with other programming languages.</p>
-
 <h2 id="graalvm-javascript-compatibility">GraalVM JavaScript Compatibility</h2>
 
 <p>GraalVM is <a href="http://www.ecma-international.org/ecma-262/10.0/index.html">ECMAScript 2019</a> compliant and fully compatible with a diverse range of active Node.js (npm) modules.
 It will also be compliant to ECMAScript 2020 once this updated specification is published (<a href="https://tc39.github.io/ecma262/">draft spec</a>).
 More than 100,000 npm packages are regularly tested and are compatible with GraalVM, including modules like express, react, async, request, browserify, grunt, mocha, and underscore.
 The latest release of GraalVM is based on Node.js version 12.10.0.</p>
+
+<h2 id="nashorn-compatibility-mode">Nashorn Compatibility Mode</h2>
+
+<p><a href="https://medium.com/graalvm/oracle-graalvm-announces-support-for-nashorn-migration-c04810d75c1f">GraalVM announced support for Nashorn migration</a> due to the announced deprecation of Nashorn in the JDK.
+GraalVM JavaScript provides a Nashorn compatibility mode for some of the
+functionality not exposed by default, but necessary to run an application that was built for Nashorn specifically.
+<a href="https://github.com/graalvm/graaljs/blob/master/docs/user/NashornMigrationGuide.md#extensions-only-available-in-nashorn-compatibility-mode">Check the list of extensions</a> to JavaScript (ECMAScript) that are available in GraalVM JavaScript. Some of them provide features that are available in Nashorn as well. For ECMAScript compatibility, most of those features are deactivated by default in GraalVM but can be activated with flags.</p>
+
+<p>If the source code includes some Nashorn-specific extensions, the Nashorn
+compatibility mode should be enabled. It can be activated:</p>
+<ol>
+  <li>with the <code>js.nashorn-compat</code> option from the command line:
+    <pre><code>js --experimental-options --js.nashorn-compat=true
+</code></pre>
+  </li>
+  <li>by using the Polyglot API:
+    <pre><code>import org.graalvm.polyglot.Context;
+try (Context context = Context.newBuilder().allowExperimentalOptions(true).option("js.nashorn-compat", "true").build()) {
+  context.eval("js", "print(__LINE__)");
+}
+</code></pre>
+  </li>
+  <li>by using a system property when starting a Java application:
+    <pre><code>java -Dpolyglot.js.nashorn-compat=true MyApplication
+</code></pre>
+  </li>
+</ol>
+
+<p>We strongly encourage you to use the Nashorn compatibility mode only as a means of getting your application running on GraalVM JavaScript initially. Features of the Nashorn compatiblity mode might in the future conflict with new ECMAScript and/or GraalVM JavaScript features. It is highly recommended to only use features available in GraalVM by default (i.e., without Nashorn compatibility mode) for the best long-term experience. This might require some modifications to your source base.</p>
+
+<p>We provide migration guides for code previously targeted to the <a href="https://github.com/graalvm/graaljs/blob/master/docs/user/NashornMigrationGuide.md">Nashorn</a> or <a href="https://github.com/graalvm/graaljs/blob/master/docs/user/RhinoMigrationGuide.md">Rhino</a> engines.
+See the <a href="https://github.com/graalvm/graaljs/blob/master/docs/user/JavaInterop.md">JavaInterop.md</a> for an overview of supported Java interoperability features.
+For additional information, see the <a href="/docs/reference-manual/polyglot/">Polyglot Reference</a> and the
+<a href="/docs/graalvm-as-a-platform/embed/">Embedding documentation</a>
+for more information about interoperability with other programming languages.</p>
 
 <h3 id="is-graalvm-compatible-with-the-javascript-language">Is GraalVM compatible with the JavaScript language?</h3>
 
