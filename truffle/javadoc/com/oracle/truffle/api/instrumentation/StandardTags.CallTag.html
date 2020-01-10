@@ -38,7 +38,7 @@
 <li><a href="../../../../../index-all.html">Index</a></li>
 <li><a href="../../../../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>19.3.1-dev</b><br>a3ce2d08096c85847b9e609ca40353db541c4c4e</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.0.0-dev</b><br>d806653e3f2a79fc456eae6ba9c3200a108a7c4c</div>
 </div>
 <div class="subNav">
 <ul class="navList">
@@ -124,12 +124,12 @@ extends <a href="../../../../../com/oracle/truffle/api/instrumentation/Tag.html"
  </ul>
 
  The CallTag uses the <a href="../../../../../com/oracle/truffle/api/instrumentation/Tag.Identifier.html" title="annotation in com.oracle.truffle.api.instrumentation"><code>identifier</code></a> <code>"CALL"</code>. A node tagged
- with <a href="../../../../../com/oracle/truffle/api/instrumentation/StandardTags.RootTag.html" title="class in com.oracle.truffle.api.instrumentation"><code>StandardTags.RootTag</code></a> must provide a <a href="../../../../../com/oracle/truffle/api/nodes/Node.html#getSourceSection--"><code>source section</code></a>, if its
+ with <a href="../../../../../com/oracle/truffle/api/instrumentation/StandardTags.CallTag.html" title="class in com.oracle.truffle.api.instrumentation"><code>StandardTags.CallTag</code></a> must provide a <a href="../../../../../com/oracle/truffle/api/nodes/Node.html#getSourceSection--"><code>source section</code></a>, if its
  root node provides a source section.
  <p>
- If the a node tagged with <a href="../../../../../com/oracle/truffle/api/CallTarget.html" title="interface in com.oracle.truffle.api"><code>call</code></a> returns a non <code>null</code> value then
- it must be an interop value. There are assertions in place verifying this when Java
- assertions are enabled (-ea).</div>
+ If the a node tagged with <a href="../../../../../com/oracle/truffle/api/instrumentation/StandardTags.CallTag.html" title="class in com.oracle.truffle.api.instrumentation"><code>call</code></a> returns a non <code>null</code> value then it
+ must be an interop value. There are assertions in place verifying this when Java assertions
+ are enabled (-ea).</div>
 <dl>
 <dt><span class="simpleTagLabel">Since:</span></dt>
 <dd>0.12</dd>
@@ -199,7 +199,7 @@ extends <a href="../../../../../com/oracle/truffle/api/instrumentation/Tag.html"
 <li><a href="../../../../../index-all.html">Index</a></li>
 <li><a href="../../../../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>19.3.1-dev</b><br>a3ce2d08096c85847b9e609ca40353db541c4c4e</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.0.0-dev</b><br>d806653e3f2a79fc456eae6ba9c3200a108a7c4c</div>
 </div>
 <div class="subNav">
 <ul class="navList">
