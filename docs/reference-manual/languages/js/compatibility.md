@@ -7,10 +7,16 @@ The latest release of GraalVM is based on Node.js version 12.10.0.
 
 ## Nashorn Compatibility Mode
 
-[GraalVM announced support for Nashorn migration](https://medium.com/graalvm/oracle-graalvm-announces-support-for-nashorn-migration-c04810d75c1f) due to the announced deprecation of Nashorn in the JDK.
-GraalVM JavaScript provides a Nashorn compatibility mode for some of the
-functionality not exposed by default, but necessary to run an application that was built for Nashorn specifically.
-[Check the list of extensions](https://github.com/graalvm/graaljs/blob/master/docs/user/NashornMigrationGuide.md#extensions-only-available-in-nashorn-compatibility-mode) to JavaScript (ECMAScript) that are available in GraalVM JavaScript. Some of them provide features that are available in Nashorn as well. For ECMAScript compatibility, most of those features are deactivated by default in GraalVM but can be activated with flags.
+[GraalVM announced support for Nashorn migration](https://medium.com/graalvm/oracle-graalvm-announces-support-for-nashorn-migration-c04810d75c1f)
+due to the announced deprecation of Nashorn in the JDK. GraalVM JavaScript
+provides a Nashorn compatibility mode for some of the functionality not exposed
+by default, but necessary to run an application that was built for Nashorn
+specifically. [Check the list of extensions](https://github.com/graalvm/graaljs/blob/master/docs/user/NashornMigrationGuide.md#extensions-only-available-in-nashorn-compatibility-mode)
+to JavaScript (ECMAScript) that are available in GraalVM JavaScript. Some of
+them provide features that are available in Nashorn as well. For ECMAScript
+compatibility, most of those features are deactivated by default in GraalVM but
+can be activated with flags. Note that using the Nashorn compatibility mode
+allows your application to bypass the GraalVM security model.
 
 If the source code includes some Nashorn-specific extensions, the Nashorn
 compatibility mode should be enabled. It can be activated:
@@ -30,7 +36,15 @@ try (Context context = Context.newBuilder().allowExperimentalOptions(true).optio
 java -Dpolyglot.js.nashorn-compat=true MyApplication
 ```
 
-We strongly encourage you to use the Nashorn compatibility mode only as a means of getting your application running on GraalVM JavaScript initially. Features of the Nashorn compatiblity mode might in the future conflict with new ECMAScript and/or GraalVM JavaScript features. It is highly recommended to only use features available in GraalVM by default (i.e., without Nashorn compatibility mode) for the best long-term experience. This might require some modifications to your source base.
+We strongly encourage you to use the Nashorn compatibility mode only as a means
+of getting your application running on GraalVM JavaScript initially. Enabling
+the Nashorn compatibility mode gives your application full access to the Java
+mode. This bypasses the GraalVM security model of limiting JavaScript user code
+to "less trusted code" that is consistent with all other GraalVM languages. It
+is highly recommended not to use the Nashorn compatibility mode in production
+code if you execute less trusted user code. Some features of the Nashorn
+compatibility mode might in the future conflict with new ECMAScript and/or
+GraalVM JavaScript features.
 
 We provide migration guides for code previously targeted to the [Nashorn](https://github.com/graalvm/graaljs/blob/master/docs/user/NashornMigrationGuide.md) or [Rhino](https://github.com/graalvm/graaljs/blob/master/docs/user/RhinoMigrationGuide.md) engines.
 See the [JavaInterop.md](https://github.com/graalvm/graaljs/blob/master/docs/user/JavaInterop.md) for an overview of supported Java interoperability features.
