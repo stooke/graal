@@ -615,6 +615,13 @@ $(document).ready(function(){
                 <h3 id="known-issues">Known Issues</h3>
 
 <ul>
+  <li>
+    <p>New application security checks introduced by Apple in macOS 10.15 (Catalina)
+prevent a <a href="/docs/getting-started/#install-graalvm">regular GraalVM installation</a> on this operating
+system. When a software is installed for the first time, it is verified for
+being notarized. A user can install non-notarized software on macOS 10.15
+systems by <a href="https://support.apple.com/guide/mac-help/change-security-privacy-general-preferences-mh11784/mac">modifying the security preferences</a>.</p>
+  </li>
   <li>The GraalVM CE image for macOS currently depends on some libraries that are not installed by default on current macOS versions.
 This might cause issues with UI-related functionality:
     <pre><code>Library not loaded: /usr/X11/lib/libfreetype.6.dylib

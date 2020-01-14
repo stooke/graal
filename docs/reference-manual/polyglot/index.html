@@ -1003,7 +1003,7 @@ a <a href="https://github.com/oracle/graal/blob/master/substratevm/REFLECTION.md
 
   
 <figure class="highlight"><pre><code class="language-javascript" data-lang="javascript">  <span class="c1">// BEGIN-SNIPPET</span>
-<span class="kd">var</span> <span class="nx">cpart</span> <span class="o">=</span> <span class="nx">Polyglot</span><span class="p">.</span><span class="nx">evalFile</span><span class="p">(</span><span class="s2">"llvm"</span><span class="p">,</span> <span class="s2">"polyglot.bc"</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">cpart</span> <span class="o">=</span> <span class="nx">Polyglot</span><span class="p">.</span><span class="nx">evalFile</span><span class="p">(</span><span class="s2">"llvm"</span><span class="p">,</span> <span class="s2">"polyglot"</span><span class="p">);</span>
 <span class="nx">cpart</span><span class="p">.</span><span class="nx">main</span><span class="p">()</span>
 <span class="c1">// END-SNIPPET</span>
 
@@ -1378,7 +1378,7 @@ $ node --polyglot --jvm polyglot.js
   
 <figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"> 
   <span class="c1"># BEGIN-SNIPPET</span>
-<span class="n">cpart</span> <span class="o">&lt;-</span> <span class="nb">eval</span><span class="p">.</span><span class="nf">polyglot</span><span class="p">(</span><span class="s2">"llvm"</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s2">"polyglot.bc"</span><span class="p">)</span>
+<span class="n">cpart</span> <span class="o">&lt;-</span> <span class="nb">eval</span><span class="p">.</span><span class="nf">polyglot</span><span class="p">(</span><span class="s2">"llvm"</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s2">"polyglot"</span><span class="p">)</span>
 <span class="n">cpart</span><span class="vg">$main</span><span class="p">()</span>
 <span class="c1"># END-SNIPPET</span>
 
@@ -1744,7 +1744,7 @@ $ node --polyglot --jvm polyglot.js
 
   
 <figure class="highlight"><pre><code class="language-ruby" data-lang="ruby">  <span class="c1"># BEGIN-SNIPPET</span>
-<span class="n">cpart</span> <span class="o">=</span> <span class="no">Polyglot</span><span class="p">.</span><span class="nf">eval_file</span><span class="p">(</span><span class="s1">'llvm'</span><span class="p">,</span> <span class="s1">'polyglot.bc'</span><span class="p">)</span>
+<span class="n">cpart</span> <span class="o">=</span> <span class="no">Polyglot</span><span class="p">.</span><span class="nf">eval_file</span><span class="p">(</span><span class="s1">'llvm'</span><span class="p">,</span> <span class="s1">'polyglot'</span><span class="p">)</span>
 <span class="n">cpart</span><span class="p">.</span><span class="nf">main</span><span class="p">()</span>
 <span class="c1"># END-SNIPPET</span>
 
@@ -2115,7 +2115,7 @@ $ node --polyglot --jvm polyglot.js
   
 <figure class="highlight"><pre><code class="language-python" data-lang="python">  <span class="c"># BEGIN-SNIPPET</span>
 <span class="kn">import</span> <span class="nn">polyglot</span>
-<span class="n">cpart</span> <span class="o">=</span> <span class="n">polyglot</span><span class="o">.</span><span class="nb">eval</span><span class="p">(</span><span class="n">language</span><span class="o">=</span><span class="s">"llvm"</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s">"polyglot.bc"</span><span class="p">)</span>
+<span class="n">cpart</span> <span class="o">=</span> <span class="n">polyglot</span><span class="o">.</span><span class="nb">eval</span><span class="p">(</span><span class="n">language</span><span class="o">=</span><span class="s">"llvm"</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s">"polyglot"</span><span class="p">)</span>
 <span class="n">cpart</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
 <span class="c"># END-SNIPPET</span>
 
@@ -2520,10 +2520,10 @@ $ node --polyglot --jvm polyglot.js
     <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
         <span class="n">Context</span> <span class="n">polyglot</span> <span class="o">=</span> <span class="n">Context</span><span class="o">.</span><span class="na">newBuilder</span><span class="o">().</span>
         		               <span class="n">allowAllAccess</span><span class="o">(</span><span class="kc">true</span><span class="o">).</span><span class="na">build</span><span class="o">();</span>
-        <span class="n">File</span> <span class="n">file</span> <span class="o">=</span> <span class="k">new</span> <span class="n">File</span><span class="o">(</span><span class="s">"polyglot.bc"</span><span class="o">);</span>
+        <span class="n">File</span> <span class="n">file</span> <span class="o">=</span> <span class="k">new</span> <span class="n">File</span><span class="o">(</span><span class="s">"polyglot"</span><span class="o">);</span>
         <span class="n">Source</span> <span class="n">source</span> <span class="o">=</span> <span class="n">Source</span><span class="o">.</span><span class="na">newBuilder</span><span class="o">(</span><span class="s">"llvm"</span><span class="o">,</span> <span class="n">file</span><span class="o">).</span><span class="na">build</span><span class="o">();</span>
         <span class="n">Value</span> <span class="n">cpart</span> <span class="o">=</span> <span class="n">polyglot</span><span class="o">.</span><span class="na">eval</span><span class="o">(</span><span class="n">source</span><span class="o">);</span>
-        <span class="n">cpart</span><span class="o">.</span><span class="na">getMember</span><span class="o">(</span><span class="s">"main"</span><span class="o">).</span><span class="na">execute</span><span class="o">();</span>
+        <span class="n">cpart</span><span class="o">.</span><span class="na">execute</span><span class="o">();</span>
     <span class="o">}</span>
 <span class="o">}</span>
 <span class="c1">// END-SNIPPET</span>
@@ -2605,8 +2605,6 @@ $ java Polyglot
 </code></pre>
 
 <h4 id="start-language-c">Start Language C:</h4>
-
-<p><em>Note:</em> This requires clang to be installed.</p>
 
 <p>Create a file <code>polyglot.c</code>:</p>
 
@@ -3004,10 +3002,17 @@ $ java Polyglot
 
 </div>
 
+<p>The example C code has to be compiled to LLVM bitcode using the LLVM frontend
+such as <code>clang</code>. A user can use <code>clang</code> shipped with GraalVM by installing a
+pre-built LLVM toolchain support:</p>
+
+<pre><code>gu install llvm-toolchain
+export LLVM_TOOLCHAIN=$(lli --print-toolchain-path)
+</code></pre>
 <p>Run:</p>
 
-<pre><code>$ clang -g -O1 -c -emit-llvm -I$GRAALVM_HOME/jre/languages/llvm/include polyglot.c
-$ lli --polyglot --jvm polyglot.bc
+<pre><code>$LLVM_TOOLCHAIN/clang polyglot.c -lpolyglot-mock -o polyglot
+lli --polyglot polyglot
 42
 </code></pre>
 
@@ -3051,12 +3056,12 @@ This is how you can start it:</p>
 
 <pre><code class="language-shell">$ polyglot --jvm --shell
 
-GraalVM MultiLanguage Shell 19.3.0.2
+GraalVM MultiLanguage Shell 19.3.1
 Copyright (c) 2013-2019, Oracle and/or its affiliates
-  JavaScript version 19.3.0.2
+  JavaScript version 19.3.1
   Python version 3.7.4
   R version 3.6.1
-  Ruby version 2.6.2
+  Ruby version 2.6.5
 Usage:
   Use Ctrl+L to switch language and Ctrl+D to exit.
   Enter -usage to get a list of available commands.

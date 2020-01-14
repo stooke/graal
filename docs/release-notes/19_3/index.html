@@ -612,7 +612,30 @@ $(document).ready(function(){
 
             <div class="col-sm-9">
               <div id="content-wrapper" class="docs-content docs-content--with-sidebar">
-                <h2 id="19302">19.3.0.2</h2>
+                <h2 id="1931">19.3.1</h2>
+<p>(2019-01-14)</p>
+
+<p>This is a Critical Patch Update (CPU) for GraalVM Enterprise and Community
+Editions. The 19.3.1 release contains fixes to security vulnerabilities,
+critical bugs, and other fixes as identified in the <a href="https://www.oracle.com/security-alerts/cpujan2020.html">January 2020 Oracle Critical Patch Update Advisory</a>. Oracle
+GraalVM Enterprise Edition 19.3.1 includes all the Java security fixes released
+as part of that CPU.</p>
+
+<p>The 19.3.1 version also includes the following:</p>
+<ul>
+  <li>Update Java to 8u241 for Java 8 based GraalVM, please see <a href="https://www.oracle.com/technetwork/java/javase/8u-relnotes-2225394.html">Java SE 8 Release notes</a>.</li>
+  <li>Update Java to 11.0.6 for Java 11 based GraalVM, please see <a href="https://www.oracle.com/technetwork/java/javase/11all-relnotes-5013287.html">Java SE 11 Release notes</a>.</li>
+  <li>Update Ruby to 2.6.5, please see <a href="https://www.ruby-lang.org/en/news/2019/10/01/ruby-2-6-5-released/">Ruby 2.6.5 release notes</a>.</li>
+  <li>Update Node.js to 12.14.0, please see <a href="https://github.com/nodejs/node/blob/master/doc/changelogs/CHANGELOG_V12.md">Node.js 12.14.0 release notes</a>.</li>
+</ul>
+
+<p>For more information about Oracle Critical Patch Updates and Security Alerts, please visit the <a href="http://www.oracle.com/technetwork/topics/security/alerts-086861.html">announcements list</a>.</p>
+
+<p>Please note that for GraalVM Enterprise Edition on Java 11, <code>java -version</code> incorrectly reports a
+version based on <code>11.0.6+1</code> where as it is actually <code>11.0.6+8</code>. This issue in
+the GraalVM build process will be remedied in <a href="/docs/release-notes/version-roadmap/">future releases</a>.</p>
+
+<h2 id="19302">19.3.0.2</h2>
 <p>(2019-12-24)</p>
 
 <p>This is a bugfix update including fixes to the JVM Compiler Interface (JVMCI) and necessary updates to the JDK 11 support.
