@@ -858,9 +858,33 @@ error messages with descriptions containing <code>ValidatorException</code> or
 <p>GraalVM Updater <strong>intentionally does not support</strong>
 an option to disable certificate or hostname verification, for security reasons.
 You may try to add your proxy’s certificate to the GraalVM default security trust
-store (see JDK documentation for the details). You can also download the components
-manually to a folder, and then use <code>gu -L install /path/to/file</code> or
-<code>gu -C /path/to/download/dir install component</code> to install from a local filesystem.</p>
+store (see JDK documentation for the details).</p>
+
+<h2 id="working-without-internet-access">Working without Internet Access</h2>
+<p>If your machine cannot access and download Catalog and GraalVM components from
+the Internet, either because it is behind a proxy, or for security reasons,
+Graal Updater can install components from a local directory, or a directory on
+a network share accessible on the target machine.</p>
+
+<p>You need to prepare a directory, download all Components that you want to install
+and their dependencies (in case they require other GraalVM Components to work) into
+that directory.</p>
+
+<p>Then you can use <code>gu -L install /path/to/file</code> (where <code>-L</code> option instructs to use local files,
+equivalent to –local-file or –file). Adding <code>-D</code> option will instruct Graal Updater
+to look for potential dependencies in the directory next to the
+installable file. Additionally, <code>gu -C /path/to/download/dir install component</code> can be used, the specified
+directory contents acting as a Catalog of components.</p>
+
+<p>Note that with <code>gu -L</code> you need to specify the component’s file name, while
+when using <code>gu -C &lt;dir&gt;</code>, the component name must be used:</p>
+
+<pre><code># Specify file location
+gu -LD install /tmp/installables/fastr.jar
+
+# Specify component name
+gu -C /tmp/instalables install r
+</code></pre>
 
 <h2 id="replacing-components-and-files">Replacing Components and Files</h2>
 <p>A component may be only installed once. GraalVM Updater refuses to install a
