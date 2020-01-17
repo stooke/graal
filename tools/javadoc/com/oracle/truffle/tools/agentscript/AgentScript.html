@@ -220,6 +220,14 @@ access.registerAgentScript(agentSrc);
  * {&#064;link <a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html" title="interface in com.oracle.truffle.tools.agentscript"><code>AgentScript</code></a>#registerAgentScript registered scripts}.
  */
 <b>public</b> <b>interface</b> AgentScriptAPI {
+    /** ID of the instrument. Version {&#064;code 0.3} has been released as
+     * part of GraalVM 20.0.0 release.
+     *
+     * &#064;<b>return</b> same value of {&#064;link <a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html" title="interface in com.oracle.truffle.tools.agentscript"><code>AgentScript</code></a>#ID} - e.g. {&#064;code <em>"agentscript"</em>}
+     * &#064;since 0.3
+     */
+    <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> id();
+
     /** Version of the API. Version {&#064;code 0.1} has been released as
      * part of GraalVM 19.3.0 release.
      *
