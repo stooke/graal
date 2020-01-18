@@ -104,16 +104,14 @@ var activeTableTab = "activeTableTab";
  <a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html#ID"><code>AgentScript.ID</code></a>:
  <p>
  <pre><b>final</b> <code>Engine</code> engine = context.getEngine();
-<code>Instrument</code> instrument = engine.getInstruments().get(<a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html" title="interface in com.oracle.truffle.tools.agentscript"><code>AgentScript</code></a>.ID);
-<a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html" title="interface in com.oracle.truffle.tools.agentscript"><code>AgentScript</code></a> access = instrument.lookup(<a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html" title="interface in com.oracle.truffle.tools.agentscript"><code>AgentScript</code></a>.<b>class</b>);
-assertNotNull(<em>"Accessor found"</em>, access);
-<code>Source</code> agentSrc = createAgentSource();
-access.registerAgentScript(agentSrc);
+<code>Instrument</code> instrument = engine.getInstruments().get(<em>"agentscript"</em>);
+<a href="http://docs.oracle.com/javase/8/docs/api/java/util/function/Function.html?is-external=true" title="class or interface in java.util.function"><code>Function</code></a>&lt;<code>Source</code>, <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/AutoCloseable.html?is-external=true" title="class or interface in java.lang"><code>AutoCloseable</code></a>&gt; access = instrument.lookup(<a href="http://docs.oracle.com/javase/8/docs/api/java/util/function/Function.html?is-external=true" title="class or interface in java.util.function"><code>Function</code></a>.<b>class</b>);
+<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/AutoCloseable.html?is-external=true" title="class or interface in java.lang"><code>AutoCloseable</code></a> handle = access.apply(agentSrc);
 </pre>
  
- and then <a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html#registerAgentScript-com.oracle.truffle.api.source.Source-"><code>evaluate scripts</code></a> in
- any language accessing the <code>agent</code> variable exposed to them. Use <a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html#VERSION"><code>current
- version API</code></a> when dealing with the <code>agent</code> variable.</div>
+ and then <a href="http://docs.oracle.com/javase/8/docs/api/java/util/function/Function.html?is-external=true#apply-T-" title="class or interface in java.util.function"><code>evaluate</code></a> <code>Source</code>
+ scripts written in any language accessing the <code>agent</code> variable exposed to them. Use
+ <a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html#VERSION"><code>current version API</code></a> when dealing with the <code>agent</code> variable.</div>
 </li>
 </ul>
 </div>
@@ -135,7 +133,7 @@ access.registerAgentScript(agentSrc);
 <tr class="altColor">
 <td class="colFirst"><code>static <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a></code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html#ID">ID</a></span></code>
-<div class="block">The ID of the agent script instrument.</div>
+<div class="block">The ID of the agent script instrument is <code>"agentscript"</code>.</div>
 </td>
 </tr>
 <tr class="rowColor">
@@ -187,15 +185,13 @@ access.registerAgentScript(agentSrc);
 <li class="blockList">
 <h4>ID</h4>
 <pre>static final&nbsp;<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a> ID</pre>
-<div class="block">The ID of the agent script instrument. Use it to obtain access to an <a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html" title="interface in com.oracle.truffle.tools.agentscript"><code>AgentScript</code></a>
- instances inside of your <code>Engine</code>:
+<div class="block">The ID of the agent script instrument is <code>"agentscript"</code>. Use it to obtain access to an
+ <a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html" title="interface in com.oracle.truffle.tools.agentscript"><code>AgentScript</code></a> instances inside of your <code>Engine</code>:
  <p>
  <pre><b>final</b> <code>Engine</code> engine = context.getEngine();
-<code>Instrument</code> instrument = engine.getInstruments().get(<a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html" title="interface in com.oracle.truffle.tools.agentscript"><code>AgentScript</code></a>.ID);
-<a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html" title="interface in com.oracle.truffle.tools.agentscript"><code>AgentScript</code></a> access = instrument.lookup(<a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html" title="interface in com.oracle.truffle.tools.agentscript"><code>AgentScript</code></a>.<b>class</b>);
-assertNotNull(<em>"Accessor found"</em>, access);
-<code>Source</code> agentSrc = createAgentSource();
-access.registerAgentScript(agentSrc);
+<code>Instrument</code> instrument = engine.getInstruments().get(<em>"agentscript"</em>);
+<a href="http://docs.oracle.com/javase/8/docs/api/java/util/function/Function.html?is-external=true" title="class or interface in java.util.function"><code>Function</code></a>&lt;<code>Source</code>, <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/AutoCloseable.html?is-external=true" title="class or interface in java.lang"><code>AutoCloseable</code></a>&gt; access = instrument.lookup(<a href="http://docs.oracle.com/javase/8/docs/api/java/util/function/Function.html?is-external=true" title="class or interface in java.util.function"><code>Function</code></a>.<b>class</b>);
+<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/AutoCloseable.html?is-external=true" title="class or interface in java.lang"><code>AutoCloseable</code></a> handle = access.apply(agentSrc);
 </pre></div>
 <dl>
 <dt><span class="seeLabel">See Also:</span></dt>
