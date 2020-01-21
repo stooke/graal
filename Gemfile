@@ -18,6 +18,9 @@ gem "jekyll-sitemap"
 
 gem "jekyll-redirect-from"
 
+# Jekyll plugin to convert relative links to Markdown files to their rendered equivalents.
+gem 'jekyll-relative-links'
+
 # If you want to use GitHub Pages, remove the "gem "jekyll"" above and
 # uncomment the line below. To upgrade, run `bundle update github-pages`.
 # gem "github-pages", group: :jekyll_plugins
