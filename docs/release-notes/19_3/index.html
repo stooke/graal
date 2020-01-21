@@ -637,6 +637,25 @@ as part of that CPU.</p>
 version based on <code>11.0.6+1</code> where as it is actually <code>11.0.6+8</code>. This issue in
 the GraalVM build process will be remedied in <a href="/docs/release-notes/version-roadmap/">future releases</a>.</p>
 
+<p>Listed below are issues addressed in this release:</p>
+<ul>
+  <li>Resolved the issue of <code>NullPointerException</code> being thrown with <code>SecurityServicesFeature</code> when the application uses non-JDK related services (<a href="https://github.com/oracle/graal/pull/1893">#1893</a>).</li>
+  <li>Made efforts to turn <a href="/docs/reference-manual/tools/#code-coverage">Code coverage command line tool</a> more reliable (<a href="https://github.com/oracle/graal/pull/1800">#1800</a>).</li>
+  <li>Prevented linking errors in <code>Unsafe</code> and <code>ClassLoader</code> by substituting all native methods (<a href="https://github.com/oracle/graal/issues/1920">#1920</a>).</li>
+  <li>Made dynamically generate <code>On_Load_*</code> function call for static libraries so all libraries are known before the image generation to prevent <code>-Djava.net.preferIPv6Addresses=true</code> returning an incorrect value (<a href="https://github.com/oracle/graal/issues/1937">#1937</a>).</li>
+  <li>Fixed <code>ProcessHandle</code> properties not providing useful values when running a native image (<a href="https://github.com/oracle/graal/issues/2001">#2001</a>).</li>
+  <li>Fixed an unsynchronized <code>java.util.WeakHashMap.get</code> access when single engine is
+shared between several thread local polyglot contexts (<a href="https://github.com/oracle/graal/issues/1916">#1916</a>).</li>
+  <li>Fixed an issue of JDK 11  GraalVM build not being recognized by macOS <code>/usr/libexec/java_home -V</code> (<a href="https://github.com/oracle/graal/issues/801">#801</a>).</li>
+  <li>Implemented a new C APIs used by JSON 2.3.0 (<a href="https://github.com/oracle/truffleruby/issues/1857">#1857</a>).</li>
+  <li>Ensured that GraalVM Native Image does  not have references to native methods from <code>java.lang.reflect.Proxy</code> (<a href="https://github.com/oracle/graal/issues/1971">#1971</a>).</li>
+  <li>Ensured that all native methods of core classes would be substituted to prevent reflection configuration issues (<a href="https://github.com/oracle/graal/issues/1848">#1848</a>).</li>
+  <li>Fixed an issue leading to JavaFX applications misbehave with <code>GraalArithmeticStubs</code> (<a href="https://github.com/oracle/graal/issues/1867">#1867</a>).</li>
+  <li>Ensured that <code>DynamicProxySupport</code> classes being called from multiple threads are thread safe (<a href="https://github.com/oracle/graal/issues/1927">#1927</a>).</li>
+  <li>Prevent static field values changing during a native image generation (<a href="https://github.com/oracle/graal/issues/1945">#1945</a>).</li>
+  <li>Fixed the issue with the native linking step at image writing phase when the image uses functions from unsupported static JDK libraries (<a href="https://github.com/oracle/graal/issues/1875">#1875</a>).</li>
+</ul>
+
 <h2 id="19302">19.3.0.2</h2>
 <p>(2019-12-24)</p>
 
@@ -1063,7 +1082,7 @@ leaking thread instances.</li>
         <div class="row">
           <div class="col-sm-12">
             <p class="copyright">
-              Copyright © 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+              Copyright © 2018, 2020, Oracle and/or its affiliates. All rights reserved.
             </p>
           </div>
         </div>
