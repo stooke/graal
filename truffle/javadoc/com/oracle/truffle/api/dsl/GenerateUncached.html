@@ -38,7 +38,7 @@
 <li><a href="../../../../../index-all.html">Index</a></li>
 <li><a href="../../../../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.0.0-dev</b><br>11c1b13683c9e9329f3d7baaf71b316bc93a7ccc</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>9bbc206b1a8a8f27411176b2e71966a746a7522b</div>
 </div>
 <div class="subNav">
 <ul class="navList">
@@ -116,9 +116,10 @@ public @interface <span class="memberNameLabel">GenerateUncached</span></pre>
  initializers.
  <li>All specializations of the closure must not use <a href="../../../../../com/oracle/truffle/api/dsl/Specialization.html#rewriteOn--">rewriteOn</a> attribute.
  <li>All guards/cache/limit expressions must not bind the node receiver.
- <li>The node must not declare any <a href="../../../../../com/oracle/truffle/api/dsl/NodeChild.html" title="annotation in com.oracle.truffle.api.dsl"><code>NodeChild</code></a> or <a href="../../../../../com/oracle/truffle/api/dsl/NodeField.html" title="annotation in com.oracle.truffle.api.dsl"><code>NodeField</code></a> annotations.
  </ul>
- If any of these requirements are violated then an error will be shown.
+ If any of these requirements are violated then an error will be shown. If node uses the
+ <a href="../../../../../com/oracle/truffle/api/dsl/NodeChild.html" title="annotation in com.oracle.truffle.api.dsl"><code>NodeChild</code></a> or <a href="../../../../../com/oracle/truffle/api/dsl/NodeField.html" title="annotation in com.oracle.truffle.api.dsl"><code>NodeField</code></a> annotations then they will return constant
+ <code>null</code> or the primitive equivalent for the uncached node.
  <p>
  <b>Example:</b>
 
@@ -240,7 +241,7 @@ public @interface <span class="memberNameLabel">GenerateUncached</span></pre>
 <li><a href="../../../../../index-all.html">Index</a></li>
 <li><a href="../../../../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.0.0-dev</b><br>11c1b13683c9e9329f3d7baaf71b316bc93a7ccc</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>9bbc206b1a8a8f27411176b2e71966a746a7522b</div>
 </div>
 <div class="subNav">
 <ul class="navList">
