@@ -38,7 +38,7 @@
 <li><a href="../../../../../index-all.html">Index</a></li>
 <li><a href="../../../../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>38cb7ae796eb4cd942f34c63b7c252f797c04891</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.0.0-dev</b><br>b0726af4512a97ae7a271646e85a44139a426532</div>
 </div>
 <div class="subNav">
 <ul class="navList">
@@ -250,12 +250,6 @@ public @interface <span class="memberNameLabel">ExportLibrary</span></pre>
 </td>
 </tr>
 <tr class="rowColor">
-<td class="colFirst"><code>int</code></td>
-<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/api/library/ExportLibrary.html#priority--">priority</a></span></code>
-<div class="block">Specifies the priority for service provider lookup based default exports.</div>
-</td>
-</tr>
-<tr class="altColor">
 <td class="colFirst"><code><a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;?&gt;</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/api/library/ExportLibrary.html#receiverType--">receiverType</a></span></code>
 <div class="block">The explicit receiver type to use if specified.</div>
@@ -343,7 +337,7 @@ public @interface <span class="memberNameLabel">ExportLibrary</span></pre>
 <li class="blockList"><a name="delegateTo--">
 <!--   -->
 </a>
-<ul class="blockList">
+<ul class="blockListLast">
 <li class="blockList">
 <h4>delegateTo</h4>
 <pre>public abstract&nbsp;<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;delegateTo</pre>
@@ -471,30 +465,6 @@ public @interface <span class="memberNameLabel">ExportLibrary</span></pre>
 </ul>
 </li>
 </ul>
-<ul class="blockList">
-<li class="blockList"><a name="priority--">
-<!--   -->
-</a>
-<ul class="blockListLast">
-<li class="blockList">
-<h4>priority</h4>
-<pre>public abstract&nbsp;int&nbsp;priority</pre>
-<div class="block">Specifies the priority for service provider lookup based default exports. Needs to be
- specified for exports with explicit receiver type, that are not declared as default exports.
- Positive values indicate a priority higher than library builtin <a href="../../../../../com/oracle/truffle/api/library/GenerateLibrary.DefaultExport.html" title="annotation in com.oracle.truffle.api.library"><code>default
- exports</code></a>, negative values lower than default exports. A priority equal to 0 is invalid.</div>
-<dl>
-<dt><span class="simpleTagLabel">Since:</span></dt>
-<dd>20.1</dd>
-</dl>
-<dl>
-<dt>Default:</dt>
-<dd>0</dd>
-</dl>
-</li>
-</ul>
-</li>
-</ul>
 </li>
 </ul>
 </div>
@@ -517,7 +487,7 @@ public @interface <span class="memberNameLabel">ExportLibrary</span></pre>
 <li><a href="../../../../../index-all.html">Index</a></li>
 <li><a href="../../../../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>38cb7ae796eb4cd942f34c63b7c252f797c04891</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.0.0-dev</b><br>b0726af4512a97ae7a271646e85a44139a426532</div>
 </div>
 <div class="subNav">
 <ul class="navList">

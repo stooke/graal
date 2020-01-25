@@ -38,7 +38,7 @@
 <li class="navBarCell1Rev">Index</li>
 <li><a href="help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>38cb7ae796eb4cd942f34c63b7c252f797c04891</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.0.0-dev</b><br>b0726af4512a97ae7a271646e85a44139a426532</div>
 </div>
 <div class="subNav">
 <ul class="navList">
@@ -2499,10 +2499,6 @@
 <div class="block">Default equivalence calling <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#equals-java.lang.Object-" title="class or interface in java.lang"><code>Object.equals(Object)</code></a> to check equality and <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#hashCode--" title="class or interface in java.lang"><code>Object.hashCode()</code></a>
  for obtaining hash values.</div>
 </dd>
-<dt><a href="com/oracle/truffle/api/library/DefaultExportProvider.html" title="interface in com.oracle.truffle.api.library"><span class="typeNameLink">DefaultExportProvider</span></a> - Interface in <a href="com/oracle/truffle/api/library/package-summary.html">com.oracle.truffle.api.library</a></dt>
-<dd>
-<div class="block">Service provider interface implemented by external default exports of a library.</div>
-</dd>
 <dt><span class="memberNameLink"><a href="org/graalvm/options/OptionType.html#defaultType-T-">defaultType(T)</a></span> - Static method in class org.graalvm.options.<a href="org/graalvm/options/OptionType.html" title="class in org.graalvm.options">OptionType</a></dt>
 <dd>
 <div class="block">Returns the default option type for a given value.</div>
@@ -4154,10 +4150,6 @@
 <dd>
 <div class="block">Returns default exported used for a given receiver.</div>
 </dd>
-<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/library/DefaultExportProvider.html#getDefaultExport--">getDefaultExport()</a></span> - Method in interface com.oracle.truffle.api.library.<a href="com/oracle/truffle/api/library/DefaultExportProvider.html" title="interface in com.oracle.truffle.api.library">DefaultExportProvider</a></dt>
-<dd>
-<div class="block">Returns the default export class to be used for this provider.</div>
-</dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/nodes/LanguageInfo.html#getDefaultMimeType--">getDefaultMimeType()</a></span> - Method in class com.oracle.truffle.api.nodes.<a href="com/oracle/truffle/api/nodes/LanguageInfo.html" title="class in com.oracle.truffle.api.nodes">LanguageInfo</a></dt>
 <dd>
 <div class="block">Returns the default MIME type of a language or <code>null</code> if no default mime-type is
@@ -4702,10 +4694,6 @@
 <dd>
 <div class="block">Returns the library class of this message.</div>
 </dd>
-<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/library/DefaultExportProvider.html#getLibraryClassName--">getLibraryClassName()</a></span> - Method in interface com.oracle.truffle.api.library.<a href="com/oracle/truffle/api/library/DefaultExportProvider.html" title="interface in com.oracle.truffle.api.library">DefaultExportProvider</a></dt>
-<dd>
-<div class="block">Returns the <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true#getName--" title="class or interface in java.lang"><code>class name</code></a> of the library to be used.</div>
-</dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/library/Message.html#getLibraryName--">getLibraryName()</a></span> - Method in class com.oracle.truffle.api.library.<a href="com/oracle/truffle/api/library/Message.html" title="class in com.oracle.truffle.api.library">Message</a></dt>
 <dd>
 <div class="block">Returns the name of the library of this message.</div>
@@ -5068,7 +5056,7 @@
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/instrumentation/TruffleInstrument.Env.html#getOptions--">getOptions()</a></span> - Method in class com.oracle.truffle.api.instrumentation.<a href="com/oracle/truffle/api/instrumentation/TruffleInstrument.Env.html" title="class in com.oracle.truffle.api.instrumentation">TruffleInstrument.Env</a></dt>
 <dd>
 <div class="block">Returns option values for the options described in
- <a href="com/oracle/truffle/api/instrumentation/TruffleInstrument.html#getOptionDescriptors--"><code>TruffleInstrument.getOptionDescriptors()</code></a>.</div>
+ <a href="com/oracle/truffle/api/TruffleLanguage.html#getOptionDescriptors--"><code>TruffleLanguage.getOptionDescriptors()</code></a>.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/TruffleLanguage.Env.html#getOptions--">getOptions()</a></span> - Method in class com.oracle.truffle.api.<a href="com/oracle/truffle/api/TruffleLanguage.Env.html" title="class in com.oracle.truffle.api">TruffleLanguage.Env</a></dt>
 <dd>
@@ -5193,10 +5181,6 @@
 <dd>
 <div class="block">Returns the file's Posix permissions.</div>
 </dd>
-<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/library/DefaultExportProvider.html#getPriority--">getPriority()</a></span> - Method in interface com.oracle.truffle.api.library.<a href="com/oracle/truffle/api/library/DefaultExportProvider.html" title="interface in com.oracle.truffle.api.library">DefaultExportProvider</a></dt>
-<dd>
-<div class="block">Returns the priority used when multiple default exports would be applicable.</div>
-</dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/object/LayoutFactory.html#getPriority--">getPriority()</a></span> - Method in interface com.oracle.truffle.api.object.<a href="com/oracle/truffle/api/object/LayoutFactory.html" title="interface in com.oracle.truffle.api.object">LayoutFactory</a></dt>
 <dd>&nbsp;</dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/TruffleRuntimeAccess.html#getPriority--">getPriority()</a></span> - Method in interface com.oracle.truffle.api.<a href="com/oracle/truffle/api/TruffleRuntimeAccess.html" title="interface in com.oracle.truffle.api">TruffleRuntimeAccess</a></dt>
@@ -5284,10 +5268,6 @@
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/Scope.html#getReceiver--">getReceiver()</a></span> - Method in class com.oracle.truffle.api.<a href="com/oracle/truffle/api/Scope.html" title="class in com.oracle.truffle.api">Scope</a></dt>
 <dd>
 <div class="block">Get a receiver object of this scope.</div>
-</dd>
-<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/library/DefaultExportProvider.html#getReceiverClass--">getReceiverClass()</a></span> - Method in interface com.oracle.truffle.api.library.<a href="com/oracle/truffle/api/library/DefaultExportProvider.html" title="interface in com.oracle.truffle.api.library">DefaultExportProvider</a></dt>
-<dd>
-<div class="block">Returns the receiver class of the default export.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/Scope.html#getReceiverName--">getReceiverName()</a></span> - Method in class com.oracle.truffle.api.<a href="com/oracle/truffle/api/Scope.html" title="class in com.oracle.truffle.api">Scope</a></dt>
 <dd>
@@ -11968,7 +11948,7 @@ the order they are declared.</div>
 <li class="navBarCell1Rev">Index</li>
 <li><a href="help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>38cb7ae796eb4cd942f34c63b7c252f797c04891</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.0.0-dev</b><br>b0726af4512a97ae7a271646e85a44139a426532</div>
 </div>
 <div class="subNav">
 <ul class="navList">

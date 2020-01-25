@@ -38,7 +38,7 @@
 <li><a href="../../../../../index-all.html">Index</a></li>
 <li><a href="../../../../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>38cb7ae796eb4cd942f34c63b7c252f797c04891</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.0.0-dev</b><br>b0726af4512a97ae7a271646e85a44139a426532</div>
 </div>
 <div class="subNav">
 <ul class="navList">
@@ -92,7 +92,7 @@
 <li class="blockList">
 <hr>
 <br>
-<pre><a href="http://docs.oracle.com/javase/8/docs/api/java/lang/annotation/Retention.html?is-external=true" title="class or interface in java.lang.annotation">@Retention</a>(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/annotation/Retention.html?is-external=true#value--" title="class or interface in java.lang.annotation">value</a>=<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/annotation/RetentionPolicy.html?is-external=true#RUNTIME" title="class or interface in java.lang.annotation">RUNTIME</a>)
+<pre><a href="http://docs.oracle.com/javase/8/docs/api/java/lang/annotation/Retention.html?is-external=true" title="class or interface in java.lang.annotation">@Retention</a>(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/annotation/Retention.html?is-external=true#value--" title="class or interface in java.lang.annotation">value</a>=<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/annotation/RetentionPolicy.html?is-external=true#CLASS" title="class or interface in java.lang.annotation">CLASS</a>)
  <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/annotation/Target.html?is-external=true" title="class or interface in java.lang.annotation">@Target</a>(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/annotation/Target.html?is-external=true#value--" title="class or interface in java.lang.annotation">value</a>=<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/annotation/ElementType.html?is-external=true#TYPE" title="class or interface in java.lang.annotation">TYPE</a>)
 public @interface <span class="memberNameLabel">GenerateLibrary</span></pre>
 <div class="block">Libraries are specified with <code>public</code> and <code>abstract</code> Java classes that
@@ -163,18 +163,6 @@ public @interface <span class="memberNameLabel">GenerateLibrary</span></pre>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/api/library/GenerateLibrary.html#assertions--">assertions</a></span></code>
 <div class="block">Specifies an assertion wrapper class that can be used to verify pre and post conditions of a
  library.</div>
-</td>
-</tr>
-<tr class="rowColor">
-<td class="colFirst"><code>boolean</code></td>
-<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/api/library/GenerateLibrary.html#defaultExportLookupEnabled--">defaultExportLookupEnabled</a></span></code>
-<div class="block">Allows the library to lookup additional default exports using a service provider interface.</div>
-</td>
-</tr>
-<tr class="altColor">
-<td class="colFirst"><code>boolean</code></td>
-<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/api/library/GenerateLibrary.html#dynamicDispatchEnabled--">dynamicDispatchEnabled</a></span></code>
-<div class="block">Allows the use of <a href="../../../../../com/oracle/truffle/api/library/DynamicDispatchLibrary.html" title="class in com.oracle.truffle.api.library"><code>DynamicDispatchLibrary</code></a> with this library.</div>
 </td>
 </tr>
 <tr class="rowColor">
@@ -270,7 +258,7 @@ public @interface <span class="memberNameLabel">GenerateLibrary</span></pre>
 <li class="blockList"><a name="receiverType--">
 <!--   -->
 </a>
-<ul class="blockList">
+<ul class="blockListLast">
 <li class="blockList">
 <h4>receiverType</h4>
 <pre>public abstract&nbsp;<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;?&gt;&nbsp;receiverType</pre>
@@ -286,59 +274,6 @@ public @interface <span class="memberNameLabel">GenerateLibrary</span></pre>
 <dl>
 <dt>Default:</dt>
 <dd>java.lang.Object.class</dd>
-</dl>
-</li>
-</ul>
-</li>
-</ul>
-<ul class="blockList">
-<li class="blockList"><a name="defaultExportLookupEnabled--">
-<!--   -->
-</a>
-<ul class="blockList">
-<li class="blockList">
-<h4>defaultExportLookupEnabled</h4>
-<pre>public abstract&nbsp;boolean&nbsp;defaultExportLookupEnabled</pre>
-<div class="block">Allows the library to lookup additional default exports using a service provider interface.
- <a href="../../../../../com/oracle/truffle/api/library/ExportLibrary.html" title="annotation in com.oracle.truffle.api.library"><code>Exports</code></a> for this library with explicit receiver type will automatically
- be interpreted as additional default exports. External default exports may specify with the
- <a href="../../../../../com/oracle/truffle/api/library/ExportLibrary.html#priority--"><code>priority</code></a> whether they are looked up before or after existing
- default exports specified for the library. Default exports always have a lower priority than
- explicit exports on the receiver type or exports that use dynamic dispatch.</div>
-<dl>
-<dt><span class="simpleTagLabel">Since:</span></dt>
-<dd>20.1</dd>
-<dt><span class="seeLabel">See Also:</span></dt>
-<dd><a href="../../../../../com/oracle/truffle/api/library/ExportLibrary.html#priority--"><code>ExportLibrary.priority()</code></a></dd>
-</dl>
-<dl>
-<dt>Default:</dt>
-<dd>false</dd>
-</dl>
-</li>
-</ul>
-</li>
-</ul>
-<ul class="blockList">
-<li class="blockList"><a name="dynamicDispatchEnabled--">
-<!--   -->
-</a>
-<ul class="blockListLast">
-<li class="blockList">
-<h4>dynamicDispatchEnabled</h4>
-<pre>public abstract&nbsp;boolean&nbsp;dynamicDispatchEnabled</pre>
-<div class="block">Allows the use of <a href="../../../../../com/oracle/truffle/api/library/DynamicDispatchLibrary.html" title="class in com.oracle.truffle.api.library"><code>DynamicDispatchLibrary</code></a> with this library. By default dynamic
- dispatch is enabled. If this flag is set to <code>false</code> then the
- <a href="../../../../../com/oracle/truffle/api/library/DynamicDispatchLibrary.html#dispatch-java.lang.Object-"><code>dispatch</code></a> method will not be used for this
- library. Only default exports and exports declared with the receiver type will be used
- instead for this library.</div>
-<dl>
-<dt><span class="simpleTagLabel">Since:</span></dt>
-<dd>20.1</dd>
-</dl>
-<dl>
-<dt>Default:</dt>
-<dd>true</dd>
 </dl>
 </li>
 </ul>
@@ -366,7 +301,7 @@ public @interface <span class="memberNameLabel">GenerateLibrary</span></pre>
 <li><a href="../../../../../index-all.html">Index</a></li>
 <li><a href="../../../../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>38cb7ae796eb4cd942f34c63b7c252f797c04891</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.0.0-dev</b><br>b0726af4512a97ae7a271646e85a44139a426532</div>
 </div>
 <div class="subNav">
 <ul class="navList">
