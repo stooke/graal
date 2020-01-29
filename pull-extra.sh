@@ -12,7 +12,7 @@ layout: toc_developer_documentation
 title: Documentation for $COMPONENT Developer
 link_title: ${FIRSTLINE##*( )}
 permalink: /docs/reference-manual/languages/${COMPONENT//[^[:alnum:]]/-}/developer/$FILENAME
-toc_group: developer_documentation
+toc_group: ${COMPONENT//[^[:alnum:]]/-}
 ---
 $(cat $1)
 EOF
