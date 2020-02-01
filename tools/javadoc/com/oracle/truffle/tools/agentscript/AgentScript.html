@@ -216,7 +216,7 @@ var activeTableTab = "activeTableTab";
  * {&#064;link <a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html" title="interface in com.oracle.truffle.tools.agentscript"><code>AgentScript</code></a>#registerAgentScript registered scripts}.
  */
 <b>public</b> <b>interface</b> AgentScriptAPI {
-    /** ID of the instrument. Version {&#064;code 0.3} has been released as
+    /** ID of the instrument. Version {&#064;code 0.4} has been released as
      * part of GraalVM 20.0.0 release.
      *
      * &#064;<b>return</b> same value of {&#064;link <a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html" title="interface in com.oracle.truffle.tools.agentscript"><code>AgentScript</code></a>#ID} - e.g. {&#064;code <em>"agentscript"</em>}
@@ -238,44 +238,112 @@ var activeTableTab = "activeTableTab";
     <b>interface</b> Handler {
     }
 
+    <b>interface</b> SourceInfo {
+        /** Name of the {&#064;link OnSourceLoadedHandler#sourceLoaded}.
+         * &#064;<b>return</b> name of the loaded source
+         * &#064;since 0.1
+         */
+        <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> name();
+        /** <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Character.html?is-external=true" title="class or interface in java.lang"><code>Character</code></a> content of the {&#064;link OnSourceLoadedHandler#sourceLoaded}.
+         * &#064;<b>return</b> content of the loaded source
+         * &#064;since 0.1
+         */
+        <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> characters();
+        /** Identification of <b>this</b> source's language.
+         * &#064;<b>return</b> <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> representing the language ID
+         * &#064;since 0.1
+         */
+        <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> language();
+        /** Mime type of <b>this</b> source.
+         * &#064;<b>return</b> given mime type or {&#064;code <b>null</b>}
+         * &#064;since 0.1
+         */
+        <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> mimeType();
+        /** URI uniquely identifying the source.
+         * &#064;<b>return</b> the URI
+         * &#064;since 0.1
+         */
+        <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> uri();
+    }
+
     &#064;<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/FunctionalInterface.html?is-external=true" title="class or interface in java.lang"><code>FunctionalInterface</code></a>
     <b>interface</b> OnSourceLoadedHandler <b>extends</b> Handler {
-        <b>interface</b> Info {
-            /** Name of the {&#064;link #sourceLoaded}.
-             * &#064;<b>return</b> name of the loaded source
-             */
-            <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> name();
-            /** <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Character.html?is-external=true" title="class or interface in java.lang"><code>Character</code></a> content of the {&#064;link #sourceLoaded}.
-             * &#064;<b>return</b> content of the loaded source
-             */
-            <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> characters();
-            /** Identification of <b>this</b> source's language.
-             * &#064;<b>return</b> <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> representing the language ID
-             */
-            <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> language();
-            /** Mime type of <b>this</b> source.
-             * &#064;<b>return</b> given mime type or {&#064;code <b>null</b>}
-             */
-            <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> mimeType();
-            /** URI uniquely identifying the source.
-             * &#064;<b>return</b> the URI
-             */
-            <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> uri();
-        }
-        <b>void</b> sourceLoaded(Info info);
+        /** Called when a <b>new</b> source is loaded into the system.
+         * &#064;param info information about the loaded source
+         * &#064;since 0.1
+         */
+        <b>void</b> sourceLoaded(SourceInfo info);
     }
     /** Register a handler to be notified when a source is loaded.
      *
      * &#064;param event has to be {&#064;code <em>"source"</em>} string
      * &#064;param handler a callback that takes
-     *      {&#064;link OnSourceLoadedHandler.Info one argument}
+     *      {&#064;link SourceInfo one argument}
      */
     <b>void</b> on(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> event, OnSourceLoadedHandler handler);
 
     &#064;<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/FunctionalInterface.html?is-external=true" title="class or interface in java.lang"><code>FunctionalInterface</code></a>
     <b>interface</b> OnEventHandler <b>extends</b> Handler {
         <b>interface</b> Context {
+            /** Name of the enclosing function.
+             * &#064;<b>return</b> the name of the enclosing function
+             * &#064;since 0.1
+             */
             <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> name();
+
+            /** Information about surrounding source.
+             * &#064;<b>return</b> information about the surrounding source
+             * &#064;since 0.4
+             */
+            SourceInfo source();
+
+            /** Characters of the location.
+             * &#064;<b>return</b> the characters of <b>this</b> {&#064;link Context}
+             * &#064;since 0.4
+             */
+            <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> characters();
+
+            /** Line of <b>this</b> location. The same as {&#064;link #startLine()}.
+             *
+             * &#064;<b>return</b> line number counting from one
+             * &#064;since 0.4
+             */
+            <b>int</b> line();
+
+            /** Staring line of <b>this</b> location.
+             *
+             * &#064;<b>return</b> line number counting from one
+             * &#064;since 0.4
+             */
+            <b>int</b> startLine();
+
+            /** Final line of <b>this</b> location.
+             *
+             * &#064;<b>return</b> line number counting from one
+             * &#064;since 0.4
+             */
+            <b>int</b> endLine();
+
+            /** Column of <b>this</b> location. The same as {&#064;link #startColumn()}.
+             *
+             * &#064;<b>return</b> column number counting from one
+             * &#064;since 0.4
+             */
+            <b>int</b> column();
+
+            /** Starting column of <b>this</b> location.
+             *
+             * &#064;<b>return</b> column number counting from one
+             * &#064;since 0.4
+             */
+            <b>int</b> startColumn();
+
+            /** Final column of <b>this</b> location.
+             *
+             * &#064;<b>return</b> column number counting from one
+             * &#064;since 0.4
+             */
+            <b>int</b> endColumn();
         }
         <b>void</b> event(Context ctx, <a href="http://docs.oracle.com/javase/8/docs/api/java/util/Map.html?is-external=true" title="class or interface in java.util"><code>Map</code></a>&lt;<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a>, <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true" title="class or interface in java.lang"><code>Object</code></a>&gt; frame);
     }
@@ -284,7 +352,10 @@ var activeTableTab = "activeTableTab";
         <b>public</b> <b>boolean</b> statements;
         <b>public</b> <b>boolean</b> roots;
         <b>public</b> <a href="http://docs.oracle.com/javase/8/docs/api/java/util/function/Predicate.html?is-external=true" title="class or interface in java.util.function"><code>Predicate</code></a>&lt;<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a>&gt; rootNameFilter;
+        /* &#064;since 0.4 */
+        <b>public</b> <a href="http://docs.oracle.com/javase/8/docs/api/java/util/function/Predicate.html?is-external=true" title="class or interface in java.util.function"><code>Predicate</code></a>&lt;SourceInfo&gt; sourceFilter;
     }
+
     /** Register a handler on a particular elements in the source code.
      *
      * &#064;param event one of {&#064;code <em>"enter"</em>}, {&#064;code <em>"return"</em>} strings
@@ -306,9 +377,9 @@ var activeTableTab = "activeTableTab";
     <b>void</b> on(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> event, OnCloseHandler handler);
 
     /** Unregisters a handler.
-     * 
+     *
      * &#064;param event the event type to unregister from
-     * &#064;param handler the instance of handler registered 
+     * &#064;param handler the instance of handler registered
      *   by one of the {&#064;code on} methods
      * &#064;since 0.2
      */
