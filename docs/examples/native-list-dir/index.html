@@ -418,7 +418,7 @@ $(document).ready(function(){
       var scriptElement = document.currentScript;
       var div = $(scriptElement.parentElement);
       $(window).on("load", function() {
-        $("#content-wrapper h1, #content-wrapper h2").each(function() {
+        $("#content-wrapper h2").each(function() {
           var li = $("<li></li>", { class: "toc-bullets-sub toc-bullets-sub-3" });
           var a = $("<a></a>", { href: "#" + $(this).attr("id") });
           a.text($(this).text());
@@ -428,7 +428,7 @@ $(document).ready(function(){
       });
     </script>
   </div>
-  
+
           
         
           
@@ -496,23 +496,6 @@ $(document).ready(function(){
           
           <a href="/docs/reference-manual/">
             Reference Manual
-          </a>
-        </li>
-
-
-        
-
-
-        
-      
-    
-      
-        
-          <li class="toc-bullets-main">
-        
-          
-          <a href="/docs/reference-manual/developer/">
-            Developer Documentation
           </a>
         </li>
 

@@ -8,10 +8,10 @@ COMPONENT=$2
 FIRSTLINE=$(head -n 1 $1 | tr -dc '[:alnum:] -')
 cat << EOF > $1
 ---
-layout: toc_developer_documentation
-title: Documentation for $COMPONENT Developer
+layout: toc_user_documentation
+title: Documentation for $COMPONENT User
 link_title: ${FIRSTLINE##*( )}
-permalink: /docs/reference-manual/languages/${COMPONENT//[^[:alnum:]]/-}/developer/$FILENAME
+permalink: /docs/reference-manual/languages/${COMPONENT//[^[:alnum:]]/-}/user/$FILENAME
 toc_group: ${COMPONENT//[^[:alnum:]]/-}
 ---
 $(cat $1)
@@ -23,7 +23,7 @@ WORK_DIR=$(mktemp -d)
 # trap "rm -rf ${WORK_DIR}" EXIT
 
 JS_SRC="${WORK_DIR}/js/docs/user"
-JS_DST=docs/reference-manual/languages/js/developer
+JS_DST=docs/reference-manual/languages/js/user
 if [ ! -d ${JS_DST}/extra ]; then
   mkdir -p ${JS_DST}/extra;
 fi
@@ -34,26 +34,13 @@ do
  add_header $file JavaScript
 done
 
-
-# JVM
-JVM_SRC="${WORK_DIR}/graal/compiler/docs"
-JVM_DST=docs/reference-manual/languages/jvm/developer
-if [ ! -d ${JVM_DST}/extra ]; then
-  mkdir -p ${JVM_DST}/extra;
-fi
-git clone --branch master  --depth 1 ssh://git@ol-bitbucket.us.oracle.com:7999/g/graal.git "${WORK_DIR}/graal"
-cp "${JVM_SRC}/"*.md "${JVM_DST}/extra"
-for file in $JVM_DST/extra/*.md
-do
- add_header $file JVM
-done
-
 # LLVM
 LLVM_SRC="${WORK_DIR}/graal/sulong/docs"
-LLVM_DST=docs/reference-manual/languages/llvm/developer
+LLVM_DST=docs/reference-manual/languages/llvm/user
 if [ ! -d ${LLVM_DST}/extra ]; then
   mkdir -p ${LLVM_DST}/extra;
 fi
+git clone --branch master  --depth 1 ssh://git@ol-bitbucket.us.oracle.com:7999/g/graal.git "${WORK_DIR}/graal"
 rm "${LLVM_SRC}/index.md"
 cp "${LLVM_SRC}/"*.md "${LLVM_DST}/extra"
 for file in $LLVM_DST/extra/*.md
@@ -63,7 +50,7 @@ done
 
 # Python
 PY_SRC="${WORK_DIR}/graalpython/doc"
-PY_DST=docs/reference-manual/languages/python/developer
+PY_DST=docs/reference-manual/languages/python/user
 if [ ! -d ${PY_DST}/extra ]; then
   mkdir -p ${PY_DST}/extra;
 fi
@@ -76,7 +63,7 @@ done
 
 # R
 R_SRC="${WORK_DIR}/fastr/documentation"
-R_DST=docs/reference-manual/languages/r/developer
+R_DST=docs/reference-manual/languages/r/user
 if [ ! -d ${R_DST}/extra ]; then
   mkdir -p ${R_DST}/extra;
 fi
@@ -91,7 +78,7 @@ done
 
 # Ruby
 RUBY_SRC="${WORK_DIR}/ruby/doc/user"
-RUBY_DST=docs/reference-manual/languages/ruby/developer
+RUBY_DST=docs/reference-manual/languages/ruby/user
 if [ ! -d ${RUBY_DST}/extra ]; then
   mkdir -p ${RUBY_DST}/extra;
 fi
@@ -102,9 +89,25 @@ do
  add_header $file Ruby
 done
 
+# Truffle Framework
+TRUFFLE_SRC1="${WORK_DIR}/graal/truffle/docs"
+TRUFFLE_SRC2="${WORK_DIR}/graal/truffle/docs/splitting"
+# TRUFFLE_SRC3="${WORK_DIR}/graal/truffle"
+TRUFFLE_DST=docs/reference-manual/truffle-framework/user
+if [ ! -d ${TRUFFLE_DST}/extra ]; then
+  mkdir -p ${TRUFFLE_DST}/extra;
+fi
+cp "${TRUFFLE_SRC1}/"*.md "${TRUFFLE_DST}/extra"
+cp "${TRUFFLE_SRC2}/"*.md "${TRUFFLE_DST}/extra"
+# cp "${TRUFFLE_SRC3}/"README.md "${TRUFFLE_DST}"
+for file in $TRUFFLE_DST/extra/*.md
+do
+ add_header $file "Truffle Framework"
+done
+
 # Native Image
 NI_SRC="${WORK_DIR}/graal/substratevm"
-NI_DST=docs/reference-manual/native-image/developer
+NI_DST=docs/reference-manual/native-image/user
 if [ ! -d ${NI_DST}/extra ]; then
   mkdir -p ${NI_DST}/extra;
 fi
