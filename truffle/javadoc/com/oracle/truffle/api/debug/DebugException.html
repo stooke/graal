@@ -17,7 +17,7 @@
     catch(err) {
     }
 //-->
-var methods = {"i0":10,"i1":10,"i2":10,"i3":10,"i4":10,"i5":10,"i6":10,"i7":10,"i8":10,"i9":10,"i10":10};
+var methods = {"i0":10,"i1":10,"i2":10,"i3":10,"i4":10,"i5":10,"i6":10,"i7":10,"i8":10,"i9":10,"i10":10,"i11":10};
 var tabs = {65535:["t0","All Methods"],2:["t2","Instance Methods"],8:["t4","Concrete Methods"]};
 var altColor = "altColor";
 var rowColor = "rowColor";
@@ -44,7 +44,7 @@ var activeTableTab = "activeTableTab";
 <li><a href="../../../../../index-all.html">Index</a></li>
 <li><a href="../../../../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>5751bb15989ec55126c7dcd83cd697490216d14a</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>d0421f791a1f24626729b90cc21b309780675dc1</div>
 </div>
 <div class="subNav">
 <ul class="navList">
@@ -204,36 +204,43 @@ extends <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/RuntimeExcep
 </td>
 </tr>
 <tr id="i4" class="altColor">
+<td class="colFirst"><code><a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html?is-external=true" title="class or interface in java.lang">Throwable</a></code></td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/api/debug/DebugException.html#getRawException-java.lang.Class-">getRawException</a></span>(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;? extends <a href="../../../../../com/oracle/truffle/api/TruffleLanguage.html" title="class in com.oracle.truffle.api">TruffleLanguage</a>&lt;?&gt;&gt;&nbsp;languageClass)</code>
+<div class="block">Returns the guest language representation of the exception, or <code>null</code> if the
+ requesting language class does not match the root node language at the throw location.</div>
+</td>
+</tr>
+<tr id="i5" class="rowColor">
 <td class="colFirst"><code><a href="http://docs.oracle.com/javase/8/docs/api/java/lang/StackTraceElement.html?is-external=true" title="class or interface in java.lang">StackTraceElement</a>[]</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/api/debug/DebugException.html#getStackTrace--">getStackTrace</a></span>()</code>
 <div class="block">Gets stack trace elements of guest languages.</div>
 </td>
 </tr>
-<tr id="i5" class="rowColor">
+<tr id="i6" class="altColor">
 <td class="colFirst"><code><a href="../../../../../com/oracle/truffle/api/source/SourceSection.html" title="class in com.oracle.truffle.api.source">SourceSection</a></code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/api/debug/DebugException.html#getThrowLocation--">getThrowLocation</a></span>()</code>
 <div class="block">Get source code location where this exception was thrown from.</div>
 </td>
 </tr>
-<tr id="i6" class="altColor">
+<tr id="i7" class="rowColor">
 <td class="colFirst"><code>boolean</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/api/debug/DebugException.html#isInternalError--">isInternalError</a></span>()</code>
 <div class="block">Returns <code>true</code> if this exception indicates an internal error.</div>
 </td>
 </tr>
-<tr id="i7" class="rowColor">
+<tr id="i8" class="altColor">
 <td class="colFirst"><code>void</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/api/debug/DebugException.html#printStackTrace--">printStackTrace</a></span>()</code></td>
 </tr>
-<tr id="i8" class="altColor">
+<tr id="i9" class="rowColor">
 <td class="colFirst"><code>void</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/api/debug/DebugException.html#printStackTrace-java.io.PrintStream-">printStackTrace</a></span>(<a href="http://docs.oracle.com/javase/8/docs/api/java/io/PrintStream.html?is-external=true" title="class or interface in java.io">PrintStream</a>&nbsp;s)</code></td>
 </tr>
-<tr id="i9" class="rowColor">
+<tr id="i10" class="altColor">
 <td class="colFirst"><code>void</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/api/debug/DebugException.html#printStackTrace-java.io.PrintWriter-">printStackTrace</a></span>(<a href="http://docs.oracle.com/javase/8/docs/api/java/io/PrintWriter.html?is-external=true" title="class or interface in java.io">PrintWriter</a>&nbsp;s)</code></td>
 </tr>
-<tr id="i10" class="altColor">
+<tr id="i11" class="rowColor">
 <td class="colFirst"><code>void</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/api/debug/DebugException.html#setStackTrace-java.lang.StackTraceElement:A-">setStackTrace</a></span>(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/StackTraceElement.html?is-external=true" title="class or interface in java.lang">StackTraceElement</a>[]&nbsp;stackTrace)</code>
 <div class="block">Unsupported, <a href="../../../../../com/oracle/truffle/api/debug/DebugException.html" title="class in com.oracle.truffle.api.debug"><code>DebugException</code></a> instances are not writable therefore setting the stack
@@ -429,7 +436,7 @@ extends <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/RuntimeExcep
 <a name="getCatchLocation--">
 <!--   -->
 </a>
-<ul class="blockListLast">
+<ul class="blockList">
 <li class="blockList">
 <h4>getCatchLocation</h4>
 <pre>public&nbsp;<a href="../../../../../com/oracle/truffle/api/debug/DebugException.CatchLocation.html" title="class in com.oracle.truffle.api.debug">DebugException.CatchLocation</a>&nbsp;getCatchLocation()</pre>
@@ -441,6 +448,29 @@ extends <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/RuntimeExcep
 <dd>the catch location, or <code>null</code> in case of uncaught exceptions.</dd>
 <dt><span class="simpleTagLabel">Since:</span></dt>
 <dd>19.0</dd>
+</dl>
+</li>
+</ul>
+<a name="getRawException-java.lang.Class-">
+<!--   -->
+</a>
+<ul class="blockListLast">
+<li class="blockList">
+<h4>getRawException</h4>
+<pre>public&nbsp;<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html?is-external=true" title="class or interface in java.lang">Throwable</a>&nbsp;getRawException(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;? extends <a href="../../../../../com/oracle/truffle/api/TruffleLanguage.html" title="class in com.oracle.truffle.api">TruffleLanguage</a>&lt;?&gt;&gt;&nbsp;languageClass)</pre>
+<div class="block">Returns the guest language representation of the exception, or <code>null</code> if the
+ requesting language class does not match the root node language at the throw location.
+
+ This method is permitted only if the guest language class is available. This is the case if
+ you want to utilize the Debugger API directly from within a guest language, or if you are an
+ instrument bound/dependent on a specific language.</div>
+<dl>
+<dt><span class="paramLabel">Parameters:</span></dt>
+<dd><code>languageClass</code> - the Truffle language class for a given guest language</dd>
+<dt><span class="returnLabel">Returns:</span></dt>
+<dd>the throwable guest language exception object</dd>
+<dt><span class="simpleTagLabel">Since:</span></dt>
+<dd>20.1</dd>
 </dl>
 </li>
 </ul>
@@ -468,7 +498,7 @@ extends <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/RuntimeExcep
 <li><a href="../../../../../index-all.html">Index</a></li>
 <li><a href="../../../../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>5751bb15989ec55126c7dcd83cd697490216d14a</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>d0421f791a1f24626729b90cc21b309780675dc1</div>
 </div>
 <div class="subNav">
 <ul class="navList">

@@ -38,7 +38,7 @@
 <li class="navBarCell1Rev">Index</li>
 <li><a href="help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>5751bb15989ec55126c7dcd83cd697490216d14a</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>d0421f791a1f24626729b90cc21b309780675dc1</div>
 </div>
 <div class="subNav">
 <ul class="navList">
@@ -5264,9 +5264,28 @@
 <dd>
 <div class="block">Returns a qualified name of the AST that in the best case uniquely identifiers the method.</div>
 </dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugException.html#getRawException-java.lang.Class-">getRawException(Class&lt;? extends TruffleLanguage&lt;?&gt;&gt;)</a></span> - Method in exception com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugException.html" title="class in com.oracle.truffle.api.debug">DebugException</a></dt>
+<dd>
+<div class="block">Returns the guest language representation of the exception, or <code>null</code> if the
+ requesting language class does not match the root node language at the throw location.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugStackFrame.html#getRawFrame-java.lang.Class-">getRawFrame(Class&lt;? extends TruffleLanguage&lt;?&gt;&gt;)</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugStackFrame.html" title="class in com.oracle.truffle.api.debug">DebugStackFrame</a></dt>
+<dd>
+<div class="block">Returns the underlying materialized frame for this debug stack frame or <code>null</code> if
+ the requesting language class does not match the root node guest language.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugStackFrame.html#getRawNode-java.lang.Class-">getRawNode(Class&lt;? extends TruffleLanguage&lt;?&gt;&gt;)</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugStackFrame.html" title="class in com.oracle.truffle.api.debug">DebugStackFrame</a></dt>
+<dd>
+<div class="block">Returns the current node for this stack frame, or <code>null</code> if the requesting
+ language class does not match the root node guest language.</div>
+</dd>
 <dt><span class="memberNameLink"><a href="org/graalvm/polyglot/TypeLiteral.html#getRawType--">getRawType()</a></span> - Method in class org.graalvm.polyglot.<a href="org/graalvm/polyglot/TypeLiteral.html" title="class in org.graalvm.polyglot">TypeLiteral</a></dt>
 <dd>
 <div class="block">Returns the raw class type of the literal.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#getRawValue-java.lang.Class-">getRawValue(Class&lt;? extends TruffleLanguage&lt;?&gt;&gt;)</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns the underlying guest value object held by this <a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug"><code>DebugValue</code></a>.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/source/Source.html#getReader--">getReader()</a></span> - Method in class com.oracle.truffle.api.source.<a href="com/oracle/truffle/api/source/Source.html" title="class in com.oracle.truffle.api.source">Source</a></dt>
 <dd>
@@ -11969,7 +11988,7 @@ the order they are declared.</div>
 <li class="navBarCell1Rev">Index</li>
 <li><a href="help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>5751bb15989ec55126c7dcd83cd697490216d14a</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>d0421f791a1f24626729b90cc21b309780675dc1</div>
 </div>
 <div class="subNav">
 <ul class="navList">
