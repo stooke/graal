@@ -819,25 +819,18 @@ $ ruby --version
 
 <p>If you are using a Ruby manager like <code>rvm</code>, <code>rbenv</code>, or <code>chruby</code> and wish not to
 add TruffleRuby to one of them make sure that the manager does not set
-environment variables <code>GEM_HOME</code>, <code>GEM_PATH</code>, and <code>GEM_ROOT</code>. The variables
+environment variables <code>GEM_HOME</code> and <code>GEM_PATH</code>. The variables
 are picked up by TruffleRuby (as any other Ruby implementation would do)
 causing TruffleRuby to pickup the wrong Gem home instead of its own.</p>
 
-<p>One way to fix this for all sessions is to tell TruffleRuby to ignore <code>GEM_*</code>
-variables and always use its own Gem home under <code>truffleruby/lib/gems</code>:</p>
-
-<pre><code class="language-bash"># In ~/.bashrc or ~/.zshenv
-$ export TRUFFLERUBY_RESILIENT_GEM_HOME=true
-</code></pre>
-
-<p>It can also be fixed just for the current terminal by clearing
+<p>It can be fixed for the current terminal by clearing
 the environment with one of the following commands:</p>
 
 <pre><code class="language-bash">$ rbenv system
 $ chruby system
 $ rvm use system
 # Or manually:
-$ unset GEM_HOME GEM_PATH GEM_ROOT
+$ unset GEM_HOME GEM_PATH
 </code></pre>
 
             </div>

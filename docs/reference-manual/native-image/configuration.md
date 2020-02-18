@@ -94,6 +94,7 @@ comes from the jar file.
 
 ### Specifying Default Options for Native Image
 
+
 If there is a need to pass some options for every image build unconditionally, for
 example, to always generate an image in verbose mode (`--verbose`), we can
 make use of the `NATIVE_IMAGE_CONFIG_FILE` environment variable.
@@ -110,6 +111,7 @@ command line. Here is an example of a configuration file, saved as
 NativeImageArgs = --configurations-path /home/user/custom-image-configs \
                   -O1
 ```
+
 
 ## Runtime vs Build Time Initialization
 
@@ -181,7 +183,7 @@ specified in the `<configuration>` node of the plugin (see Plugin Customization
 section). When `mvn package` completes, an executable, generated in the _target_
 directory of the project, is ready for use.
 
-**Warning:** As of the GraalVM version 19.3, the Maven `<groupId>` for the GraalVM Native
+**Note:** As of the GraalVM version 19.3, the Maven `<groupId>` for the GraalVM Native
 Image related artifacts, including the plugin, changes from
 `com.oracle.substratevm` to `org.graalvm.nativeimage`
 (`<groupId>org.graalvm.nativeimage</groupId>`).

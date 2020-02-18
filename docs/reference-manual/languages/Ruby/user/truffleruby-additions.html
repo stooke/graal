@@ -718,9 +718,7 @@ example:</p>
 <code>'truffleruby'</code>. In C code <code>TRUFFLERUBY</code> is defined.</p>
 
 <p>It is also possible to use feature-detection instead of looking at
-<code>RUBY_ENGINE</code>. For example if you are writing an application that uses
-TruffleRuby’s interoperability with Java you could test for <code>defined?(Java)</code>,
-which will be set when in hosted mode on the JVM but not in native mode.</p>
+<code>RUBY_ENGINE</code>.</p>
 
 <p>TruffleRuby is an integral part of GraalVM, so the version number of TruffleRuby
 is always the same as the version of GraalVM that contains it. If you are using

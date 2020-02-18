@@ -9,8 +9,7 @@ until the application reaches peak performance when compared to the native compi
 in the JVM such as C1 and C2.
 
 To address the issue of taking longer to reach to peak performance, **libgraal**
-was introduced -- a shared library, produced using [Native Image](https://github.com/oracle/graal/blob/master/substratevm/README.md)
-framework to ahead-of-time compile the compiler itself. That means the GraalVM
+was introduced -- a shared library, produced using [Native Image](https://github.com/oracle/graal/blob/master/substratevm/README.md) to ahead-of-time compile the compiler itself. That means the GraalVM
 compiler is deployed as a native shared library. In this mode, the
 compiler uses memory separate from the HotSpot heap and it runs compiled from
 the start. That is, it has execution properties similar to other native HotSpot

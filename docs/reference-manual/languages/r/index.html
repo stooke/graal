@@ -534,6 +534,17 @@ $(document).ready(function(){
           <li class="toc-bullets-sub dsdsd">
           
             
+            <a href="/docs/reference-manual/languages/wasm/">
+              WebAssembly Engine
+            </a>
+          </li>
+
+          
+        
+          
+          <li class="toc-bullets-sub dsdsd">
+          
+            
             <a href="/docs/reference-manual/native-image/">
               Native Image
             </a>
@@ -699,25 +710,24 @@ can run R code at <a href="#high-performance">unparalleled performance</a>,
 <a href="#graalvm-integration">integrates with the GraalVM</a>
 ecosystem and provides <a href="#graalvm-r-engine-additional-features">additional R level features</a>.</p>
 
-<p>Warning: The support for R is currently <a href="https://docs.oracle.com/en/graalvm/enterprise/19/guide/overview/license/licensing-information.html">experimental</a>.</p>
+<p>Note: The support for R is currently <a href="https://docs.oracle.com/en/graalvm/enterprise/19/guide/overview/license/licensing-information.html">experimental</a>.</p>
 
 <h2 id="installing-r">Installing R</h2>
 
-<p>The R language can be installed to a GraalVM build with the <code>gu</code> command.
-See <code>graalvm/bin/gu --help</code> for more information.</p>
+<p>The R language runtime can be installed to a GraalVM build the <a href="/docs/reference-manual/install-components/">GraalVM Updater</a> tool.
+See <code>$GRAALVM_HOME/bin/gu --help</code> for more information.</p>
 
 <h3 id="requirements">Requirements</h3>
 <p>GraalVM R engine requires the <a href="https://www.openmprtl.org/">OpenMP runtime library</a> and <a href="https://gcc.gnu.org/wiki/GFortranBinaries">GFortran 3</a> runtime libraries to be installed
 on the target system. Following commands should install those dependencies.</p>
 
 <ul>
-  <li>Ubuntu 18.04 and 19.04: <code>apt-get install libgfortran3 libgomp1</code></li>
-  <li>Oracle Linux 7: <code>yum install libgfortran libgomp</code></li>
-  <li>Oracle Linux 8: <code>yum install compat-libgfortran-48</code></li>
+  <li>Ubuntu 18.04 and 19.10: <code>apt-get install libgfortran-8-dev libgomp1</code></li>
+  <li>Oracle Linux 8: <code>yum install libgfortran</code></li>
   <li>MacOS: <code>brew install gcc@4.9</code></li>
 </ul>
 
-<p>On macOS it is necessary to run <code>$R_HOME/bin/configure_fastr</code>.
+<p>On macOS it is necessary to run <code>$GRAALVM_HOME/bin/configure_fastr</code>.
 This script will attempt to locate the necessary runtime libraries on your computer
 and will fine-tune the the GraalVM R installation according to your system.
 On Linux systems, this script will check that the necessary libraries are installed, and if not,
@@ -728,24 +738,25 @@ for those languages must be present on the target system. Following packages
 satisfy the dependencies of the most common R packages:</p>
 
 <ul>
-  <li>Ubuntu 18.04 and 19.04:
-    <pre><code>apt-get install libgfortran3 build-essential gfortran libxml2-dev libc++-dev
+  <li>Ubuntu 18.04:
+    <pre><code>apt-get install build-essential gfortran-8 libxml2 libc++-dev
 </code></pre>
   </li>
-  <li>Oracle Linux 7 and 8:
-    <pre><code>yum groupinstall 'Development Tools' &amp;&amp; yum install gcc-gfortran bzip2 libxml2-devel
+  <li>Ubuntu 19.10:
+    <pre><code>apt-get install build-essential gfortran libxml2 libc++-dev
+</code></pre>
+  </li>
+  <li>Oracle Linux 8:
+    <pre><code>yum groupinstall 'Development Tools' &amp;&amp; yum install libgfortran gcc-gfortran bzip2 libxml2-devel
 </code></pre>
   </li>
 </ul>
-
-<p>Note that you still need to install the GFortran 3 runtime libraries unless this is
-the default version on your system.</p>
 
 <h3 id="search-paths-for-packages">Search Paths for Packages</h3>
 <p>The default R library location is within the GraalVM installation directory.
 In order to allow installation of additional packages for users that
 do not have write access to the GraalVM installation directory,
-edit the <code>R_LIBS_USER</code> variable in the <code>$R_HOME/etc/Renviron</code> file.</p>
+edit the <code>R_LIBS_USER</code> variable in the <code>$GRAALVM_HOME/etc/Renviron</code> file.</p>
 
 <h2 id="running-r-code">Running R Code</h2>
 

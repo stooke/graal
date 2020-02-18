@@ -105,7 +105,7 @@ usage, etc..
 * _Recording tab_ lists the recording settings and basic snapshot telemetry like
 number of events, total recording time, etc..
 
-Warning: The support of JDK Flight Recorder is currently [experimental](https://docs.oracle.com/en/graalvm/enterprise/19/guide/overview/license/licensing-information.html). Some advanced features like
+Note: The support of JDK Flight Recorder is currently [experimental](https://docs.oracle.com/en/graalvm/enterprise/19/guide/overview/license/licensing-information.html). Some advanced features like
 analyzing JVM internals, showing event stack traces or support for creating JFR
 snapshots from live processes are not available in this preview version and will
 be addressed incrementally in the following releases.

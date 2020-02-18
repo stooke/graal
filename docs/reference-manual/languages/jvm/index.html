@@ -534,6 +534,17 @@ $(document).ready(function(){
           <li class="toc-bullets-sub dsdsd">
           
             
+            <a href="/docs/reference-manual/languages/wasm/">
+              WebAssembly Engine
+            </a>
+          </li>
+
+          
+        
+          
+          <li class="toc-bullets-sub dsdsd">
+          
+            
             <a href="/docs/reference-manual/native-image/">
               Native Image
             </a>
@@ -702,7 +713,7 @@ through unique approaches to code analysis and optimization.</p>
 
 <h3 id="interoperability">Interoperability</h3>
 <p>In addition to running JVM-based languages, you can also call any other language
-implemented with GraalVM <a href="https://github.com/oracle/graal/blob/master/truffle/README.md">Language Implementation Framework</a> directly from Java.
+implemented with <a href="https://github.com/oracle/graal/blob/master/truffle/README.md">Truffle Language Implementation framework</a> directly from Java.
 See the <a href="/docs/reference-manual/polyglot/">Polyglot Reference</a> and the
 <a href="/docs/graalvm-as-a-platform/embed/">Embedding documentation</a>
 for more information about interoperability with other programming languages.</p>
@@ -745,7 +756,7 @@ of available configurations, supply the value help to this option.</p>
     <p>The current configurations and their semantics are:</p>
     <ul>
       <li><code>enterprise</code>: To produce highly optimized code with a possible trade-off to compilation time.
-<strong>This value is only available in GraalVM EE.</strong></li>
+<strong>GraalVM Enterprise feature.</strong></li>
       <li><code>community</code>: To produce reasonably optimized code with a faster compilation time.</li>
       <li><code>economy</code>: To compile as fast as possible with less optimal throughput of the generated code.</li>
     </ul>
@@ -785,12 +796,18 @@ not protected since they can not be executed repeatedly.</li>
 
 <ul>
   <li><code>-Dgraal.UsePriorityInlining=true</code>: This can be used to disable use of the advanced inlining
-algorithm that favors throughput over compilation speed. <strong>This option is only available in
-GraalVM EE</strong>.</li>
+algorithm that favors throughput over compilation speed. <strong>GraalVM Enterprise feature</strong>.</li>
   <li><code>-Dgraal.Vectorization=true</code>: This can be used to disable the auto vectorization optimization.
-<strong>This option is only available in GraalVM EE</strong>.</li>
-  <li><code>-Dgraal.OptDuplication=true</code>: This can be used to disable the <a href="http://ssw.jku.at/General/Staff/Leopoldseder/DBDS_CGO18_Preprint.pdf">path duplication optimization</a>. <strong>This option is only available in
-GraalVM EE</strong>.</li>
+<strong>GraalVM Enterprise feature</strong>.</li>
+  <li><code>-Dgraal.OptDuplication=true</code>: This can be used to disable the <a href="http://ssw.jku.at/General/Staff/Leopoldseder/DBDS_CGO18_Preprint.pdf">path duplication optimization</a>. <strong>GraalVM Enterprise feature</strong>.</li>
+  <li><code>-Dgraal.TuneInlinerExploration=0</code>: This can be used to try tune for better peak performance or faster warmup.
+It automatically adjusts values governing the effort spent during inlining. The value of the option is
+a float clamped between <code>-1</code> and <code>1</code> inclusive. Anything below
+<code>0</code> reduces inlining effort and anything above <code>0</code> increases
+inlining effort. In general, peak performance is improved with more inlining effort
+while less inlining effort improves warmup (albeit to a lower peak). Note that this
+option is only a heuristic and the optimal value can differ from application to application.
+<strong>GraalVM Enterprise feature</strong>.</li>
   <li>
     <p><code>-Dgraal.TraceInlining=false</code>: Enables tracing of inlining decisions. This can be used
   for advanced tuning where it may be possible to change the source code of the program.
@@ -883,8 +900,7 @@ until the application reaches peak performance when compared to the native compi
 in the JVM such as C1 and C2.</p>
 
 <p>To address the issue of taking longer to reach to peak performance, <strong>libgraal</strong>
-was introduced – a shared library, produced using <a href="https://github.com/oracle/graal/blob/master/substratevm/README.md">Native Image</a>
-framework to ahead-of-time compile the compiler itself. That means the GraalVM
+was introduced – a shared library, produced using <a href="https://github.com/oracle/graal/blob/master/substratevm/README.md">Native Image</a> to ahead-of-time compile the compiler itself. That means the GraalVM
 compiler is deployed as a native shared library. In this mode, the
 compiler uses memory separate from the HotSpot heap and it runs compiled from
 the start. That is, it has execution properties similar to other native HotSpot

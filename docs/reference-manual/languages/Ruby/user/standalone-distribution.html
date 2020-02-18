@@ -730,7 +730,7 @@ Please <a href="https://github.com/oracle/truffleruby/issues">report</a> any iss
 
 <h2 id="testing-truffleruby-in-github-actions">Testing TruffleRuby in GitHub Actions</h2>
 
-<p>In GitHub Actions, you can easily setup TruffleRuby with <a href="https://github.com/eregon/use-ruby-action">use-ruby-action</a>:</p>
+<p>In GitHub Actions, you can easily setup TruffleRuby with <a href="https://github.com/ruby/setup-ruby">ruby/setup-ruby</a>:</p>
 
 <pre><code class="language-yaml">name: My workflow
 on: [push]
@@ -743,7 +743,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: eregon/use-ruby-action@v1
+    - uses: ruby/setup-ruby@v1
       with:
         ruby-version: $
     - run: ruby -v
@@ -763,7 +763,6 @@ and run the post-install script.</p>
 <a href="https://github.com/oracle/truffleruby/releases">GitHub releases</a>.</p>
 
 <pre><code class="language-bash">$ export TRUFFLERUBY_VERSION=&lt;desired_version&gt;
-$ export TRUFFLERUBY_RESILIENT_GEM_HOME=true
 $ curl -L https://github.com/oracle/truffleruby/releases/download/vm-$TRUFFLERUBY_VERSION/truffleruby-$TRUFFLERUBY_VERSION-linux-amd64.tar.gz | tar xz
 $ export PATH="$PWD/truffleruby-$TRUFFLERUBY_VERSION-linux-amd64/bin:$PATH"
 $ $PWD/truffleruby-$TRUFFLERUBY_VERSION-linux-amd64/lib/truffle/post_install_hook.sh
@@ -771,8 +770,7 @@ $ ruby -v # =&gt; truffleruby 1.0.0, like ruby x.y.z, GraalVM CE Native [x86_64-
 </code></pre>
 
 <p>Note that you also need to ensure <code>GEM_HOME</code> and <code>GEM_PATH</code> are not set, so
-TruffleRuby uses the correct <code>GEM_HOME</code> and <code>GEM_PATH</code>. This is the reason for
-<code>export TRUFFLERUBY_RESILIENT_GEM_HOME=true</code> above.
+TruffleRuby uses the correct <code>GEM_HOME</code> and <code>GEM_PATH</code>.
 See <a href="/docs/reference-manual/languages/Ruby/user/ruby-managers#using-truffleruby-without-a-ruby-manager">Using TruffleRuby without a Ruby manager</a>
 for details.</p>
 

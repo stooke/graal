@@ -21,8 +21,8 @@ Check that `java`, `js` and other commands work as expected.
 → docker run -it oracle/graalvm-ce:{{ site.product_version }} bash
 bash-4.2# java -version
 openjdk version "1.8.0_242"
-OpenJDK Runtime Environment (build 1.8.0_242-20191009173705.graal.jdk8u-src-tar-gz-b07)
-OpenJDK 64-Bit GraalVM CE 19.3.1 (build 25.242-b07-jvmci-19.3-b06, mixed mode)
+OpenJDK Runtime Environment (build 1.8.0_242-b06)
+OpenJDK 64-Bit Server VM GraalVM CE 20.0.0-dev (build 25.242-b06-jvmci-20.0-b02, mixed mode)
 bash-4.2# node
 > 1 + 1
 2

@@ -6,7 +6,7 @@ of a Java application running on GraalVM or any other compatible JVM that
 supports Java VM Tool Interface (JVMTI). The tracing agent is supported in both
 GraalVM Enterprise and Community Editions.
 
-Warning: The tracing agent is part of the GraalVM Native Image component, which must be [installed]({{ "/docs/reference-manual/aot-compilation/" | relative_url }}) first.
+Note: The tracing agent is part of the GraalVM Native Image component, which must be [installed]({{ "/docs/reference-manual/aot-compilation/" | relative_url }}) first.
 
 The tracing agent helps to deal with such features as [Reflection](https://github.com/oracle/graal/blob/master/substratevm/REFLECTION.md), [Java Native Interface](https://github.com/oracle/graal/blob/master/substratevm/JNI.md), [Class Path Resources](https://github.com/oracle/graal/blob/master/substratevm/RESOURCES.md), and [Dynamic Proxy](https://github.com/oracle/graal/blob/master/substratevm/DYNAMIC_PROXY.md) in the GraalVM environment. It is applicable when the static analysis cannot automatically determine what to put into a native image and undetected usages of these dynamic features need to be provided to the generation process in the form of configuration files. The tracing agent observes the application behavior and builds configuration files when running on the Java HotSpot VM, thus it can be enabled on the command line with the `java` command:
 ```
@@ -118,7 +118,7 @@ $JAVA_HOME/bin/native-image ReflectionExample
 Build on Server(pid: 59625, port: 58819)
 [reflectionexample:59625]    classlist:     467.66 ms
 ...
-Warning: Image 'reflectionexample' is a fallback image that requires a JDK for execution (use --no-fallback to suppress fallback image generation).
+Note: Image 'reflectionexample' is a fallback image that requires a JDK for execution (use --no-fallback to suppress fallback image generation).
 $ ./reflectionexample
 ```
 The `reflectionexample` binary is just a launcher for the Java HotSpot VM, a “fallback

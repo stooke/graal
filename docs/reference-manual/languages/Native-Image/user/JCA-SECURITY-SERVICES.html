@@ -707,17 +707,6 @@ See the <a href="/docs/reference-manual/languages/Native-Image/user/URL-PROTOCOL
 The provider order is specified in the <code>java.security</code> file under <code>&lt;java-home&gt;/lib/security/java.security</code>.
 New security providers cannot be registered at run time, all providers must be statically configured during native image building.</p>
 
-<h3 id="native-implementations">Native implementations</h3>
-
-<p>Some security providers, like SunEC, are implemented in native code and accessed via JNI.
-When <code>--enable-all-security-services</code> is used then JNI support is enabled by default.
-If your app uses a provider implemented in a native library that library needs to be delivered together with the generated native image.
-For example the SunEC provider requires <code>libsunec.so</code> for its full implementation.
-This library is usually shipped as part of the JDK and can be found under <code>&lt;JAVA_HOME&gt;/jre/lib/&lt;platform&gt;/libsunec.so</code>.
-It is loaded at run time via <code>System.loadLibrary("sunec")</code>, the first time services from SunEC are accessed.
-To use this provider’s services the <code>java.library.path</code> system property needs to be set accordingly to point to a location that contains <code>libsunec.so</code>.
-Note that if <code>java.library.path</code> is not set it defaults to the current working directory.</p>
-
 <h3 id="alternative-to---enable-all-security-services">Alternative to <code>--enable-all-security-services</code></h3>
 
 <p>Registering <em>all</em> security services doesn’t come for free.

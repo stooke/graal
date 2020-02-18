@@ -9,7 +9,7 @@ information and collecting and presenting it. The T-Trace insights permit to
 modify computed values, interrupt execution and quickly experiment with
 behavioral changes without modifying the application code.
 
-Warning: The T-Trace functionality is offered as a technology preview and requires to
+Note: The T-Trace functionality is offered as a technology preview and requires to
 pass the `--experimental-options` option to enable the `--agentscript`
 instrument.
 

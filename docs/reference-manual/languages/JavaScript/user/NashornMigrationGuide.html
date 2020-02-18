@@ -716,11 +716,16 @@ This could lead to bugs with numeric values that are hard to detect.</p>
 If no such overloaded method is available, GraalVM JavaScript throws a <code>TypeError</code> instead of lossy conversion.
 In general, this affects which overloaded method is executed.</p>
 
+<p>Custom <code>targetTypeMapping</code>s can be used to customize behavior, see <a href="https://www.graalvm.org/truffle/javadoc/org/graalvm/polyglot/HostAccess.Builder.html#targetTypeMapping-java.lang.Class-java.lang.Class-java.util.function.Predicate-java.util.function.Function-">HostAccess.Builder#targetTypeMapping</a>.</p>
+
 <h3 id="scriptobjectmirror-objects"><code>ScriptObjectMirror</code> objects</h3>
 <p>GraalVM JavaScript does not provide objects of the class <code>ScriptObjectMirror</code>.
 Instead, JavaScript objects are exposed to Java code as objects implementing Java’s <code>Map</code> interface.</p>
 
 <p>Code referencing <code>ScriptObjectMirror</code> instances can be rewritten by changing the type to either an interface (<code>Map</code>, <code>List</code>) or the polyglot <a href="http://www.graalvm.org/sdk/javadoc/org/graalvm/polyglot/Value.html">Value</a> class which provides similar capabilities.</p>
+
+<h3 id="objectbindproperties"><code>Object.bindProperties</code></h3>
+<p>GraalVM JavaScript does not support the <code>Object.bindProperties</code> function.</p>
 
 <h3 id="multithreading">Multithreading</h3>
 <p>GraalVM JavaScript supports multithreading by creating several <code>Context</code> objects from Java code.

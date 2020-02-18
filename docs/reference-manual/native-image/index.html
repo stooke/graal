@@ -514,6 +514,17 @@ $(document).ready(function(){
           
         
           
+          <li class="toc-bullets-sub dsdsd">
+          
+            
+            <a href="/docs/reference-manual/languages/wasm/">
+              WebAssembly Engine
+            </a>
+          </li>
+
+          
+        
+          
           <li class="toc-bullets-sub toc-bullets-highlight">
           
             
@@ -718,7 +729,7 @@ itself. Polyglot embeddings can also be compiled ahead-of-time. To inform
 <code>native-image</code> of guest languages used by an application, specify
 <code>--language:&lt;languageId&gt;</code> for each guest language used (e.g., <code>--language:js</code>).</p>
 
-<p>Warning: GraalVM Native Image is
+<p>Note: GraalVM Native Image is
 available as an <a href="https://docs.oracle.com/en/graalvm/enterprise/19/guide/overview/license/licensing-information.html">Early Adopter technology</a>.</p>
 
 <h2 id="install-native-image">Install Native Image</h2>
@@ -827,13 +838,13 @@ options.</p>
     <p><code>--shared</code> builds a shared library</p>
   </li>
   <li>
-    <p><code>--static</code> builds a statically linked executable. This option prevents linking against shared libraries. This requires the static <code>libc</code> and <code>libstdc++</code> libraries to be available on the host system. Warning:  On systems other than Linux, this option has no effect</p>
+    <p><code>--static</code> builds a statically linked executable. This option prevents linking against shared libraries. This requires the static <code>libc</code> and <code>libstdc++</code> libraries to be available on the host system. Note:  On systems other than Linux, this option has no effect</p>
   </li>
   <li>
     <p><code>--verbose</code> makes image building output more verbose</p>
   </li>
   <li>
-    <p><code>-g</code> enables the debugging info generation. Warning: The option is available only with GraalVM Enterprise Edition</p>
+    <p><code>-g</code> enables the debugging info generation. Note: The option is available only with GraalVM Enterprise Edition</p>
   </li>
 </ul>
 
@@ -1118,7 +1129,7 @@ specified in the <code>&lt;configuration&gt;</code> node of the plugin (see Plug
 section). When <code>mvn package</code> completes, an executable, generated in the <em>target</em>
 directory of the project, is ready for use.</p>
 
-<p><strong>Warning:</strong> As of the GraalVM version 19.3, the Maven <code>&lt;groupId&gt;</code> for the GraalVM Native
+<p><strong>Note:</strong> As of the GraalVM version 19.3, the Maven <code>&lt;groupId&gt;</code> for the GraalVM Native
 Image related artifacts, including the plugin, changes from
 <code>com.oracle.substratevm</code> to <code>org.graalvm.nativeimage</code>
 (<code>&lt;groupId&gt;org.graalvm.nativeimage&lt;/groupId&gt;</code>).</p>
@@ -1154,22 +1165,34 @@ and other optimizations enabled.</p>
 &lt;/configuration&gt;
 </code></pre>
 
+<h2 id="memory-management-configuration">Memory Management Configuration</h2>
+
+<p>When running a native image you can specify:
+<code>-Xmn</code> - to set the size of the young generation (the amount of memory that can be allocated without triggering a GC). The value is specified in bytes, suffix <code>k</code>, <code>m</code>, or <code>g</code> can be used for scaling for example: <code>-Xmn16M</code>, default <code>256M</code>.
+<code>-Xmx</code> - maximum heap size in bytes. Note that this is not the maximum amount of consumed memory, because during GC the system can request more temporary memory, for example <code>-Xmx16M</code>, default unlimited.
+<code>-Xms</code> - minimum heap size in bytes. The value is specified in bytes, suffix <code>k</code>, <code>m</code>, or <code>g</code> can be used for scaling. Heap space that is unused will be retained for future heap usage, rather than being returned to the operating system.</p>
+
+<p><code>-XX:+PrintGC</code>: prints some information about garbage collections.
+<code>-XX:+VerboseGC</code>: prints detailed information about garbage collections.</p>
+
+<h2 id="low-latency-garbage-collection">Low Latency Garbage Collection</h2>
+
+<p>When using GraalVM Enterprise you can enable the experimental option to use a lower latency garbage collection implementation.
+A lower latency GC should improve the performance of the native image applications by reducing the stop-the-world pauses.</p>
+
+<p>To enable it use the <code>-H:+UseLowLatencyGC</code> option when building a native image.</p>
+
+<p>Currently the lower latency GC works on Linux in the AMD64 builds.
+There are also a few limitations to which configurations it supports:</p>
+<ul>
+  <li>Weak and other special references are currently not supported. All references are treated as strong references instead.</li>
+  <li>Just-in-time (JIT) compiled code is not supported yet.</li>
+  <li>Setting the runtime heap size via <code>-Xms/-Xmx/-Xmn</code> is currently not supported. It is however possible to specify values for those options at image build time, e.g.: <code>-R:MinHeapSize=256m -R:MaxHeapSize=2g -R:MaxNewSize=128m</code>.</li>
+</ul>
+
+<p>You can use <code>-XX:+PrintGC</code>, <code>-XX:+VerboseGC</code> to get some information about garbage collections.</p>
+
 <h3 id="how-to-determine-what-version-of-graalvm-an-image-is-generated-with">How to Determine What Version of GraalVM an Image Is Generated With?</h3>
-
-<p>If the user has a configuration file and export <code>NATIVE_IMAGE_CONFIG_FILE=$HOME/.native-image/default.properties</code> in <code>~/.bash_profile</code>, every time the native image gets used, it will implicitly use the arguments
-specified as <code>NativeImageArgs</code>, plus the arguments specified on command line.</p>
-
-<p>For a more comprehensive list of options please check the <a href="https://github.com/oracle/graal/blob/master/substratevm/OPTIONS.md">documentation on Github</a>.</p>
-
-<p>Warning:
-Python source code or LLVM bitcode interpreted or compiled with GraalVM
-Community Edition will not have the same security characteristics as the same
-code interpreted or compiled using GraalVM Enterprise Edition. There is a
-GraalVM string embedded in each image that allows to figure out the version and
-variant of the base (Community or Enterprise) used to build an image.
-The following command will query that information from an image:</p>
-<pre><code>strings &lt;path to native-image exe or shared object&gt; | grep com.oracle.svm.core.VM
-</code></pre>
 
 <p>Assuming you have a Java class file <em>EmptyHello.class</em> containing an empty main method
 and have generated an empty shared object <code>emptyhello</code> with GraalVM Native Image Generator utility of it:</p>
@@ -1187,10 +1210,10 @@ Enterprise Edition? Run this command:</p>
 </code></pre>
 
 <p>The expected output should match the following:</p>
-<pre><code>com.oracle.svm.core.VM GraalVM 19.3.1 CE
+<pre><code>com.oracle.svm.core.VM GraalVM 20.0.0 CE
 </code></pre>
 
-<p><strong>Warning:</strong>
+<p><strong>Note:</strong>
 Python source code or LLVM bitcode interpreted or compiled with GraalVM
 Community Edition will not have the same security characteristics as the same
 code interpreted or compiled using GraalVM Enterprise Edition. There is a
@@ -1208,7 +1231,7 @@ PGO, you can collect the profiling data in advance and then feed it to the
 GraalVM <code>native-image</code> utility, which will use this information to optimize the
 performance of the resulting binary.</p>
 
-<p>Warning: Profile-guided optimizations (PGO) is a GraalVM Enterprise feature.</p>
+<p>Note: Profile-guided optimizations (PGO) is a GraalVM Enterprise feature.</p>
 
 <p>In GraalVM versions prior to 19.2.0, a commonly used technique to mitigate the
 missing just-in-time (JIT) optimization is to gather the execution profiles at one run
@@ -1259,7 +1282,7 @@ of a Java application running on GraalVM or any other compatible JVM that
 supports Java VM Tool Interface (JVMTI). The tracing agent is supported in both
 GraalVM Enterprise and Community Editions.</p>
 
-<p>Warning: The tracing agent is part of the GraalVM Native Image component, which must be <a href="/docs/reference-manual/aot-compilation/">installed</a> first.</p>
+<p>Note: The tracing agent is part of the GraalVM Native Image component, which must be <a href="/docs/reference-manual/aot-compilation/">installed</a> first.</p>
 
 <p>The tracing agent helps to deal with such features as <a href="https://github.com/oracle/graal/blob/master/substratevm/REFLECTION.md">Reflection</a>, <a href="https://github.com/oracle/graal/blob/master/substratevm/JNI.md">Java Native Interface</a>, <a href="https://github.com/oracle/graal/blob/master/substratevm/RESOURCES.md">Class Path Resources</a>, and <a href="https://github.com/oracle/graal/blob/master/substratevm/DYNAMIC_PROXY.md">Dynamic Proxy</a> in the GraalVM environment. It is applicable when the static analysis cannot automatically determine what to put into a native image and undetected usages of these dynamic features need to be provided to the generation process in the form of configuration files. The tracing agent observes the application behavior and builds configuration files when running on the Java HotSpot VM, thus it can be enabled on the command line with the <code>java</code> command:</p>
 <pre><code>$JAVA_HOME/bin/java -agentlib:native-image-agent=config-output-dir=/path/to/config-dir/ ...
@@ -1367,7 +1390,7 @@ class whose property is to be checked with `Class.forName()` method. -->
 Build on Server(pid: 59625, port: 58819)
 [reflectionexample:59625]    classlist:     467.66 ms
 ...
-Warning: Image 'reflectionexample' is a fallback image that requires a JDK for execution (use --no-fallback to suppress fallback image generation).
+Note: Image 'reflectionexample' is a fallback image that requires a JDK for execution (use --no-fallback to suppress fallback image generation).
 $ ./reflectionexample
 </code></pre>
 <p>The <code>reflectionexample</code> binary is just a launcher for the Java HotSpot VM, a “fallback
@@ -1429,7 +1452,7 @@ accessible too.</p>
 
 <p>GraalVM also supports monitoring and generating heap dumps of the Native Image processes.</p>
 
-<p>Warning: This functionality is available in the <a href="http://www.oracle.com/technetwork/oracle-labs/program-languages/downloads/index.html">Enterprise Edition of GraalVM</a>.</p>
+<p>Note: This functionality is available in the <a href="http://www.oracle.com/technetwork/oracle-labs/program-languages/downloads/index.html">Enterprise Edition of GraalVM</a>.</p>
 
 <p>To find out more about generating heap dumps of the native image processes,
 refer to the <a href="/docs/reference-manual/native_heapdump/">step-by-step documentation</a>.</p>
