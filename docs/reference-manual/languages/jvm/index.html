@@ -799,14 +799,14 @@ not protected since they can not be executed repeatedly.</li>
 algorithm that favors throughput over compilation speed. <strong>GraalVM Enterprise feature</strong>.</li>
   <li><code>-Dgraal.Vectorization=true</code>: This can be used to disable the auto vectorization optimization.
 <strong>GraalVM Enterprise feature</strong>.</li>
-  <li><code>-Dgraal.OptDuplication=true</code>: This can be used to disable the <a href="http://ssw.jku.at/General/Staff/Leopoldseder/DBDS_CGO18_Preprint.pdf">path duplication optimization</a>. <strong>GraalVM Enterprise feature</strong>.</li>
-  <li><code>-Dgraal.TuneInlinerExploration=0</code>: This can be used to try tune for better peak performance or faster warmup.
+  <li><code>-Dgraal.OptDuplication=true</code>: This can be used to disable the <a href="http://ssw.jku.at/General/Staff/Leopoldseder/DBDS_CGO18_Preprint.pdf">path duplication optimization</a>. <strong>GraalVM Enterprise feature</strong>.
+<!-- * `-Dgraal.TuneInlinerExploration=0`: This can be used to try tune for better peak performance or faster warmup.
 It automatically adjusts values governing the effort spent during inlining. The value of the option is
-a float clamped between <code>-1</code> and <code>1</code> inclusive. Anything below
-<code>0</code> reduces inlining effort and anything above <code>0</code> increases
+a float clamped between `-1` and `1` inclusive. Anything below
+`0` reduces inlining effort and anything above `0` increases
 inlining effort. In general, peak performance is improved with more inlining effort
 while less inlining effort improves warmup (albeit to a lower peak). Note that this
-option is only a heuristic and the optimal value can differ from application to application.
+option is only a heuristic and the optimal value can differ from application to application. -->
 <strong>GraalVM Enterprise feature</strong>.</li>
   <li>
     <p><code>-Dgraal.TraceInlining=false</code>: Enables tracing of inlining decisions. This can be used

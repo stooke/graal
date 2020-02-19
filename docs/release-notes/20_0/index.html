@@ -656,7 +656,6 @@ GraalVM Native Image component needs <a href="/docs/reference-manual/native-imag
 <ul>
   <li>GraalVM Community Editions are based on OpenJDK version 1.8.0_242 and OpenJDK version 11.0.6.</li>
   <li>GraalVM Enterprise Editions are based on Oracle Java version 1.8.0_241 and Oracle Java version 11.0.6. You can find the JDK release notes at the <a href="https://www.oracle.com/technetwork/java/javase">Oracle Technology Network website</a>.</li>
-  <li>Added <code>-Dgraal.TuneInlinerExploration=0</code> (float values in the <code>[-1;1]</code> range) option to GraalVM Enterprise to tune the compiler to optimize for either short warmup time or better peak performance.</li>
   <li>Added mitigation of Jump Conditional Code (JCC) Erratum (see <a href="https://github.com/oracle/graal/issues/1829">#1829</a>).</li>
 </ul>
 
@@ -682,7 +681,7 @@ GraalVM Native Image component needs <a href="/docs/reference-manual/native-imag
 
 <p>More details can be found in the <a href="https://github.com/graalvm/graaljs/blob/release/graal-vm/20.0/CHANGELOG.md#version-2000">project changelog</a> on GitHub.</p>
 
-<h3 id="llvm-interpreter">LLVM interpreter</h3>
+<h3 id="llvm-runtime">LLVM Runtime</h3>
 <ul>
   <li>The <a href="https://github.com/oracle/graal/blob/master/sulong/docs/TOOLCHAIN.md">toolchain</a> is now based on LLVM 9.0.0.</li>
   <li>Support accessing <code>llvm-ar</code>, <code>llvm-nm</code>, <code>llvm-objcopy</code>, <code>llvm-objdump</code>, <code>llvm-ranlib</code>, <code>llvm-readelf</code>, <code>llvm-readobj</code> and <code>llvm-strip</code> via the toolchain.</li>

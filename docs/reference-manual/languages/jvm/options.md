@@ -48,13 +48,13 @@ algorithm that favors throughput over compilation speed. **GraalVM Enterprise fe
 * `-Dgraal.Vectorization=true`: This can be used to disable the auto vectorization optimization.
 **GraalVM Enterprise feature**.
 * `-Dgraal.OptDuplication=true`: This can be used to disable the [path duplication optimization](http://ssw.jku.at/General/Staff/Leopoldseder/DBDS_CGO18_Preprint.pdf). **GraalVM Enterprise feature**.
-* `-Dgraal.TuneInlinerExploration=0`: This can be used to try tune for better peak performance or faster warmup.
+<!-- * `-Dgraal.TuneInlinerExploration=0`: This can be used to try tune for better peak performance or faster warmup.
 It automatically adjusts values governing the effort spent during inlining. The value of the option is
 a float clamped between `-1` and `1` inclusive. Anything below
 `0` reduces inlining effort and anything above `0` increases
 inlining effort. In general, peak performance is improved with more inlining effort
 while less inlining effort improves warmup (albeit to a lower peak). Note that this
-option is only a heuristic and the optimal value can differ from application to application.
+option is only a heuristic and the optimal value can differ from application to application. -->
 **GraalVM Enterprise feature**.
 * `-Dgraal.TraceInlining=false`: Enables tracing of inlining decisions. This can be used
     for advanced tuning where it may be possible to change the source code of the program.
