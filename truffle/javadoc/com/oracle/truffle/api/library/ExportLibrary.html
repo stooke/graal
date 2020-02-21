@@ -38,7 +38,7 @@
 <li><a href="../../../../../index-all.html">Index</a></li>
 <li><a href="../../../../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>510d30f5789ab85484a766466c58ef3ccc1469ca</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>6ef163274ded8403a5fd270f36e1470f121f1855</div>
 </div>
 <div class="subNav">
 <ul class="navList">
@@ -261,6 +261,13 @@ public @interface <span class="memberNameLabel">ExportLibrary</span></pre>
 <div class="block">The explicit receiver type to use if specified.</div>
 </td>
 </tr>
+<tr class="rowColor">
+<td class="colFirst"><code><a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a></code></td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/api/library/ExportLibrary.html#transitionLimit--">transitionLimit</a></span></code>
+<div class="block">By default export libraries don't allow changes in the behavior of accepts for a receiver
+ instance.</div>
+</td>
+</tr>
 </table>
 </li>
 </ul>
@@ -475,7 +482,7 @@ public @interface <span class="memberNameLabel">ExportLibrary</span></pre>
 <li class="blockList"><a name="priority--">
 <!--   -->
 </a>
-<ul class="blockListLast">
+<ul class="blockList">
 <li class="blockList">
 <h4>priority</h4>
 <pre>public abstract&nbsp;int&nbsp;priority</pre>
@@ -490,6 +497,53 @@ public @interface <span class="memberNameLabel">ExportLibrary</span></pre>
 <dl>
 <dt>Default:</dt>
 <dd>0</dd>
+</dl>
+</li>
+</ul>
+</li>
+</ul>
+<ul class="blockList">
+<li class="blockList"><a name="transitionLimit--">
+<!--   -->
+</a>
+<ul class="blockListLast">
+<li class="blockList">
+<h4>transitionLimit</h4>
+<pre>public abstract&nbsp;<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;transitionLimit</pre>
+<div class="block">By default export libraries don't allow changes in the behavior of accepts for a receiver
+ instance. If this assumption is violated then an <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/AssertionError.html?is-external=true" title="class or interface in java.lang"><code>AssertionError</code></a> is thrown. If the
+ transition limit is set then the accepts condition is allowed to transition from
+ <code>true</code> to <code>false</code> for a library created for a receiver instance. The
+ limit expression specifies how many fallback library instances should be created until the
+ library is dispatching to uncached cases of the library. By default accepts transitions are
+ not allowed. Note this option is only relevant if you use a custom accepts implementation in
+ the export. If the receiver transitions in parallel then there are no guarantees provided.
+ The library caller is responsible to provide proper synchronization.
+ <p>
+ This feature is useful to implement runtime value representations that dynamically transition
+ from one state to the next. With arrays, a common example is the access strategy that changes
+ from sparse or dense arrays. Another use-case is the Truffle object model, where the shape
+ should be used in the accepts condition, to common out the shape check, but at the same time
+ the shape should be able to transition due to a property write.
+ <p>
+ The transition limit expression is allowed to access visible static fields or methods of the
+ enclosing class. If the limit needs to be looked up from an option it is recommended to
+ extract the option lookup in a static Java method.
+ <p>
+ <b>Performance note:</b> If any number of transitions is enabled, the accepts guard of this
+ library effectively needs to be repeated on every message invocation of this export. It is
+ therefore recommended to not set this property for performance reasons, if possible. It is
+ also recommended to double check that the duplicated accepts guard for every message is
+ eliminated in the compiler graphs after Partial evaluation.</div>
+<dl>
+<dt><span class="simpleTagLabel">Since:</span></dt>
+<dd>20.1</dd>
+<dt><span class="seeLabel">See Also:</span></dt>
+<dd><a href="../../../../../com/oracle/truffle/api/library/Library.html#accepts-java.lang.Object-"><code>Library.accepts(Object)</code></a></dd>
+</dl>
+<dl>
+<dt>Default:</dt>
+<dd>""</dd>
 </dl>
 </li>
 </ul>
@@ -517,7 +571,7 @@ public @interface <span class="memberNameLabel">ExportLibrary</span></pre>
 <li><a href="../../../../../index-all.html">Index</a></li>
 <li><a href="../../../../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>510d30f5789ab85484a766466c58ef3ccc1469ca</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>6ef163274ded8403a5fd270f36e1470f121f1855</div>
 </div>
 <div class="subNav">
 <ul class="navList">
