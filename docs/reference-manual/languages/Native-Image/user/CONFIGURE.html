@@ -705,6 +705,16 @@ $(document).ready(function(){
 
 <p>If the specified target directory or configuration files in it are missing when using <code>config-merge-dir</code>, the agent creates them and prints a warning.</p>
 
+<p>By default the agent will write the configuration files after the JVM process terminates. In addition, the agent provides the following flags to write configuration files on a periodic basis.</p>
+<ul>
+  <li><code>config-write-period-secs</code>: Executes a periodic write every number of seconds as specified in this configuration. Supports only integer values greater than zero.</li>
+  <li><code>config-write-initial-delay-secs</code>: The number of seconds before the first write is schedule for execution. Supports only integer values greater or equal to zero. Enabled only if <code>config-write-period-secs</code> is greater than zero.</li>
+</ul>
+
+<p>For example:</p>
+<pre><code>/path/to/graalvm/bin/java -agentlib:native-image-agent=config-output-dir=/path/to/config-dir/,config-write-period-secs=300,config-write-initial-delay-secs=5 ...
+</code></pre>
+
 <p>It is advisable to manually review the generated configuration files. Because the agent observes only code that was executed, the resulting configurations can be missing elements that are used in other code paths. It could also make sense to simplify the generated configurations to make any future manual maintenance easier.</p>
 
 <p>The generated configuration files can be supplied to the <code>native-image</code> tool by placing them in a <code>META-INF/native-image/</code> directory on the class path, for example, in a JAR file used in the image build. This directory (or any of its subdirectories) is searched for files with the names <code>jni-config.json</code>, <code>reflect-config.json</code>, <code>proxy-config.json</code> and <code>resource-config.json</code>, which are then automatically included in the build. Not all of those files must be present. When multiple files with the same name are found, all of them are included.</p>
