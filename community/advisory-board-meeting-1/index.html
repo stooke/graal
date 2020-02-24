@@ -9,7 +9,7 @@
 
   <title>
     
-      Presentation materials
+      GraalVM Advisory Board
     
   </title>
   <meta
@@ -27,7 +27,7 @@
   <link rel="stylesheet" href="/resources/styles/extra.css">
   <link rel="stylesheet" href="https://elocation.oracle.com/mapviewer/jslib/v2.3/css/oraclemapsv2.css>
 
-  <link rel="canonical" href="https://www.graalvm.org/community/assets/">
+  <link rel="canonical" href="https://www.graalvm.org/community/advisory-board-meeting-1/">
   <!-- <script src="/resources/lib/jquery/jquery-3.2.1.min.js"></script> -->
   <script src="https://maps.oracle.com/mapviewer/jslib/v2.3/oraclemapsv2.js"></script>
   <link rel="stylesheet" href="https://elocation.oracle.com/mapviewer/jslib/v2.3/css/oraclemapsv2.css">
@@ -447,36 +447,132 @@
 
           <div class="col-sm-9">
             <div id="content-wrapper" class="docs-content docs-content--with-sidebar">
-              <p>The GraalVM team regularly presents at various conferences and meetups. We are delighted to learn that you have taken interest in GraalVM and would like to share this interest with your network. Whether you are presenting at a conference, a meetup, or writing an article, you can use the images on this page in your creative work.
-These images are the intellectual property of the Oracle and cannot be altered without Oracle’s permission. Please use it responsibly. For the proper use guidelines please contact us: graalvm-users@oss.oracle.com.</p>
+              <p>These meeting notes from the GraalVM Project Advisory Board. Read more about it here: <a href="/community/advisory-board.md">the Board page</a></p>
 
-<p>Please attribute them back to this website, so more people could find it. And please make sure to state your affiliation with the GraalVM project, whether you’re a part of the team or just a fan.</p>
+<p><strong>Meeting date</strong>: Feb 18th, 2020</p>
 
-<h3 id="graalvm-logo">GraalVM logo</h3>
+<p><strong>Members</strong>: Alan Hayward (ARM), Bernd Mathiske (Amazon), Bruno Caballero, (Microdoc), Chris Seaton (Shopify), Fabio Niephaus (Hasso Plattner Institute),  Graeme Rocher (OCI), Johan Vos (Gluon), Max Rydahl Andersen (Red Hat), Michael Hunger, (Neo4j), Thomas Wuerthinger (Oracle), Shaun Smith (Oracle), Stuart Monteith (ARM), Alina Yurenko (Oracle), Julia Kindelsberger (Oracle).</p>
 
-<p><img src="/uploads/GraalVM-logo-rgb.png" alt="GraalVM logo" /></p>
+<h2 id="agenda-items">Agenda Items</h2>
 
-<h3 id="graalvm-overview">GraalVM overview</h3>
+<h3 id="advisory-board-setup">Advisory Board setup</h3>
 
-<p>GraalVM supports many languages and runs in various environments.</p>
+<ul>
+  <li>Reviewed and updated agenda items;</li>
+  <li>Updates from the project lead (Thomas);</li>
+  <li>Agreed on next meeting date (proposing week of May 4-8). Board members will vote for exact date;</li>
+  <li>Max mentions the goals for the advisory board suggested by Red Hat (quarterly meetings, all updates &amp; upcoming projects on GitHub issues, …);</li>
+  <li>A suggestion to create a security collaboration group like OpenJDK vulnerability group (Max);
+    <ul>
+      <li>Looking for security leads from other advisory board members;</li>
+      <li>Already started working on security group setup;</li>
+    </ul>
+  </li>
+  <li>Thomas: we can also consider creating smaller working groups for specific topics/areas of interest.</li>
+</ul>
 
-<p><img src="/docs/img/graalvm_architecture.png" alt="GraalVM system diagram" /></p>
+<h3 id="contributing-and-community">Contributing and Community</h3>
 
-<h3 id="graalvm-components">GraalVM components</h3>
+<ul>
+  <li>Max also raised an issue of a few GitHub PRs, that require response (eg <a href="https://github.com/oracle/graal/pull/1844">#1844</a> (62 days), and <a href="https://github.com/oracle/graal/pull/2067">#2067</a> (32 days)):
+    <ul>
+      <li>All agree that we need a way to communicate current status and progress for such issues;</li>
+    </ul>
+  </li>
+  <li>Fabio: Would it be possible to open the GraalVM Updater catalog to the community? GitHub issue already created: <a href="https://github.com/oracle/graal/issues/2159">#2159</a>;</li>
+  <li>Really like the transparency  updates (GH project, milestone, dev-builds) (Michael);</li>
+  <li>Perhaps for next time -  thoughts on training / advocacy material to share with the community, I think Oleg had some things (Michael);</li>
+  <li>Could there be something like a fast track for no-brainer PRs (e.g. documentation fixes, typos, …; goal: reduce number of open PRs)? - Fabio;
+    <ul>
+      <li>
+        <ul>
+          <li>Thomas notes that right now even just documentation changes require us to run all of our gate (and full test);</li>
+        </ul>
+      </li>
+      <li>
+        <ul>
+          <li>Immediate suggestion is to approve them verbally and then merge these together into one by the requester;</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>Two questions from Arm (Alan - asked by Xiaohong):
+    <ul>
+      <li>
+        <ul>
+          <li>They are looking for more details on the existing tests for native image (specifically Aarch64). For example, Renaissance benchmark is disabled for AArch64;</li>
+        </ul>
+      </li>
+      <li>
+        <ul>
+          <li>Need some guidance on what is happening with <a href="https://github.com/oracle/graal/pull/1772">PR #1772</a> (rework handling of volatile accesses on aarch64). Is this fix abandoned, and should we be creating a new fix;</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>PR from Neo4j for Netty support (WIP) https://github.com/netty/netty/pull/9989.</li>
+</ul>
 
-<p>GraalVM functionality is enabled by several layers: it uses JVM as a platform, uses Java level compiler interface, <a href="http://openjdk.java.net/jeps/243">JVMCI</a> to integrate with it, uses the Truffle framework to run languages it has interpreters for, and through the LLVM bitcode interpreter, Sulong, it can run native code.</p>
+<h3 id="testing-and-build-process">Testing and build process</h3>
 
-<p><img src="/uploads/GraalVM-platform-layers.png" alt="GraalVM platform layers diagram" /></p>
+<ul>
+  <li>ARM are planning to add more testing to GraalVM CE since they have tests for many different devices;</li>
+  <li>Thomas told about a new tool, that creates a visualization of what goes into a native image, allowing to figure out how to make the image smaller. It’s being tested and will be released soon;</li>
+  <li>Thomas mentions that people should run “mx gate” rather than Travis
+    <ul>
+      <li>
+        <ul>
+          <li>Fabio recommends GITHub actions — you get more resources – Max concurs;</li>
+        </ul>
+      </li>
+      <li>
+        <ul>
+          <li>Graeme mentions that they are moving to GITLab for his project;</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>https://github.com/graalvm/graalvm-ce-dev-builds - Max notes that it should be made sure that there are GitHub issues for the OpenJDK modifications required to build native image as well;</li>
+  <li>Graeme: we need better error reporting for native image build problems (e.g. better instructions how to proceed);</li>
+  <li>Johan: Can we somehow have more access to the internal gates? If a PR fails, it is often hard to see why since the public travis works (green) but internal tests fail. Eric: Oracle team is working on allowing community members to submit tests to run on our internal hardware resources and get results, but this will take longer to expose — we have to go through security reviews and other approvals. This may take on the order of 6-12 months to get done;</li>
+  <li>Discussion of using <code>mx</code> and alternative ways to build GraalVM:
+    <ul>
+      <li>
+        <ul>
+          <li>Fabio asked whether is it intended for use outside Oracle;</li>
+        </ul>
+      </li>
+      <li>
+        <ul>
+          <li>One idea mentioned by Thomas was to have mx generate a build script in another tool.</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
 
-<h3 id="performance-comparison-with-best-competition-2017">Performance comparison with best competition (2017)</h3>
-<p>The <a href="http://dl.acm.org/citation.cfm?id=3062381"><strong>Practical partial evaluation for high-performance dynamic language runtimes</strong></a> paper by
-Thomas Würthinger, Christian Wimmer, Christian Humer, Andreas Wöß, Lukas Stadler, Chris Seaton, Gilles Duboscq, Doug Simon, Matthias Grimmer compared performance of GraalVM against other runtimes. Here is a one-image summary of the findings. For proper interpretation, please read the paper.</p>
+<h3 id="enhancement-requests-of-interest">Enhancement requests of interest:</h3>
 
-<p><img src="/uploads/GraalVM-performance-2017.png" alt="GraalVM performance comparison (2017)" /></p>
+<ul>
+  <li>DWARF debug symbols (Max);</li>
+  <li>JFR support (Max);
+    <ul>
+      <li>
+        <ul>
+          <li>RH presentation about the topic: https://fosdem.org/2020/schedule/event/hacking_graalvm/.</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
 
-<h3 id="sample-applications">Sample applications</h3>
+<h3 id="next-steps">Next steps</h3>
 
-<p>You can find several sample applications to play with and refer to on the <a href="/docs/examples">examples page</a>.</p>
+<ul>
+  <li>Review (board members) and publish(Alina) he advisory board announcement and meeting notes;</li>
+  <li>Create a security collaboration group (board members are invited to join);</li>
+  <li>Set up the next meeting in May.</li>
+</ul>
 
             </div>
 

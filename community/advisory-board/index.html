@@ -9,7 +9,7 @@
 
   <title>
     
-      Presentation materials
+      GraalVM Advisory Board
     
   </title>
   <meta
@@ -27,7 +27,7 @@
   <link rel="stylesheet" href="/resources/styles/extra.css">
   <link rel="stylesheet" href="https://elocation.oracle.com/mapviewer/jslib/v2.3/css/oraclemapsv2.css>
 
-  <link rel="canonical" href="https://www.graalvm.org/community/assets/">
+  <link rel="canonical" href="https://www.graalvm.org/community/advisory-board/">
   <!-- <script src="/resources/lib/jquery/jquery-3.2.1.min.js"></script> -->
   <script src="https://maps.oracle.com/mapviewer/jslib/v2.3/oraclemapsv2.js"></script>
   <link rel="stylesheet" href="https://elocation.oracle.com/mapviewer/jslib/v2.3/css/oraclemapsv2.css">
@@ -377,7 +377,7 @@
                     </li>
                     
                     
-                    <li>
+                    <li class="toc-bullets-highlight">
                       
 
                       
@@ -447,36 +447,46 @@
 
           <div class="col-sm-9">
             <div id="content-wrapper" class="docs-content docs-content--with-sidebar">
-              <p>The GraalVM team regularly presents at various conferences and meetups. We are delighted to learn that you have taken interest in GraalVM and would like to share this interest with your network. Whether you are presenting at a conference, a meetup, or writing an article, you can use the images on this page in your creative work.
-These images are the intellectual property of the Oracle and cannot be altered without Oracle’s permission. Please use it responsibly. For the proper use guidelines please contact us: graalvm-users@oss.oracle.com.</p>
+              <h1 id="graalvm-project-advisory-board">GraalVM Project Advisory Board</h1>
 
-<p>Please attribute them back to this website, so more people could find it. And please make sure to state your affiliation with the GraalVM project, whether you’re a part of the team or just a fan.</p>
+<p>We are announcing the establishment of the GraalVM Project Advisory Board — an advisory committee, composed of key project contributors and partners in the ecosystem with a shared goal of driving the GraalVM project forward. Such organizations can nominate their Representative for the Board. The Representative will act as the main contact point for all project-related matters associated with their company.</p>
 
-<h3 id="graalvm-logo">GraalVM logo</h3>
+<h2 id="the-advisory-board-goals">The Advisory Board Goals</h2>
 
-<p><img src="/uploads/GraalVM-logo-rgb.png" alt="GraalVM logo" /></p>
+<ul>
+  <li>Discuss community engagement and contributor interaction;</li>
+  <li>Provide cumulative feedback from the community and partner ecosystem;</li>
+  <li>Discuss ways to drive project awareness and adoption.</li>
+</ul>
 
-<h3 id="graalvm-overview">GraalVM overview</h3>
+<p>The Board will meet at least every three months via video call and once per year in person. Board meetings may include additional attendees contributing to specific topics of interest. A summary of the discussions will be published on the project website</p>
 
-<p>GraalVM supports many languages and runs in various environments.</p>
+<h2 id="advisory-board-members">Advisory Board Members</h2>
 
-<p><img src="/docs/img/graalvm_architecture.png" alt="GraalVM system diagram" /></p>
+<ul>
+  <li><a href="https://twitter.com/bernd_mesos">Bernd Mathiske</a>, Amazon. Creator of the Maxine VM, interested in GraalVM Community Edition, GraalVM Native Image, and AWS Lambda on GraalVM</li>
+  <li><a href="https://twitter.com/caballerobruno_">Bruno Caballero</a>, Microdoc. Work on GraalVM integrations in the embedded space.</li>
+  <li><a href="https://twitter.com/ChrisGSeaton">Chris Seaton</a>, Shopify. Contributors to <a href="https://github.com/oracle/truffleruby">TruffleRuby</a> – GraalVM Ruby implementation.</li>
+  <li><a href="https://twitter.com/christhalinger">Chris Thalinger</a>, Twitter. <a href="https://www.youtube.com/watch?v=ldk8CL0fygE">Run GraalVM Community Edition in production</a> on a large scale system and share their experience with the community.</li>
+  <li><a href="https://twitter.com/fniephaus">Fabio Niephaus</a>, Hasso Plattner Institute. <a href="https://www.hpi.uni-potsdam.de/swa/">Academic collaborators</a> and developers of GraalSqueak – A Squeak/Smalltalk implementation for GraalVM.</li>
+  <li><a href="https://twitter.com/graemerocher">Graeme Rocher</a>, OCI. Developers of <a href="https://micronaut.io/">Micronaut</a> – a framework for building microservice and serverless applications, integrated with GraalVM.</li>
+  <li><a href="https://twitter.com/johanvos">Johan Vos</a>, Gluon. Work on the <a href="https://gluonhq.com/gluon-substrate-and-graalvm-native-image-with-javafx-support/">JavaFX and mobile/embedded platform support</a> for GraalVM native images.</li>
+  <li><a href="https://twitter.com/maxandersen">Max Rydahl Andersen</a>, Red Hat. Developer on <a href="https://quarkus.io/">Quarkus</a> - A Kubernetes Native Java stack tailored for OpenJDK HotSpot and GraalVM, crafted from the best of breed Java libraries and standards.</li>
+  <li><a href="https://twitter.com/mesirii">Michael Hunger</a>, Neo4j. <a href="https://www.slideshare.net/jexp/polyglot-applications-with-graalvm">Integrate with GraalVM</a> to support polyglot dynamic languages for user-defined-procedures in Neo4j, a JVM-based graph database.</li>
+  <li><a href="https://twitter.com/sdeleuze">Sébastien Deleuze</a>, Pivotal. Spring Framework committer, works on <a href="https://github.com/spring-projects-experimental/spring-graal-native">Spring GraalVM native support</a>.</li>
+  <li><a href="https://twitter.com/thomaswue">Thomas Wuerthinger</a>, Oracle. <a href="https://github.com/oracle/graal">Key developers</a> and maintainers of GraalVM and related projects.</li>
+  <li>Xiaohong Gong, Arm Technology China. Works on <a href="https://connect.linaro.org/resources/san19/san19-514/">GraalVM Compiler Optimizations On AArch64</a>.</li>
+</ul>
 
-<h3 id="graalvm-components">GraalVM components</h3>
+<h2 id="new-members">New members</h2>
 
-<p>GraalVM functionality is enabled by several layers: it uses JVM as a platform, uses Java level compiler interface, <a href="http://openjdk.java.net/jeps/243">JVMCI</a> to integrate with it, uses the Truffle framework to run languages it has interpreters for, and through the LLVM bitcode interpreter, Sulong, it can run native code.</p>
+<p>If your organization has an interest in joining the GraalVM project advisory board, please let us know. We are open to include new members that align with the board’s goals and mission.</p>
 
-<p><img src="/uploads/GraalVM-platform-layers.png" alt="GraalVM platform layers diagram" /></p>
+<h2 id="meeting-notes">Meeting notes</h2>
 
-<h3 id="performance-comparison-with-best-competition-2017">Performance comparison with best competition (2017)</h3>
-<p>The <a href="http://dl.acm.org/citation.cfm?id=3062381"><strong>Practical partial evaluation for high-performance dynamic language runtimes</strong></a> paper by
-Thomas Würthinger, Christian Wimmer, Christian Humer, Andreas Wöß, Lukas Stadler, Chris Seaton, Gilles Duboscq, Doug Simon, Matthias Grimmer compared performance of GraalVM against other runtimes. Here is a one-image summary of the findings. For proper interpretation, please read the paper.</p>
+<p>Meeting notes are published after each of the Board mettings within 5 days. See the previous notes below.</p>
 
-<p><img src="/uploads/GraalVM-performance-2017.png" alt="GraalVM performance comparison (2017)" /></p>
-
-<h3 id="sample-applications">Sample applications</h3>
-
-<p>You can find several sample applications to play with and refer to on the <a href="/docs/examples">examples page</a>.</p>
+<p><a href="/uploads/graalvm_project_advisory_board_meeting_notes_february_2020.pdf" target="_blank">Meeting notes: February 2020</a></p>
 
             </div>
 
