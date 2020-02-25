@@ -44,7 +44,7 @@ var activeTableTab = "activeTableTab";
 <li><a href="../../../../../index-all.html">Index</a></li>
 <li><a href="../../../../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>b4592e752586ca736139c09c46c082ec0177a904</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>1ad4fdd47c502f085525e95f3b6074ab6a93a0d3</div>
 </div>
 <div class="subNav">
 <ul class="navList">
@@ -134,11 +134,12 @@ extends <a href="../../../../../com/oracle/truffle/api/nodes/NodeInterface.html"
  <b>Example minimal implementation of an instrumentable node:</b>
 
  <pre>&#064;<a href="../../../../../com/oracle/truffle/api/instrumentation/GenerateWrapper.html" title="annotation in com.oracle.truffle.api.instrumentation"><code>GenerateWrapper</code></a>
-<b>abstract</b> <b>class</b> SimpleNode <b>extends</b> <a href="../../../../../com/oracle/truffle/api/nodes/Node.html" title="class in com.oracle.truffle.api.nodes"><code>Node</code></a> <b>implements</b> <a href="../../../../../com/oracle/truffle/api/instrumentation/InstrumentableNode.html" title="interface in com.oracle.truffle.api.instrumentation"><code>InstrumentableNode</code></a> {
+<b>abstract</b> <b>static</b> <b>class</b> SimpleNode <b>extends</b> <a href="../../../../../com/oracle/truffle/api/nodes/Node.html" title="class in com.oracle.truffle.api.nodes"><code>Node</code></a>
+                <b>implements</b> <a href="../../../../../com/oracle/truffle/api/instrumentation/InstrumentableNode.html" title="interface in com.oracle.truffle.api.instrumentation"><code>InstrumentableNode</code></a> {
 
     <b>public</b> <b>abstract</b> <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true" title="class or interface in java.lang"><code>Object</code></a> execute(<a href="../../../../../com/oracle/truffle/api/frame/VirtualFrame.html" title="interface in com.oracle.truffle.api.frame"><code>VirtualFrame</code></a> frame);
 
-    <b>public</b> <b>final</b> <b>boolean</b> isInstrumentable() {
+    <b>public</b> <b>boolean</b> isInstrumentable() {
         <b>return</b> <b>true</b>;
     }
 
@@ -153,7 +154,8 @@ extends <a href="../../../../../com/oracle/truffle/api/nodes/NodeInterface.html"
  Example for a typical implementation of an instrumentable node with support for source
  sections:</b>
  <pre>&#064;<a href="../../../../../com/oracle/truffle/api/instrumentation/GenerateWrapper.html" title="annotation in com.oracle.truffle.api.instrumentation"><code>GenerateWrapper</code></a>
-<b>abstract</b> <b>class</b> RecommendedNode <b>extends</b> <a href="../../../../../com/oracle/truffle/api/nodes/Node.html" title="class in com.oracle.truffle.api.nodes"><code>Node</code></a> <b>implements</b> <a href="../../../../../com/oracle/truffle/api/instrumentation/InstrumentableNode.html" title="interface in com.oracle.truffle.api.instrumentation"><code>InstrumentableNode</code></a> {
+<b>abstract</b> <b>static</b> <b>class</b> RecommendedNode <b>extends</b> <a href="../../../../../com/oracle/truffle/api/nodes/Node.html" title="class in com.oracle.truffle.api.nodes"><code>Node</code></a>
+                <b>implements</b> <a href="../../../../../com/oracle/truffle/api/instrumentation/InstrumentableNode.html" title="interface in com.oracle.truffle.api.instrumentation"><code>InstrumentableNode</code></a> {
 
     <b>private</b> <b>static</b> <b>final</b> <b>int</b> NO_SOURCE = -1;
 
@@ -394,7 +396,8 @@ extends <a href="../../../../../com/oracle/truffle/api/nodes/NodeInterface.html"
  example shows how to tag a node subclass and all its subclasses as statement:
 
  <pre>&#064;<a href="../../../../../com/oracle/truffle/api/instrumentation/GenerateWrapper.html" title="annotation in com.oracle.truffle.api.instrumentation"><code>GenerateWrapper</code></a>
-<b>abstract</b> <b>class</b> StatementNode <b>extends</b> SimpleNode <b>implements</b> <a href="../../../../../com/oracle/truffle/api/instrumentation/InstrumentableNode.html" title="interface in com.oracle.truffle.api.instrumentation"><code>InstrumentableNode</code></a> {
+<b>abstract</b> <b>static</b> <b>class</b> StatementNode <b>extends</b> SimpleNode
+                <b>implements</b> <a href="../../../../../com/oracle/truffle/api/instrumentation/InstrumentableNode.html" title="interface in com.oracle.truffle.api.instrumentation"><code>InstrumentableNode</code></a> {
 
     &#064;<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Override.html?is-external=true" title="class or interface in java.lang"><code>Override</code></a>
     <b>public</b> <b>final</b> <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true" title="class or interface in java.lang"><code>Object</code></a> execute(<a href="../../../../../com/oracle/truffle/api/frame/VirtualFrame.html" title="interface in com.oracle.truffle.api.frame"><code>VirtualFrame</code></a> frame) {
@@ -423,11 +426,16 @@ extends <a href="../../../../../com/oracle/truffle/api/nodes/NodeInterface.html"
  example shows how to use local state to implement tagging for a node.
 
  <pre>&#064;<a href="../../../../../com/oracle/truffle/api/instrumentation/GenerateWrapper.html" title="annotation in com.oracle.truffle.api.instrumentation"><code>GenerateWrapper</code></a>
-<b>class</b> HaltNode <b>extends</b> <a href="../../../../../com/oracle/truffle/api/nodes/Node.html" title="class in com.oracle.truffle.api.nodes"><code>Node</code></a> <b>implements</b> <a href="../../../../../com/oracle/truffle/api/instrumentation/InstrumentableNode.html" title="interface in com.oracle.truffle.api.instrumentation"><code>InstrumentableNode</code></a> {
+<b>static</b> <b>class</b> HaltNode <b>extends</b> <a href="../../../../../com/oracle/truffle/api/nodes/Node.html" title="class in com.oracle.truffle.api.nodes"><code>Node</code></a> <b>implements</b> <a href="../../../../../com/oracle/truffle/api/instrumentation/InstrumentableNode.html" title="interface in com.oracle.truffle.api.instrumentation"><code>InstrumentableNode</code></a> {
     <b>private</b> <b>boolean</b> isDebuggerHalt;
 
     <b>public</b> <b>void</b> setDebuggerHalt(<b>boolean</b> isDebuggerHalt) {
         <b>this</b>.isDebuggerHalt = isDebuggerHalt;
+    }
+
+    <b>public</b> <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true" title="class or interface in java.lang"><code>Object</code></a> execute(<a href="../../../../../com/oracle/truffle/api/frame/VirtualFrame.html" title="interface in com.oracle.truffle.api.frame"><code>VirtualFrame</code></a> frame) {
+        <em>// does nothing;</em>
+        <b>return</b> <b>null</b>;
     }
 
     <b>public</b> <b>boolean</b> isInstrumentable() {
@@ -545,7 +553,8 @@ extends <a href="../../../../../com/oracle/truffle/api/nodes/NodeInterface.html"
  of the AST:
  <p>
  <pre>&#064;<a href="../../../../../com/oracle/truffle/api/instrumentation/GenerateWrapper.html" title="annotation in com.oracle.truffle.api.instrumentation"><code>GenerateWrapper</code></a>
-<b>abstract</b> <b>class</b> ExpressionNode <b>extends</b> <a href="../../../../../com/oracle/truffle/api/nodes/Node.html" title="class in com.oracle.truffle.api.nodes"><code>Node</code></a> <b>implements</b> <a href="../../../../../com/oracle/truffle/api/instrumentation/InstrumentableNode.html" title="interface in com.oracle.truffle.api.instrumentation"><code>InstrumentableNode</code></a> {
+<b>abstract</b> <b>static</b> <b>class</b> ExpressionNode <b>extends</b> <a href="../../../../../com/oracle/truffle/api/nodes/Node.html" title="class in com.oracle.truffle.api.nodes"><code>Node</code></a>
+                <b>implements</b> <a href="../../../../../com/oracle/truffle/api/instrumentation/InstrumentableNode.html" title="interface in com.oracle.truffle.api.instrumentation"><code>InstrumentableNode</code></a> {
     <b>abstract</b> <b>int</b> execute(<a href="../../../../../com/oracle/truffle/api/frame/VirtualFrame.html" title="interface in com.oracle.truffle.api.frame"><code>VirtualFrame</code></a> frame);
 
     <b>public</b> <b>boolean</b> isInstrumentable() {
@@ -734,7 +743,7 @@ extends <a href="../../../../../com/oracle/truffle/api/nodes/NodeInterface.html"
 <li><a href="../../../../../index-all.html">Index</a></li>
 <li><a href="../../../../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>b4592e752586ca736139c09c46c082ec0177a904</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>1ad4fdd47c502f085525e95f3b6074ab6a93a0d3</div>
 </div>
 <div class="subNav">
 <ul class="navList">
