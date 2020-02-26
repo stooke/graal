@@ -49,7 +49,7 @@ do
 done
 
 # Python
-PY_SRC="${WORK_DIR}/graalpython/doc"
+PY_SRC="${WORK_DIR}/graalpython/docs/user"
 PY_DST=docs/reference-manual/languages/python/user
 if [ ! -d ${PY_DST}/extra ]; then
   mkdir -p ${PY_DST}/extra;

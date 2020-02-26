@@ -27,7 +27,7 @@
   <link rel="stylesheet" href="/resources/styles/extra.css">
   <link rel="stylesheet" href="https://elocation.oracle.com/mapviewer/jslib/v2.3/css/oraclemapsv2.css>
 
-  <link rel="canonical" href="https://www.graalvm.org/docs/reference-manual/languages/Python/user/IMPLEMENTATION_DETAILS">
+  <link rel="canonical" href="https://www.graalvm.org/docs/reference-manual/languages/Python/user/PACKAGES">
   <!-- <script src="/resources/lib/jquery/jquery-3.2.1.min.js"></script> -->
   <script src="https://maps.oracle.com/mapviewer/jslib/v2.3/oraclemapsv2.js"></script>
   <link rel="stylesheet" href="https://elocation.oracle.com/mapviewer/jslib/v2.3/css/oraclemapsv2.css">
@@ -388,11 +388,22 @@ $(document).ready(function(){
 
         
           
+          <li class="toc-bullets-sub dsdsd">
+          
+            
+            <a href="/docs/reference-manual/languages/Python/user/JYTHON">
+              About Jython Compatibility
+            </a>
+          </li>
+
+          
+        
+          
           <li class="toc-bullets-sub toc-bullets-highlight">
           
             
-            <a href="/docs/reference-manual/languages/Python/user/IMPLEMENTATION_DETAILS">
-              Implementation Details
+            <a href="/docs/reference-manual/languages/Python/user/PACKAGES">
+              Installing Supported Packages
             </a>
           </li>
 
@@ -421,28 +432,6 @@ $(document).ready(function(){
             
             <a href="/docs/reference-manual/languages/Python/user/POLYGLOT">
               Interoperability
-            </a>
-          </li>
-
-          
-        
-          
-          <li class="toc-bullets-sub dsdsd">
-          
-            
-            <a href="/docs/reference-manual/languages/Python/user/JYTHON">
-              About Jython Compatibility
-            </a>
-          </li>
-
-          
-        
-          
-          <li class="toc-bullets-sub dsdsd">
-          
-            
-            <a href="/docs/reference-manual/languages/Python/user/CONTRIBUTING">
-              Contributing GraalPython
             </a>
           </li>
 
@@ -543,124 +532,55 @@ $(document).ready(function(){
 
           <div class="col-sm-9">
             <div id="content-wrapper" class="docs-content docs-content--with-sidebar">
-              <h1 id="implementation-details">Implementation Details</h1>
+              <h1 id="installing-supported-packages">Installing Supported Packages</h1>
 
-<h2 id="python-global-thread-state">Python Global Thread State</h2>
+<h3 id="create-a-virtual-environment">Create a virtual environment</h3>
 
-<p>In CPython, each stack frame is allocated on the heap, and there’s a global
-thread state holding on to the chain of currently handled exceptions (e.g. if
-you’re nested inside <code>except:</code> blocks) as well as the currently flying exception
-(e.g. we’re just unwinding the stack).</p>
+<p>The best way of using the GraalVM implementation of Python is out of a virtual
+environment. This generates wrapper scripts and makes the implementation usable
+from shell as standard Python interpreter. To do so execute the following from a
+GraalVM installation:</p>
 
-<p>In PyPy, this is done via their virtualizable frames and a global reference to
-the current top frame. Each frame also has a “virtual reference” to its parent
-frame, so code can just “force” these references to make the stack reachable if
-necessary.</p>
-
-<p>Unfortunately, the elegant solution of “virtual references” doesn’t work for us,
-mostly because we’re not a tracing JIT: we want the reference to be “virtual”
-even when there are multiple compilation units. With PyPy’s solution, this also
-isn’t the case, but it only hurts them for nested loops when large stacks must
-be forced to the heap.</p>
-
-<p>In Graal Python, the implementation is thus a bit more involved. Here’s how it
-works.</p>
-
-<h4 id="the-pframereference">The PFrame.Reference</h4>
-
-<p>A <code>PFrame.Reference</code> is created when entering a Python function. By default it
-only holds on to another reference, that of the Python caller. If there are
-non-Python frames between the newly entered frame and the last Python frame,
-those are ignored - our linked list only connects Python frames. The entry point
-into the interpreter has a <code>PFrame.Reference</code> with no caller.</p>
-
-<h6 id="executioncontextcallcontext-and-executioncontextcalleecontext">ExecutionContext.CallContext and ExecutionContext.CalleeContext</h6>
-
-<p>If we’re only calling between Python, we pass our <code>PFrame.Reference</code> as implicit
-argument to any callees. On entry, they will create their own <code>PFrame.Reference</code>
-as the next link in this backwards-connected linked-list. As an optimization, we
-use assumptions both on the calling node as well as on the callee root node to
-avoid passing the reference (in the caller) and linking it (on the callee
-side). This assumption is invalidated the first time the reference is actually
-needed. But even then, often the <code>PFrame.Reference</code> doesn’t hold on to anything
-else, because it was only used for traversal, so this is pretty cheap even in
-the not inlined case.</p>
-
-<p>When an event forces the frame to materialize on the heap, the reference is
-filled. This is usually only the case when someone uses <code>sys._getframe</code> or
-accesses the traceback of an exception. If the stack is still live, we walk the
-stack and insert the “calling node” and create a “PyFrame” object that mirrors
-the locals in the Truffle frame. But we need to be able to do this also for
-frames that are no longer live, e.g. when an exception was a few frames up. To
-ensure this, we set a boolean flag on <code>PFrame.Reference</code> to mark it as “escaped”
-when it is attached to an exception (or anything else), but not accessed,
-yet. Whenever a Python call returns and its <code>PFrame.Reference</code> was marked such,
-the “PyFrame” is also filled in by copying from the VirtualFrame. This way, the
-stack is lazily forced to the heap as we return from functions. If we’re lucky
-and it is never actually accessed <em>and</em> the calls are all inlined, those fill-in
-operations can be escape-analyzed away.</p>
-
-<p>To implement all this, we use the ExecutionContext.CallContext and
-ExecutionContext.CalleeContext classes. These also use profiling information to
-eagerly fill in frame information if the callees actually access the stack, for
-example, so that no further stack walks need to take place.</p>
-
-<h6 id="executioncontextindirectcallcontext-and-executioncontextindirectcalleecontext">ExecutionContext.IndirectCallContext and ExecutionContext.IndirectCalleeContext</h6>
-
-<p>If we’re mixing Python frames with non-Python frames, or if we are making calls
-to methods and cannot pass the Truffle frame, we need to store the last
-<code>PFrame.Reference</code> on the context so that, if we ever return back into a Python
-function, it can properly link to the last frame. However, this is potentially
-expensive, because it means storing a linked list of frames on the context. So
-instead, we do it only lazily. When an “indirect” Python callee needs its
-caller, it initially walks the stack to find it. But it will also tell the last
-Python node that made a call to a “foreign” callee that it will have to store
-its <code>PFrame.Reference</code> globally in the future for it to be available later.</p>
-
-<h4 id="the-current-pexception">The current PException</h4>
-
-<p>Now that we have a mechanism to lazily make available only as much frame state
-as needed, we use the same mechanism to also pass the currently handled
-exception. Unlike CPython we do not use a stack of currently handled exceptions,
-instead we utilize the call stack of Java by always passing the current exception
-and holding on to the last (if any) in a local variable.</p>
-
-<h2 id="abstract-operations-on-python-objects">Abstract Operations on Python Objects</h2>
-
-<p>Many generic operations on Python objects in CPython are defined in the header
-files <code>abstract.c</code> and <code>abstract.h</code>. These operations are widely used and their
-interplay and intricacies are the cause for the conversion, error message, and
-control flow bugs when not mimicked correctly. Our current approach is to
-provide many of these abstract operations as part of the
-<code>PythonObjectLibrary</code>. Usually, this means there are at least two messages for
-each operation - one that takes a <code>ThreadState</code> argument, and one that
-doesn’t. The intent is to allow passing of exception state and caller
-information similar to how we do it with the <code>PFrame</code> argument even across
-library messages, which cannot take a VirtualFrame.</p>
-
-<p>All nodes that are used in message implementations must allow uncached
-usage. Often (e.g. in the case of the generic <code>CallNode</code>) they offer execute
-methods with and without frames. If a <code>ThreadState</code> was passed to the message, a
-frame to pass to the node can be reconstructed using
-<code>PArguments.frameForCall(threadState)</code>. Here’s an example:</p>
-
-<pre><code class="language-java">@ExportMessage
-long messageWithState(ThreadState state,
-        @Cached CallNode callNode) {
-    Object callable = ...
-
-    if (state != null) {
-        return callNode.execute(PArguments.frameForCall(state), callable, arguments);
-    } else {
-        return callNode.execute(callable, arguments);
-    }
-}
+<pre><code>graalpython -m venv &lt;venv-dir&gt;
 </code></pre>
 
-<p><em>Note</em>: It is <strong>always</strong> preferable to call an <code>execute</code> method with a
-<code>VirtualFrame</code> when both one with and without exist! The reason is that this
-avoids materialization of the frame state in more cases, as described on the
-section on Python’s global thread state above.</p>
+<p>To activate the environment in your shell session call:</p>
+
+<pre><code>source &lt;venv-dir&gt;/bin/activate
+</code></pre>
+
+<h3 id="using-ginstall">Using ginstall</h3>
+
+<p>At the moment not enough of the standard library is implemented to run the
+standard package installers for many packages. As a convenience, we provide a
+simple module to install packages that we know to be working (including
+potential patches required for those packages). Try the following to find out
+more:</p>
+
+<pre><code>graalpython -m ginstall --help
+</code></pre>
+
+<p>As a slightly more exciting example, try:</p>
+
+<pre><code>graalpython -m ginstall install numpy
+</code></pre>
+
+<p>If all goes well (also consider native dependencies of NumPy), you should be
+able to <code>import numpy</code> afterwards.</p>
+
+<p>Support for more extension modules is high priority for us. We are actively
+building out our support for the Python C API to make extensions such as NumPy,
+SciPy, Scikit-learn, Pandas, Tensorflow and the like work. This work means that
+some other extensions might also already work, but we’re not actively testing
+other extensions right now and cannot promise anything. Note that to try
+extensions on this implementation, you have to download, build, and install them
+manually for now.</p>
+
+<h3 id="using-pip">Using PIP</h3>
+
+<p>The pip package installer is available and working in a <code>venv</code>, but we currently
+have no support for SSL. That means you can install packages from PyPI if you
+use an HTTP mirror and you can install local packages.</p>
 
             </div>
 
