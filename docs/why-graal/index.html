@@ -551,7 +551,7 @@ $(document).ready(function(){
 
             <div class="col-sm-9">
               <div id="content-wrapper" class="docs-content docs-content--with-sidebar">
-                <p>GraalVM offers a comprehensive ecosystem supporting a large set of languages (Java and other JVM-based languages, JavaScript, Ruby, Python, R, and C/C++ and other LLVM-based languages) and running them in different deployment scenarios (OpenJDK, Node.js, Oracle Database, or standalone). This page provides an overview of different scenarios in which GraalVM can make a difference for your applications.
+                <p>GraalVM offers a comprehensive ecosystem supporting a large set of languages (Java and other JVM-based languages, JavaScript, Ruby, Python, R, WebAssembly, C/C++ and other LLVM-based languages) and running them in different deployment scenarios (OpenJDK, Node.js, Oracle Database, or standalone). This page provides an overview of different scenarios in which GraalVM can make a difference for your applications.
 Some of versatile GraalVM capabilities, that might be missing on this page are thoroughly summarized and disclosed in <a href="https://medium.com/graalvm/graalvm-ten-things-12d9111f307d">Top 10 Things To Do With GraalVM</a> blog post.</p>
 
 <h2 id="for-java-programs">For Java Programs</h2>
@@ -590,11 +590,9 @@ Some of versatile GraalVM capabilities, that might be missing on this page are t
 
 <p>GraalVM allows efficient combination of native code (e.g., written in C/C++) and JavaScript. Native data structures can be directly accessed and the compiler can inline across any boundary. This can be beneficial in a scenario where efficient data structures are managed and allocated in C while other parts of the application are written in Node.js. Find an example of such scenario in the <a href="/docs/reference-manual/languages/llvm/#interoperability">reference manual</a>.</p>
 
-<h2 id="for-ruby-r-or-python">For Ruby, R, or Python</h2>
-
-<p>Note: Support for Ruby, R, or Python is <a href="https://docs.oracle.com/en/graalvm/enterprise/19/guide/overview/license/licensing-information.html">experimental</a> in GraalVM.</p>
-
-<p>We are actively working on stability and support for all modules for those languages. At this point in time, we can run simpler applications of Ruby and R, but we do not have the same full compatibility we provide for Java and Node.js applications. Our Python implementation was just recently started and can only run small examples.</p>
+<h2 id="for-ruby-r-python-or-webassembly">For Ruby, R, Python or WebAssembly</h2>
+<p>Ruby, R, Python, WebAssembly are <a href="https://docs.oracle.com/en/graalvm/enterprise/20/guide/overview/license/licensing-information.html">experimental</a> in the GraalVM ecosystem and not recommended for production use at this time, but we are actively working on stability and support for all modules for those languages. At this point in time, we can run simpler applications of Ruby, R, and Python but we do not have the same full compatibility we provide for Java and Node.js applications.
+WebAssembly currently implements the WebAssembly MVP (Minimum Viable Product) specification and is the youngest language in the GraalVM environment.</p>
 
 <p>Apart from the standard GraalVM benefits such as language interoperability (e.g., use Java or JavaScript from those applications), GraalVM can achieve high speedups of 10x or more for those languages. We are happy to assist with making existing Ruby and R applications work with GraalVM, but we cannot guarantee out-of-the-box compatibility for these languages yet.</p>
 

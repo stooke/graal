@@ -181,8 +181,7 @@ to collect execution counts for all statements in methods ending with `accept`.
     information. Tracing histograms often provides insights into the behavior
     of the algorithm that needs optimization.
 
-    Lastly, use the memory tracer tool for capturing allocations, for which
-    GraalVM currently provides experimental support.
+    Lastly, using the memory tracer tool for capturing allocations is currently an experimental feature in GraalVM.
     Node, `--memtracer` as an experimental tool must be preceded by the `--experimental-options` command line option.
 
 6. Run `js primes.js --experimental-options --memtracer` to display source code locations and
@@ -264,7 +263,7 @@ is false.
 
 ### Memory Tracer Command Options
 
-Note: The memory tracer tool is currently an [experimental](https://docs.oracle.com/en/graalvm/enterprise/19/guide/overview/license/licensing-information.html) tool. Make sure to prepend `--experimental-options` flag to enable `--memtracer`.
+Note: The memory tracer tool is currently an [experimental](https://docs.oracle.com/en/graalvm/enterprise/20/guide/overview/license/licensing-information.html) tool. Make sure to prepend `--experimental-options` flag to enable `--memtracer`.
 
 - `--experimental-options --memtracer`: enables the memory tracer. Disabled by default.
 - `--memtracer.FilterFile=<Expression>`: applies a wildcard filter for source file paths. For example, `*program*.sl`. The default is &lowast;.

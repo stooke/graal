@@ -1006,7 +1006,7 @@ version of LLVM that is shipped with GraalVM.</p>
 machine code is not directly produced from the LLVM bitcode, but there is an
 additional dynamic compilation step by the GraalVM compiler.</p>
 
-<p>In this scenario, first the LLVM frontend (e.g. <code>clang</code>) does optimizations on
+<p>In this scenario, first the LLVM frontend (e.g., <code>clang</code>) does optimizations on
 the bitcode level, and then the GraalVM compiler does its own optimizations on top of that
 during dynamic compilation. Some optimizations are better when done
 ahead-of-time on the bitcode, while other optimizations are better left for the
@@ -1153,7 +1153,7 @@ be aware of.</p>
         <ul>
           <li>globals (except the specific case of a global holding exactly one pointer value);</li>
           <li>malloc’ed memory (including c++ new, etc.);</li>
-          <li>stack (e.g. escaping automatic variables).</li>
+          <li>stack (e.g., escaping automatic variables).</li>
         </ul>
       </li>
     </ul>
@@ -1228,7 +1228,7 @@ surrounding system are routed through proper Truffle API and Java API calls.</p>
     <ul>
       <li>System calls with only limited support are read, readv, write, writev, open, close, dup, dup2, lseek, stat, fstat, lstat, chmod, fchmod, ioctl, fcntl, unlink, rmdir, utimensat, uname, set_tid_address, gettid, getppid, getpid, getcwd, exit, exit_group, clock_gettime, arch_prctl.</li>
       <li>The functionality is limited to common terminal IO, process control and file system operations.</li>
-      <li>Some syscalls are implemented as a noop and/or return errors warning that they are not available, e.g. chown, lchown, fchown, brk, rt_sigaction, sigprocmask, futex.</li>
+      <li>Some syscalls are implemented as a noop and/or return errors warning that they are not available, e.g., chown, lchown, fchown, brk, rt_sigaction, sigprocmask, futex.</li>
     </ul>
   </li>
   <li>Musl libc

@@ -101,7 +101,7 @@ Graal diagnostic output saved in /Users/graal/graal_dumps/1549459528316/graal_di
 
     For all values except for `ExitVM`, the VM continues executing.
 * `-Dgraal.CompilationBailoutAsFailure=false`: The compiler may not complete compilation of a method due
- to some property or code shape in the method (e.g. exotic uses of the jsr and ret bytecodes). In this
+ to some property or code shape in the method (e.g., exotic uses of the jsr and ret bytecodes). In this
  case the compilation _bails out_. If you want to be informed of such bailouts, this option makes GraalVM
  treat bailouts as failures and thus be subject to the action specified by the
  `-Dgraal.CompilationFailureAction` option.

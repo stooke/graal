@@ -823,7 +823,7 @@ The paths are delimited by <code>:</code> on UNIX systems and by <code>;</code> 
 
 <p>When true, use TLS/SSL to secure the debugging protocol. Besides changing the WS
 (web socket) protocol to WSS, the HTTP endpoint that serves metadata about the debuggee
-is also changed to HTTPS. This is not compatible e.g. with
+is also changed to HTTPS. This is not compatible e.g., with
 <a href="chrome://inspect">chrome://inspect</a> page, which is not able to provide the debuggee
 information and launch the debugger then. Launch debugging via the printed WSS URL directly.</p>
 
@@ -1064,8 +1064,7 @@ to collect execution counts for all statements in methods ending with <code>acce
  information. Tracing histograms often provides insights into the behavior
  of the algorithm that needs optimization.</p>
 
-    <p>Lastly, use the memory tracer tool for capturing allocations, for which
- GraalVM currently provides experimental support.
+    <p>Lastly, using the memory tracer tool for capturing allocations is currently an experimental feature in GraalVM.
  Node, <code>--memtracer</code> as an experimental tool must be preceded by the <code>--experimental-options</code> command line option.</p>
   </li>
   <li>
@@ -1156,7 +1155,7 @@ is false.</li>
 
 <h3 id="memory-tracer-command-options">Memory Tracer Command Options</h3>
 
-<p>Note: The memory tracer tool is currently an <a href="https://docs.oracle.com/en/graalvm/enterprise/19/guide/overview/license/licensing-information.html">experimental</a> tool. Make sure to prepend <code>--experimental-options</code> flag to enable <code>--memtracer</code>.</p>
+<p>Note: The memory tracer tool is currently an <a href="https://docs.oracle.com/en/graalvm/enterprise/20/guide/overview/license/licensing-information.html">experimental</a> tool. Make sure to prepend <code>--experimental-options</code> flag to enable <code>--memtracer</code>.</p>
 
 <ul>
   <li><code>--experimental-options --memtracer</code>: enables the memory tracer. Disabled by default.</li>
@@ -1339,7 +1338,7 @@ p     if (n &gt; cache.length) { return calculatePrime(n); }
 
 <p>As the legend at the beginning of the output explains, lines that are covered by
 the execution are preceded with a <code>+</code>, lines not covered by the execution are
-preceded with a <code>-</code>. Lines that are covered partially (e.g. when an <code>if</code>
+preceded with a <code>-</code>. Lines that are covered partially (e.g., when an <code>if</code>
 statement is covered, but only one branch is taken, we consider the other bench
 to be incidentally covered) are preceded with <code>p</code>.</p>
 
@@ -1369,7 +1368,7 @@ Code coverage histogram.
 <p>The code coverage tool provides ways to integrate with other tools. Running
 with <code>--coverage.Output=lcov</code> produces output in the commonly used
 <a href="https://linux.die.net/man/1/lcov">lcov</a> format which is used by multiple tools
-(e.g. <code>genhtml</code>) to display coverage data. Take a look at the next example that
+(e.g., <code>genhtml</code>) to display coverage data. Take a look at the next example that
 shows how to visualise coverage of a Node.js app with Visual Studio Code.</p>
 
 <p>1.Copy the following code into a new file named <code>nodeapp.js</code>:</p>
@@ -1533,7 +1532,7 @@ The result: 42
 
 <p>The previous examples were written in JavaScript, but due to the polyglot nature
 of GraalVM, you can take the same instrument and use it in a program written in
-e.g. the Ruby language.</p>
+e.g., the Ruby language.</p>
 <ol>
   <li>Create <em>source-trace.js</em> file:
     <pre><code>agent.on('source', function(ev) {
@@ -1739,7 +1738,7 @@ usage, etc..</li>
 number of events, total recording time, etc..</li>
 </ul>
 
-<p>Note: The support of JDK Flight Recorder is currently <a href="https://docs.oracle.com/en/graalvm/enterprise/19/guide/overview/license/licensing-information.html">experimental</a>. Some advanced features like
+<p>Note: The support of JDK Flight Recorder is currently <a href="https://docs.oracle.com/en/graalvm/enterprise/20/guide/overview/license/licensing-information.html">experimental</a>. Some advanced features like
 analyzing JVM internals, showing event stack traces or support for creating JFR
 snapshots from live processes are not available in this preview version and will
 be addressed incrementally in the following releases.</p>
@@ -1924,7 +1923,7 @@ $ ruby --jvm --vm.Dgraal.Dump=:1 --vm.Dgraal.PrintGraph=Network Test.rb
 </code></pre>
 <p>This causes GraalVM to dump compiler graphs in IGV format over the network to an IGV process listening
 on <code>127.0.0.1:4445</code>. Once the connection is made, you are able to see the graphs in the Outline window.
-Find e.g. <code>java.lang.String.char(int)</code> folder and open its <em>After parsing</em> graph by double-clicking.
+Find e.g., <code>java.lang.String.char(int)</code> folder and open its <em>After parsing</em> graph by double-clicking.
 If the node has <code>sourceNodePosition</code> property, then the Processing Window will attempt to display its location and the entire stacktrace.</p>
 
 <h3 id="browsing-graphs">Browsing Graphs</h3>

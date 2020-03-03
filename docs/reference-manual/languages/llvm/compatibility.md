@@ -9,7 +9,7 @@ In contrast to the static compilation model of LLVM languages, in GraalVM the
 machine code is not directly produced from the LLVM bitcode, but there is an
 additional dynamic compilation step by the GraalVM compiler.
 
-In this scenario, first the LLVM frontend (e.g. `clang`) does optimizations on
+In this scenario, first the LLVM frontend (e.g., `clang`) does optimizations on
 the bitcode level, and then the GraalVM compiler does its own optimizations on top of that
 during dynamic compilation. Some optimizations are better when done
 ahead-of-time on the bitcode, while other optimizations are better left for the

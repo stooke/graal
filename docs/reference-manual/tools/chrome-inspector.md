@@ -110,7 +110,7 @@ The paths are delimited by `:` on UNIX systems and by `;` on MS Windows.
 
 When true, use TLS/SSL to secure the debugging protocol. Besides changing the WS
 (web socket) protocol to WSS, the HTTP endpoint that serves metadata about the debuggee
-is also changed to HTTPS. This is not compatible e.g. with
+is also changed to HTTPS. This is not compatible e.g., with
 [chrome://inspect](chrome://inspect) page, which is not able to provide the debuggee
 information and launch the debugger then. Launch debugging via the printed WSS URL directly.
 

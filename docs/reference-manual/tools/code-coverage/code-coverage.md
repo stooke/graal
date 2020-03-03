@@ -168,7 +168,7 @@ p     if (n > cache.length) { return calculatePrime(n); }
 
 As the legend at the beginning of the output explains, lines that are covered by
 the execution are preceded with a `+`, lines not covered by the execution are
-preceded with a `-`. Lines that are covered partially (e.g. when an `if`
+preceded with a `-`. Lines that are covered partially (e.g., when an `if`
 statement is covered, but only one branch is taken, we consider the other bench
 to be incidentally covered) are preceded with `p`.
 
@@ -199,7 +199,7 @@ Code coverage histogram.
 The code coverage tool provides ways to integrate with other tools. Running
 with `--coverage.Output=lcov` produces output in the commonly used
 [lcov](https://linux.die.net/man/1/lcov) format which is used by multiple tools
-(e.g. `genhtml`) to display coverage data. Take a look at the next example that
+(e.g., `genhtml`) to display coverage data. Take a look at the next example that
 shows how to visualise coverage of a Node.js app with Visual Studio Code.
 
 1.Copy the following code into a new file named `nodeapp.js`:

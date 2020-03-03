@@ -2719,7 +2719,7 @@ guest languages lookup Java types and instantiate them.</p>
   <li>The script looks the Java type <code>java.math.BigDecimal</code> up and stores it in a variable named <code>BigDecimal</code>.</li>
   <li>The static method <code>BigDecimal.valueOf(long)</code> is invoked to create new
 <code>BigDecimal</code>s with value <code>10</code>. In addition to looking up static Java methods, it
-is also possible to directly instantiate the returned Java type., e.g. in
+is also possible to directly instantiate the returned Java type., e.g., in
 JavaScript using the <code>new</code> keyword.</li>
   <li>The new decimal is used to invoke the <code>pow</code> instance method with <code>20</code> which calculates  <code>10^20</code>.</li>
   <li>The result of the script is converted to a host object by calling <code>asHostObject()</code>. The return value is automatically cast to the <code>BigDecimal</code> type.</li>
@@ -3354,7 +3354,7 @@ The following access parameters may be configured:</p>
 
 <p>Polyglot embeddings can also be compiled using <a href="/docs/reference-manual/aot-compilation/">GraalVM Native Image</a>.
 By default, no language is included if the polyglot API is used.
-To enable guest languages the <code>--language:&lt;languageId&gt;</code> (e.g. <code>--language:js</code>) native image option needs to be specified.
+To enable guest languages the <code>--language:&lt;languageId&gt;</code> (e.g., <code>--language:js</code>) native image option needs to be specified.
 All examples on this page are also supported when compiled using Native Image Generator – the <code>native-image</code> utility.
 Currently it is required to set the <code>--initialize-at-build-time</code> option when building with a polyglot language. We plan to lift this restriction in future versions.</p>
 

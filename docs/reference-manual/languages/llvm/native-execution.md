@@ -71,7 +71,7 @@ The following restrictions and differences to native execution (i.e., bitcode co
   * Foreign objects cannot be stored in native memory locations. Native memory locations include:
     - globals (except the specific case of a global holding exactly one pointer value);
     - malloc'ed memory (including c++ new, etc.);
-    - stack (e.g. escaping automatic variables).
+    - stack (e.g., escaping automatic variables).
 * LLVM instruction set support (based on LLVM 7.0.1)
   * A set of rarely-used bitcode instructions are not available (va_arg, catchpad, cleanuppad, catchswitch, catchret, cleanupret, fneg, callbr).
   * The instructions with limited support:
@@ -118,7 +118,7 @@ surrounding system are routed through proper Truffle API and Java API calls.
   * System calls
     * System calls with only limited support are read, readv, write, writev, open, close, dup, dup2, lseek, stat, fstat, lstat, chmod, fchmod, ioctl, fcntl, unlink, rmdir, utimensat, uname, set_tid_address, gettid, getppid, getpid, getcwd, exit, exit_group, clock_gettime, arch_prctl.
     * The functionality is limited to common terminal IO, process control and file system operations.
-    * Some syscalls are implemented as a noop and/or return errors warning that they are not available, e.g. chown, lchown, fchown, brk, rt_sigaction, sigprocmask, futex.
+    * Some syscalls are implemented as a noop and/or return errors warning that they are not available, e.g., chown, lchown, fchown, brk, rt_sigaction, sigprocmask, futex.
   * Musl libc
     * The musl libc library behaves differently than the more common glibc [in some cases](https://wiki.musl-libc.org/functional-differences-from-glibc.html).
   * The stack

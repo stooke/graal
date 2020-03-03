@@ -786,7 +786,7 @@ Here is a short list of the most notable ones:</p>
 <h5 id="changes-2">Changes</h5>
 <ul>
   <li>Migrated to the new Truffle libraries for interoperability support.</li>
-  <li>Added support for importing Java classes from the <code>java</code> namespace using normal Python import syntax, e.g. <code>from java.util import ArrayList</code>.</li>
+  <li>Added support for importing Java classes from the <code>java</code> namespace using normal Python import syntax, e.g., <code>from java.util import ArrayList</code>.</li>
   <li>Implemented PEP 487 and PEP 560 to make the <code>typing</code> module work.</li>
 </ul>
 
@@ -867,7 +867,7 @@ pages. It is not part of GraalVM Community or Enterprise editions.</p>
 <p>(2019-03-18)</p>
 
 <h5 id="introducing---vmoption">Introducing <code>--vm.&lt;option&gt;</code></h5>
-<p>We introduced a uniform <code>--vm.&lt;option&gt;</code> which allows to pass options in a uniform way, without knowing which VM mode (<code>--jvm</code>, or <code>--native</code>) will be used. It replaces  <code>--jvm.&lt;option&gt;</code> and <code>--native.&lt;option&gt;</code> command line options, e.g. the option to configure the maximum amount of memory used for the heap <code>--jvm.Xmx=5G</code> becomes <code>--vm.Xmx=5G</code>.
+<p>We introduced a uniform <code>--vm.&lt;option&gt;</code> which allows to pass options in a uniform way, without knowing which VM mode (<code>--jvm</code>, or <code>--native</code>) will be used. It replaces  <code>--jvm.&lt;option&gt;</code> and <code>--native.&lt;option&gt;</code> command line options, e.g., the option to configure the maximum amount of memory used for the heap <code>--jvm.Xmx=5G</code> becomes <code>--vm.Xmx=5G</code>.
 This applies to all languages.</p>
 
 <h3 id="java-2">Java</h3>
@@ -1078,7 +1078,7 @@ is still vulnerable to CVE-2018-16395. This will be fixed in the next release.</
 <p>New feature:</p>
 
 <ul>
-  <li>Allow installation of NumPy in a <code>venv</code>. Just run e.g. <code>bin/graalpython -m venv numpy_env; source numpy_env/bin/activate; graalpython -m ginstall install numpy</code>. Note that not all NumPy features work at the moment.</li>
+  <li>Allow installation of NumPy in a <code>venv</code>. Just run e.g., <code>bin/graalpython -m venv numpy_env; source numpy_env/bin/activate; graalpython -m ginstall install numpy</code>. Note that not all NumPy features work at the moment.</li>
 </ul>
 
 <p>To see a complete list of changes, please refer to the project <a href="https://github.com/graalvm/graalpython/blob/master/CHANGELOG.md#version-100-rc13">changelog</a>.</p>
@@ -1335,7 +1335,7 @@ is available on GitHub.</p>
 
 <p><strong>Ideal Graph Visualizer</strong></p>
 <ul>
-  <li>The tool understands <code>mx</code> project structure now, e.g. the GraalVM compiler project when opening sources.</li>
+  <li>The tool understands <code>mx</code> project structure now, e.g., the GraalVM compiler project when opening sources.</li>
   <li>Improved performance when laying out large graphs.</li>
 </ul>
 
@@ -1573,7 +1573,7 @@ is available on GitHub.</p>
 <ul>
   <li>AWT based graphics devices (jpg, png, X11, …) is supported when running FastR as a native image.</li>
   <li><code>eval.polyglot</code>: the parameter <code>source</code> was renamed to <code>code</code>.</li>
-  <li>New builtin <code>as.data.frame.polyglot.value</code> creates R data frames from Polyglot objects (KEYS are used as column names, the values must be homogenous arrays, e.g. respond to HAS_SIZE).</li>
+  <li>New builtin <code>as.data.frame.polyglot.value</code> creates R data frames from Polyglot objects (KEYS are used as column names, the values must be homogenous arrays, e.g., respond to HAS_SIZE).</li>
   <li>Paths in <code>eval.polyglot</code> are resolved relative to the current working directory.</li>
   <li>Various fixes necessary to pass <em>dplyr</em> tests (GitHub version of <em>dplyr</em>).</li>
 </ul>

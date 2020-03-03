@@ -644,7 +644,7 @@ Sleeping for 60 seconds.
 <h4 id="2-generate-heap-dump">2. Generate Heap Dump</h4>
 <p>Open the 2nd terminal to get PID of the running <code>svmheapdump</code> application using a command like <code>ps -C svmheapdump -o pid=</code> for Linux OS and <code>pgrep svmheapdump</code>
 for Mac OS.
-PID is printed, e.g. 100, which is then used in sending the signal to the running app:</p>
+PID is printed, e.g., 100, which is then used in sending the signal to the running app:</p>
 <pre><code class="language-bash">kill -SIGUSR1 100
 </code></pre>
 <p>Heap dump is available at the working directory while application continues running.</p>
@@ -722,7 +722,7 @@ public class SVMHeapDumpAPI {
 
 </code></pre>
 <h2 id="building-an-example-1">Building an Example</h2>
-<p>In the next step, compile <em>SVMHeapDumpAPI.java</em>. It is good to define an environment variable pointing to your GraalVM installation, e.g. <code>export GRAALVM_HOME=/usr/graalvm</code>.
+<p>In the next step, compile <em>SVMHeapDumpAPI.java</em>. It is good to define an environment variable pointing to your GraalVM installation, e.g., <code>export GRAALVM_HOME=/usr/graalvm</code>.
 Then compile using following command:</p>
 <pre><code class="language-bash">$ javac SVMHeapDumpAPI.java
 </code></pre>

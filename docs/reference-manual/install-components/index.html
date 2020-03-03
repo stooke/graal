@@ -710,10 +710,10 @@ $(document).ready(function(){
 <p>Some languages and plugins are not part of the GraalVM core distribution and must be
 downloaded and installed separately. These include:</p>
 <ul>
-  <li><a href="/docs/reference-manual/aot-compilation/">GraalVM Native Image</a> – a technology to compile an application ahead-of-time into a binary that runs natively on the system. Note: The Native Image plugin is available as an <a href="https://docs.oracle.com/en/graalvm/enterprise/19/guide/overview/license/licensing-information.html">Early Adopter technology</a>.</li>
-  <li>Python, R, and Ruby languages interpreters. Note: The support for Python, R and Ruby languages is <a href="https://docs.oracle.com/en/graalvm/enterprise/19/guide/overview/license/licensing-information.html">experimental</a>.</li>
+  <li><a href="/docs/reference-manual/aot-compilation/">GraalVM Native Image</a> – a technology to compile an application ahead-of-time into a binary that runs natively on the system. Note: The Native Image plugin is available as an <a href="https://docs.oracle.com/en/graalvm/enterprise/20/guide/overview/license/licensing-information.html">Early Adopter technology</a> in GraalVM Enterprise. In GraalVM Community Native Image is distributed under the GPL 2 with Classpath Exception license.</li>
+  <li>Python, R, and Ruby languages interpreters. Note: Python, R, and Ruby are <a href="https://docs.oracle.com/en/graalvm/enterprise/20/guide/overview/license/licensing-information.html">experimental</a> and not recommended for production use at this time.</li>
   <li><a href="/docs/reference-manual/languages/llvm/#llvm-toolchain">LLVM toolchain</a> –  a set of tools and APIs for compiling native programs to bitcode that can be executed with the GraalVM LLVM runtime.</li>
-  <li><a href="/docs/reference-manual/languages/wasm">GraalWasm</a> – a WebAssembly engine implemented in GraalVM. GraalWasm is available as an <a href="https://docs.oracle.com/en/graalvm/enterprise/19/guide/overview/license/licensing-information.html">experimental</a> feature.</li>
+  <li><a href="/docs/reference-manual/languages/wasm">GraalWasm</a> – a WebAssembly engine implemented in GraalVM. GraalWasm is available as an <a href="https://docs.oracle.com/en/graalvm/enterprise/20/guide/overview/license/licensing-information.html">experimental</a> feature.</li>
 </ul>
 
 <p>To assist you with the installation, these features are pre-packaged as
@@ -756,7 +756,7 @@ abort the installation if component’s requirements are not met.</p>
 </code></pre>
 <p>where <code>-L</code> option, equivalent to <code>--local-file</code> or <code>--file</code>, tells to install
 from the downloaded component archive. However, a component may depend on other
-components (e.g. Ruby language depends on the <a href="/docs/reference-manual/languages/llvm/#llvm-toolchain">LLVM toolchain</a>). For example, <code>gu
+components (e.g., Ruby language depends on the <a href="/docs/reference-manual/languages/llvm/#llvm-toolchain">LLVM toolchain</a>). For example, <code>gu
 -L install component.jar</code> will fail if the required components are not yet
 installed. If you download all the dependencies into the same directory, you may
 use:</p>
@@ -878,7 +878,7 @@ On <em>Linux</em>, you must ensure that the <code>http_proxy</code> and <code>ht
 variables are set appropriately <strong>before</strong> you launch <code>gu</code>. Please refer to your
 distribution and/or desktop environment documentation for the details.</p>
 
-<p>Sometimes, an intermediate (e.g. corporate) proxy may act as
+<p>Sometimes, an intermediate (e.g., corporate) proxy may act as
 “man-in-the-middle”, intercepting https-secured communication and issuing its
 own host certificates, which cannot be verified by GraalVM Updater. If you see
 error messages with descriptions containing <code>ValidatorException</code> or

@@ -111,7 +111,7 @@ The result: 42
 
 The previous examples were written in JavaScript, but due to the polyglot nature
 of GraalVM, you can take the same instrument and use it in a program written in
-e.g. the Ruby language.
+e.g., the Ruby language.
 1. Create _source-trace.js_ file:
 ```
 agent.on('source', function(ev) {

@@ -564,14 +564,14 @@ support.</p>
 <p>Oracle GraalVM Enterprise Edition is licensed under either the <a href="https://www.oracle.com/technetwork/licenses/graalvm-otn-license-5486575.html">GraalVM OTN License Agreement</a>,
 which is free for testing, evaluation, or for developing non-production applications, or under the terms of the Oracle Master License Agreement for customers.</p>
 
-<p>The Native Image plugin is available as an <a href="https://docs.oracle.com/en/graalvm/enterprise/19/guide/overview/license/licensing-information.html">Early Adopter technology</a>.
+<p>The Native Image plugin is available as an <a href="https://docs.oracle.com/en/graalvm/enterprise/20/guide/overview/license/licensing-information.html">Early Adopter technology</a> in GraalVM Enterprise.
 It can be used in production and is supported by Oracle as part of your GraalVM Enterprise subscription. However, it is not covered by Oracle’s standard warranty as Oracle
 reserves the right to force you to migrate to newer versions in order to get support.</p>
 
-<p>If you have a question about your license rights and obligations, please consult the <a href="https://docs.oracle.com/en/graalvm/enterprise/19/guide/overview/license/licensing-information.html">Licensing Information User Manual</a>, contact your sales representative or send an email to <a href="mailto:graalvm-enterprise_ww_grp@oracle.com">graalvm_enterprise_ww_grp@oracle.com</a>.</p>
+<p>If you have a question about your license rights and obligations, please consult the <a href="https://docs.oracle.com/en/graalvm/enterprise/20/guide/overview/license/licensing-information.html">Licensing Information User Manual</a>, contact your sales representative or send an email to <a href="mailto:graalvm-enterprise_ww_grp@oracle.com">graalvm_enterprise_ww_grp@oracle.com</a>.</p>
 
 <h3 id="how-much-does-a-graalvm-enterprise-subscription-cost">How much does a GraalVM Enterprise subscription cost?</h3>
-<p>Please consult the <a href="https://www.oracle.com/uk/corporate/pricing/#graalvm">Oracle global price list</a> for more information on GraalVM Enterprise offerings and pricing. Alternatively, contact your sales
+<p>Please consult the <a href="https://www.oracle.com/corporate/pricing/#graalvm">Oracle global price list</a> for more information on GraalVM Enterprise offerings and pricing or visit <a href="https://shop.oracle.com/apex/f?p=dstore:4:9213481549158:::RIR:IR_ROWFILTER:graalvm">Oracle Store</a>. Alternatively, contact your sales
 representative to discuss subscription licensing and support terms.</p>
 
 <h3 id="what-does-graalvm-enterprise-subscription-include">What does GraalVM Enterprise subscription include?</h3>
@@ -623,14 +623,13 @@ Twitter handle, watch the
 Please verify if <a href="https://shop.oracle.com/apex/f?p=dstore:1002:0::::P1002_HELP_TOPIC_ID:114206114249751725703093">support services</a> are activated with your account.</p>
 
 <h3 id="what-is-the-readiness-level-of-graalvm-windows-support">What is the “readiness” level of GraalVM Windows support?</h3>
-<p>GraalVM Windows support is currently under development and released as
-“experimental” in GraalVM 19.x. The Windows preview package includes the JDK
-with the GraalVM compiler enabled, Native Image capabilities, GraalVM’s
-JavaScript engine and the developer tools (e.g. Chrome inspector based debugger,
-Profiler, etc.). Currently, there is no <a href="https://www.graalvm.org/docs/reference-manual/graal-updater/">GraalVM Updater</a> utility
-nor the ability to add support for other GraalVM languages. The GraalVM team is
-actively working on it, and you can follow our progress on
-<a href="https://github.com/oracle/graal">GitHub</a>.</p>
+<p>As of version 20.0 GraalVM builds for Windows platforms are production-ready and
+are no longer under experimental support. The Windows preview package includes
+the JDK with the GraalVM compiler enabled, the functional <a href="/docs/reference-manual/install-components/"><code>gu</code> utility</a> to
+install additional components, GraalVM’s JavaScript engine and the developer tools
+(e.g., Chrome inspector based debugger, Profiler, etc.). GraalVM Native Image
+component needs <a href="/docs/reference-manual/native-image/#install-native-image">to be installed</a> with <code>gu</code> as on other platforms. Node.js support on the Windows
+platform is scheduled to be included in the next GraalVM release (20.1).</p>
 
 <h3 id="can-i-run-my-existing-application-with-graalvm">Can I run my existing application with GraalVM?</h3>
 <p>The team behind GraalVM aims for compatibility with existing language

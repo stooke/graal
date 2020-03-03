@@ -47,7 +47,7 @@ $ ruby --jvm --vm.Dgraal.Dump=:1 --vm.Dgraal.PrintGraph=Network Test.rb
 ```
 This causes GraalVM to dump compiler graphs in IGV format over the network to an IGV process listening
 on `127.0.0.1:4445`. Once the connection is made, you are able to see the graphs in the Outline window.
-Find e.g. `java.lang.String.char(int)` folder and open its _After parsing_ graph by double-clicking.
+Find e.g., `java.lang.String.char(int)` folder and open its _After parsing_ graph by double-clicking.
 If the node has `sourceNodePosition` property, then the Processing Window will attempt to display its location and the entire stacktrace.
 
 ### Browsing Graphs

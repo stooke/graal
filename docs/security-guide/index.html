@@ -710,7 +710,7 @@ $(document).ready(function(){
 <p>This security guide provides developers and embedders with information on the
 security model and features of GraalVM, such that they can build a secure
 application on top of it. It assumes that readers are familiar with the GraalVM
-architecture.  This guide does not replace but rather supplements the Java
+architecture. This guide does not replace but rather supplements the Java
 security documentation with aspects unique to GraalVM. It also provides security
 researchers with information on GraalVM’s security model.</p>
 
@@ -727,21 +727,20 @@ rely on the correct execution of instructions. Incorrect execution of
 security-critical code running on top of GraalVM that allows to bypass such a
 security control is regarded a security vulnerability.</p>
 
-<p>Using the Truffle Language Implementation framework,
-interpreters for guest languages can be implemented to execute guest
-applications written in languages such as Javascript, Python, Ruby or R on top of
-GraalVM. The execution context for these guest applications can be created with
-restricted privileges, to allow for the execution of less trusted guest
-applications. For example, an embedder writes an application server (the host
-application) that runs JavaScript guest applications from a less trusted source.
-GraalVM offers features to limit the privileges of the guest
-application to some extent.</p>
+<p>Using the Truffle Language Implementation framework, interpreters for guest
+languages can be implemented to execute guest applications written in languages
+such as Javascript, Python, Ruby, R or WebAssembly (Wasm) on top of GraalVM. The
+execution context for these guest applications can be created with restricted
+privileges, to allow for the execution of less trusted guest applications. For
+example, an embedder writes an application server (the host application) that
+runs JavaScript guest applications from a less trusted source. GraalVM offers
+features to limit the privileges of the guest application to some extent.</p>
 
-<p>For every guest language shipped with GraalVM, a launcher, e.g. (interactive)
+<p>For every guest language shipped with GraalVM, a launcher, e.g., interactive
 shell, is provided. These launchers behave in the same way and come with the
 same security guarantees as their “original” counterparts.</p>
 
-<p>Note: GraalVM provides only <a href="https://docs.oracle.com/en/graalvm/enterprise/19/guide/overview/license/licensing-information.html">experimental</a> support for Python, R and Ruby languages.</p>
+<p>Note: Ruby, R, Python, Wasm are <a href="https://docs.oracle.com/en/graalvm/enterprise/20/guide/overview/license/licensing-information.html">experimental</a> and not recommended for production use at this time.</p>
 
 <p>We appreciate reports of bugs that break the security model via the process
 outlined in the <a href="https://www.oracle.com/corporate/security-practices/assurance/vulnerability/reporting.html">Reporting Vulnerabilities guide</a>.</p>
