@@ -653,9 +653,12 @@ js --jvm --vm.cp=/my/class/path
 
 <h3 id="polyglot-context">Polyglot Context</h3>
 <p>The preferred method of launching GraalVM JavaScript with Java interop support instance is via polyglot <code>Context</code>.
-For that, a new <code>org.graalvm.polyglot.Context</code> is built with the <code>hostAccess</code> option set:</p>
+For that, a new <code>org.graalvm.polyglot.Context</code> is built with the <code>hostAccess</code> option allowing access and a <code>hostClassLookup</code> predicate defining the Java classes you allow access to:</p>
 
-<pre><code class="language-java">Context context = Context.newBuilder("js").allowHostAccess(true).build();
+<pre><code class="language-java">Context context = Context.newBuilder("js").
+    allowHostAccess(HostAccess.ALL).
+    allowHostClassLookup(className -&gt; true).  //allows access to all Java classes
+    build();
 context.eval("js", jsSourceCode);
 </code></pre>
 

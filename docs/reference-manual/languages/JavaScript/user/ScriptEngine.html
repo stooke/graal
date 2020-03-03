@@ -624,10 +624,13 @@ $(document).ready(function(){
 
 <p>GraalVM JavaScript provides a JSR-223 compliant <code>javax.script.ScriptEngine</code> implementation.
 Note that this is feature is provided for legacy reasons in order to allow easier migration for implementations currently based on a <code>ScriptEngine</code>.
-We strongly encourage users to use the <code>org.graalvm.polyglot.Context</code> interface in order to control many of the settings directly.</p>
+We strongly encourage users to use the <code>org.graalvm.polyglot.Context</code> interface in order to control many of the settings directly and benefit from finer-grained security settings in the GraalVM.</p>
 
-<p>Since the  <code>ScriptEngine</code> interface does not provide a way to set options, <code>GraalJSScriptEngine</code> supports setting some <code>Context</code> options
-through <code>Bindings</code>. These options are:</p>
+<h2 id="setting-options-via-bindings">Setting options via <code>Bindings</code></h2>
+<p>The  <code>ScriptEngine</code> interface does not provide a default way to set options.
+As a workaround, <code>GraalJSScriptEngine</code> supports setting some <code>Context</code> options
+through <code>Bindings</code>.
+These options are:</p>
 <ul>
   <li><code>polyglot.js.allowHostAccess &lt;boolean&gt;</code></li>
   <li><code>polyglot.js.allowNativeAccess &lt;boolean&gt;</code></li>
@@ -636,7 +639,8 @@ through <code>Bindings</code>. These options are:</p>
   <li><code>polyglot.js.allowHostClassLookup &lt;boolean or Predicate&lt;String&gt;&gt;</code></li>
   <li><code>polyglot.js.allowHostClassLoading &lt;boolean&gt;</code></li>
   <li><code>polyglot.js.allowAllAccess &lt;boolean&gt;</code>
-Note that using the ScriptEngine implies allowing experimental options.</li>
+Note that using the ScriptEngine implies allowing experimental options.
+This is an exhaustive list of allowed options to be passed via Bindings; in case you need to pass additional options to the GraalVM JavaScript engine, you need to manually create a <code>Context</code> as shown below.</li>
 </ul>
 
 <p>These options control the sandboxing rules applied to evaluated JavaScript code and are set to <code>false</code> by default, unless the application was
@@ -655,14 +659,29 @@ engine.eval("(javaObj instanceof Java.type('java.lang.Object'));"); // would not
 <p>This example would not work if the user would call e.g. <code>engine.eval("var x = 1;")</code> before calling <code>bindings.put("polyglot.js.allowHostAccess", true);</code>, since
 any call to <code>eval</code> forces context initialization.</p>
 
+<h2 id="setting-options-via-system-properties">Setting options via System Properties</h2>
+<p>Options to the JavaScript engine can be set via System Properties before starting the JVM by prepending <code>polyglot.</code>:</p>
+
+<pre><code>java -Dpolyglot.js.ecmascript-version=2020 MyApplication
+</code></pre>
+
+<p>or programmatically from within Java before creating the ScriptEngine.
+This, however, only works for the options passed to the JavaScript engine (like <code>js.ecmascript</code>), but not for the six options mentioned above that can be set via the <code>Bindings</code>.
+Another caveat is that those system properties are shared by all concurrently executed ScriptEngines.</p>
+
+<h2 id="manually-creating-context-for-more-flexibility">Manually creating <code>Context</code> for more flexibility</h2>
 <p><code>Context</code> options can also be passed to <code>GraalJSScriptEngine</code> directly, via an instance of <code>Context.Builder</code>:</p>
 <pre><code>ScriptEngine engine = GraalJSScriptEngine.create(null,
         Context.newBuilder("js")
         .allowHostAccess(HostAccess.ALL)
-        .allowHostClassLookup(s -&gt; true));
+        .allowHostClassLookup(s -&gt; true)
+        .option("js.ecmascript-version", "2020"));
 engine.put("javaObj", new Object());
 engine.eval("(javaObj instanceof Java.type('java.lang.Object'));");
 </code></pre>
+
+<p>This allows setting all options available in GraalVM JavaScript.
+It does come at the cost of a hard dependency on GraalVM JavaScript, e.g. the <code>GraalJSScriptEngine</code> and <code>Context</code> classes.</p>
 
             </div>
 
