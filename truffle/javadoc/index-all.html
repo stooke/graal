@@ -38,7 +38,7 @@
 <li class="navBarCell1Rev">Index</li>
 <li><a href="help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>b8a3aa93d423cdb646c2afadd30f48ad6b5beee0</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>f8869dd815f4df8d27d9e2d783c4acdb180409d7</div>
 </div>
 <div class="subNav">
 <ul class="navList">
@@ -2630,6 +2630,10 @@
 <div class="block">
  Specialized value profile to capture certain properties of <code>double</code> runtime values.</div>
 </dd>
+<dt><span class="memberNameLink"><a href="org/graalvm/nativeimage/VMRuntime.html#dumpHeap-java.lang.String-boolean-">dumpHeap(String, boolean)</a></span> - Static method in class org.graalvm.nativeimage.<a href="org/graalvm/nativeimage/VMRuntime.html" title="class in org.graalvm.nativeimage">VMRuntime</a></dt>
+<dd>
+<div class="block">Dumps the heap to the <code>outputFile</code> file in the same format as the hprof heap dump.</div>
+</dd>
 <dt><span class="memberNameLink"><a href="org/graalvm/polyglot/tck/TypeDescriptor.html#DURATION">DURATION</a></span> - Static variable in class org.graalvm.polyglot.tck.<a href="org/graalvm/polyglot/tck/TypeDescriptor.html" title="class in org.graalvm.polyglot.tck">TypeDescriptor</a></dt>
 <dd>
 <div class="block">Type descriptor for duration.</div>
@@ -3820,6 +3824,16 @@
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/Scope.html#getArguments--">getArguments()</a></span> - Method in class com.oracle.truffle.api.<a href="com/oracle/truffle/api/Scope.html" title="class in com.oracle.truffle.api">Scope</a></dt>
 <dd>
 <div class="block">Get arguments of this scope.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="org/graalvm/nativeimage/ProcessProperties.html#getArgumentVectorBlockSize--">getArgumentVectorBlockSize()</a></span> - Static method in class org.graalvm.nativeimage.<a href="org/graalvm/nativeimage/ProcessProperties.html" title="class in org.graalvm.nativeimage">ProcessProperties</a></dt>
+<dd>
+<div class="block">If the running image is an executable the total size of the argument vector of the running
+ process gets returned.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="org/graalvm/nativeimage/ProcessProperties.html#getArgumentVectorProgramName--">getArgumentVectorProgramName()</a></span> - Static method in class org.graalvm.nativeimage.<a href="org/graalvm/nativeimage/ProcessProperties.html" title="class in org.graalvm.nativeimage">ProcessProperties</a></dt>
+<dd>
+<div class="block">If the running image is an executable the program name that is stored in the argument vector
+ of the running process gets returned.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#getArray--">getArray()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
 <dd>
@@ -10172,6 +10186,11 @@
 <dd>
 <div class="block">Set the allowed implicit casts in this layout.</div>
 </dd>
+<dt><span class="memberNameLink"><a href="org/graalvm/nativeimage/ProcessProperties.html#setArgumentVectorProgramName-java.lang.String-">setArgumentVectorProgramName(String)</a></span> - Static method in class org.graalvm.nativeimage.<a href="org/graalvm/nativeimage/ProcessProperties.html" title="class in org.graalvm.nativeimage">ProcessProperties</a></dt>
+<dd>
+<div class="block">If the running image is an executable the program name that is stored in the argument vector
+ of the running process gets replaced with the given name.</div>
+</dd>
 <dt><span class="memberNameLink"><a href="org/graalvm/polyglot/Value.html#setArrayElement-long-java.lang.Object-">setArrayElement(long, Object)</a></span> - Method in class org.graalvm.polyglot.<a href="org/graalvm/polyglot/Value.html" title="class in org.graalvm.polyglot">Value</a></dt>
 <dd>
 <div class="block">Sets the value at a given index.</div>
@@ -12049,7 +12068,7 @@ the order they are declared.</div>
 <li class="navBarCell1Rev">Index</li>
 <li><a href="help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>b8a3aa93d423cdb646c2afadd30f48ad6b5beee0</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>f8869dd815f4df8d27d9e2d783c4acdb180409d7</div>
 </div>
 <div class="subNav">
 <ul class="navList">
