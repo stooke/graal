@@ -658,6 +658,7 @@ with <code>gu</code> as on other platforms. JavaScript engine is now included in
   <li>GraalVM Community Editions are based on OpenJDK version 1.8.0_242 and OpenJDK version 11.0.6.</li>
   <li>GraalVM Enterprise Editions are based on Oracle Java version 1.8.0_241 and Oracle Java version 11.0.6. You can find the JDK release notes at the <a href="https://www.oracle.com/technetwork/java/javase">Oracle Technology Network website</a>.</li>
   <li>Added mitigation of Jump Conditional Code (JCC) Erratum (see <a href="https://github.com/oracle/graal/issues/1829">#1829</a>).</li>
+  <li>GraalVM has a default setting of <code>ThreadPriorityPolicy=1</code>, which means thread priorities set in Java are reflected by native operating sytstem thread priorities. This may affect Java application performance.</li>
 </ul>
 
 <h3 id="native-image">Native Image</h3>
