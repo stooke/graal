@@ -38,7 +38,7 @@
 <li class="navBarCell1Rev">Index</li>
 <li><a href="help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>91ce8544a821c9f7cea833606b1422a33c74b85a</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>e93b20a5bc6c079e46fded606ec231a5ff2ce78e</div>
 </div>
 <div class="subNav">
 <ul class="navList">
@@ -589,10 +589,6 @@
 <div class="block">This class provides additional operations for <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> as well as character and byte
  arrays, which may be intrinsified by a compiler.</div>
 </dd>
-<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#as-java.lang.Class-">as(Class&lt;T&gt;)</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
-<dd>
-<div class="block">Converts the debug value into a Java type.</div>
-</dd>
 <dt><span class="memberNameLink"><a href="org/graalvm/polyglot/Value.html#as-java.lang.Class-">as(Class&lt;T&gt;)</a></span> - Method in class org.graalvm.polyglot.<a href="org/graalvm/polyglot/Value.html" title="class in org.graalvm.polyglot">Value</a></dt>
 <dd>
 <div class="block">Maps a polyglot value to a value with a given Java target type.</div>
@@ -600,6 +596,10 @@
 <dt><span class="memberNameLink"><a href="org/graalvm/polyglot/Value.html#as-org.graalvm.polyglot.TypeLiteral-">as(TypeLiteral&lt;T&gt;)</a></span> - Method in class org.graalvm.polyglot.<a href="org/graalvm/polyglot/Value.html" title="class in org.graalvm.polyglot">Value</a></dt>
 <dd>
 <div class="block">Maps a polyglot value to a given Java target type literal.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#asBoolean--">asBoolean()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns a <code>boolean</code> representation of this value if it is <a href="com/oracle/truffle/api/debug/DebugValue.html#isBoolean--"><code>boolean</code></a>.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#asBoolean-java.lang.Object-">asBoolean(Object)</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
@@ -612,6 +612,11 @@
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/TruffleLanguage.Env.html#asBoxedGuestValue-java.lang.Object-">asBoxedGuestValue(Object)</a></span> - Method in class com.oracle.truffle.api.<a href="com/oracle/truffle/api/TruffleLanguage.Env.html" title="class in com.oracle.truffle.api">TruffleLanguage.Env</a></dt>
 <dd>
 <div class="block">Wraps primitive interop values in a TruffleObject exposing their methods as members.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#asByte--">asByte()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns a <code>byte</code> representation of this value if it is <a href="com/oracle/truffle/api/debug/DebugValue.html#isNumber--"><code>number</code></a>
+ and the value <a href="com/oracle/truffle/api/debug/DebugValue.html#fitsInByte--"><code>fits</code></a>.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#asByte-java.lang.Object-">asByte(Object)</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
@@ -626,6 +631,10 @@
 <dt><span class="memberNameLink"><a href="org/graalvm/nativeimage/c/type/CTypeConversion.html#asByteBuffer-org.graalvm.word.PointerBase-int-">asByteBuffer(PointerBase, int)</a></span> - Static method in class org.graalvm.nativeimage.c.type.<a href="org/graalvm/nativeimage/c/type/CTypeConversion.html" title="class in org.graalvm.nativeimage.c.type">CTypeConversion</a></dt>
 <dd>
 <div class="block">Creates a <a href="http://docs.oracle.com/javase/8/docs/api/java/nio/ByteBuffer.html?is-external=true" title="class or interface in java.nio"><code>ByteBuffer</code></a> that refers to the native memory at the specified address.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#asDate--">asDate()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns this value as date if it is a <a href="com/oracle/truffle/api/debug/DebugValue.html#isDate--"><code>date</code></a>.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#asDate-java.lang.Object-">asDate(Object)</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
@@ -643,6 +652,10 @@
 <dd>
 <div class="block">Returns this value as date if this object represents a <a href="org/graalvm/polyglot/Value.html#isDate--"><code>date</code></a>.</div>
 </dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#asDouble--">asDouble()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns a <code>double</code> representation of this value if it is <a href="com/oracle/truffle/api/debug/DebugValue.html#isNumber--"><code>number</code></a> and the value <a href="com/oracle/truffle/api/debug/DebugValue.html#fitsInDouble--"><code>fits</code></a>.</div>
+</dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#asDouble-java.lang.Object-">asDouble(Object)</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
 <div class="block">Returns the receiver value as Java double primitive if the number fits without loss of
@@ -651,6 +664,10 @@
 <dt><span class="memberNameLink"><a href="org/graalvm/polyglot/Value.html#asDouble--">asDouble()</a></span> - Method in class org.graalvm.polyglot.<a href="org/graalvm/polyglot/Value.html" title="class in org.graalvm.polyglot">Value</a></dt>
 <dd>
 <div class="block">Returns a <code>double</code> representation of this value if it is <a href="org/graalvm/polyglot/Value.html#isNumber--"><code>number</code></a> and the value <a href="org/graalvm/polyglot/Value.html#fitsInDouble--"><code>fits</code></a>.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#asDuration--">asDuration()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns this value as duration if this object represents a <a href="com/oracle/truffle/api/debug/DebugValue.html#isDuration--"><code>duration</code></a>.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#asDuration-java.lang.Object-">asDuration(Object)</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
@@ -663,6 +680,11 @@
 <dt><span class="memberNameLink"><a href="org/graalvm/polyglot/Value.html#asDuration--">asDuration()</a></span> - Method in class org.graalvm.polyglot.<a href="org/graalvm/polyglot/Value.html" title="class in org.graalvm.polyglot">Value</a></dt>
 <dd>
 <div class="block">Returns this value as duration if this object represents a <a href="org/graalvm/polyglot/Value.html#isDuration--"><code>duration</code></a>.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#asFloat--">asFloat()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns a <code>float</code> representation of this value if it is <a href="com/oracle/truffle/api/debug/DebugValue.html#isNumber--"><code>number</code></a>
+ and the value <a href="com/oracle/truffle/api/debug/DebugValue.html#fitsInFloat--"><code>fits</code></a>.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#asFloat-java.lang.Object-">asFloat(Object)</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
@@ -704,6 +726,10 @@
 <dd>
 <div class="block">Returns a debug value that presents itself as seen by the provided language.</div>
 </dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#asInstant--">asInstant()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns this value as instant if it is an <a href="com/oracle/truffle/api/debug/DebugValue.html#isInstant--"><code>instant</code></a>.</div>
+</dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#asInstant-java.lang.Object-">asInstant(Object)</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
 <div class="block">Returns the receiver as instant if this object represents an <a href="com/oracle/truffle/api/interop/InteropLibrary.html#isInstant-java.lang.Object-"><code>instant</code></a>.</div>
@@ -716,6 +742,11 @@
 <dd>
 <div class="block">Returns this value as instant if this object represents an <a href="org/graalvm/polyglot/Value.html#isInstant--"><code>instant</code></a>.</div>
 </dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#asInt--">asInt()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns an <code>int</code> representation of this value if it is <a href="com/oracle/truffle/api/debug/DebugValue.html#isNumber--"><code>number</code></a>
+ and the value <a href="com/oracle/truffle/api/debug/DebugValue.html#fitsInInt--"><code>fits</code></a>.</div>
+</dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#asInt-java.lang.Object-">asInt(Object)</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
 <div class="block">Returns the receiver value as Java int primitive if the number fits without loss of
@@ -725,6 +756,11 @@
 <dd>
 <div class="block">Returns an <code>int</code> representation of this value if it is <a href="org/graalvm/polyglot/Value.html#isNumber--"><code>number</code></a>
  and the value <a href="org/graalvm/polyglot/Value.html#fitsInInt--"><code>fits</code></a>.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#asLong--">asLong()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns a <code>long</code> representation of this value if it is <a href="com/oracle/truffle/api/debug/DebugValue.html#isNumber--"><code>number</code></a>
+ and the value <a href="com/oracle/truffle/api/debug/DebugValue.html#fitsInLong--"><code>fits</code></a>.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#asLong-java.lang.Object-">asLong(Object)</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
@@ -755,6 +791,11 @@
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#assertAdopted--">assertAdopted()</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
 <div class="block">Utility for libraries to require adoption before cached versions of nodes can be executed.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#asShort--">asShort()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns a <code>short</code> representation of this value if it is <a href="com/oracle/truffle/api/debug/DebugValue.html#isNumber--"><code>number</code></a>
+ and the value <a href="com/oracle/truffle/api/debug/DebugValue.html#fitsInShort--"><code>fits</code></a>.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#asShort-java.lang.Object-">asShort(Object)</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
@@ -792,6 +833,10 @@
 <div class="block">An assumption is a global boolean flag that starts with the value true (i.e., the assumption is
  valid) and can subsequently be invalidated (using <a href="com/oracle/truffle/api/Assumption.html#invalidate--"><code>Assumption.invalidate()</code></a>).</div>
 </dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#asTime--">asTime()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns this value as time if it is a <a href="com/oracle/truffle/api/debug/DebugValue.html#isTime--"><code>time</code></a>.</div>
+</dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#asTime-java.lang.Object-">asTime(Object)</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
 <div class="block">Returns the receiver as time if this object represents a <a href="com/oracle/truffle/api/interop/InteropLibrary.html#isTime-java.lang.Object-"><code>time</code></a>.</div>
@@ -807,6 +852,10 @@
 <dt><span class="memberNameLink"><a href="org/graalvm/polyglot/Value.html#asTime--">asTime()</a></span> - Method in class org.graalvm.polyglot.<a href="org/graalvm/polyglot/Value.html" title="class in org.graalvm.polyglot">Value</a></dt>
 <dd>
 <div class="block">Returns this value as time if this object represents a <a href="org/graalvm/polyglot/Value.html#isTime--"><code>time</code></a>.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#asTimeZone--">asTimeZone()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns this value as timestamp if it represents a <a href="com/oracle/truffle/api/debug/DebugValue.html#isTimeZone--"><code>timezone</code></a>.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#asTimeZone-java.lang.Object-">asTimeZone(Object)</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
@@ -3451,6 +3500,11 @@
 <dd>
 <div class="block">Logs a message with <a href="http://docs.oracle.com/javase/8/docs/api/java/util/logging/Level.html?is-external=true#FINEST" title="class or interface in java.util.logging"><code>finest level</code></a>.</div>
 </dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#fitsInByte--">fitsInByte()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns <code>true</code> if this value represents a <a href="com/oracle/truffle/api/debug/DebugValue.html#isNumber--"><code>number</code></a> and the value
+ fits in <code>byte</code>, else <code>false</code>.</div>
+</dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#fitsInByte-java.lang.Object-">fitsInByte(Object)</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
 <div class="block">Returns <code>true</code> if the receiver represents a <code>number</code> and its value fits
@@ -3460,6 +3514,11 @@
 <dd>
 <div class="block">Returns <code>true</code> if this value represents a <a href="org/graalvm/polyglot/Value.html#isNumber--"><code>number</code></a> and the value
  fits in <code>byte</code>, else <code>false</code>.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#fitsInDouble--">fitsInDouble()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns <code>true</code> if this value represents a <a href="com/oracle/truffle/api/debug/DebugValue.html#isNumber--"><code>number</code></a> and the value
+ fits in <code>double</code>, else <code>false</code>.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#fitsInDouble-java.lang.Object-">fitsInDouble(Object)</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
@@ -3471,6 +3530,11 @@
 <div class="block">Returns <code>true</code> if this value represents a <a href="org/graalvm/polyglot/Value.html#isNumber--"><code>number</code></a> and the value
  fits in <code>double</code>, else <code>false</code>.</div>
 </dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#fitsInFloat--">fitsInFloat()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns <code>true</code> if this value represents a <a href="com/oracle/truffle/api/debug/DebugValue.html#isNumber--"><code>number</code></a> and the value
+ fits in <code>float</code>, else <code>false</code>.</div>
+</dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#fitsInFloat-java.lang.Object-">fitsInFloat(Object)</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
 <div class="block">Returns <code>true</code> if the receiver represents a <code>number</code> and its value fits
@@ -3480,6 +3544,11 @@
 <dd>
 <div class="block">Returns <code>true</code> if this value represents a <a href="org/graalvm/polyglot/Value.html#isNumber--"><code>number</code></a> and the value
  fits in <code>float</code>, else <code>false</code>.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#fitsInInt--">fitsInInt()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns <code>true</code> if this value represents a <a href="com/oracle/truffle/api/debug/DebugValue.html#isNumber--"><code>number</code></a> and the value
+ fits in <code>int</code>, else <code>false</code>.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#fitsInInt-java.lang.Object-">fitsInInt(Object)</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
@@ -3491,6 +3560,11 @@
 <div class="block">Returns <code>true</code> if this value represents a <a href="org/graalvm/polyglot/Value.html#isNumber--"><code>number</code></a> and the value
  fits in <code>int</code>, else <code>false</code>.</div>
 </dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#fitsInLong--">fitsInLong()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns <code>true</code> if this value represents a <a href="com/oracle/truffle/api/debug/DebugValue.html#isNumber--"><code>number</code></a> and the value
+ fits in <code>long</code>, else <code>false</code>.</div>
+</dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#fitsInLong-java.lang.Object-">fitsInLong(Object)</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
 <div class="block">Returns <code>true</code> if the receiver represents a <code>number</code> and its value fits
@@ -3500,6 +3574,11 @@
 <dd>
 <div class="block">Returns <code>true</code> if this value represents a <a href="org/graalvm/polyglot/Value.html#isNumber--"><code>number</code></a> and the value
  fits in <code>long</code>, else <code>false</code>.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#fitsInShort--">fitsInShort()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns <code>true</code> if this value represents a <a href="com/oracle/truffle/api/debug/DebugValue.html#isNumber--"><code>number</code></a> and the value
+ fits in <code>short</code>, else <code>false</code>.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#fitsInShort-java.lang.Object-">fitsInShort(Object)</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
@@ -4878,13 +4957,21 @@
 <div class="block">Returns the metaobject that is associated with this value or <code>null</code> if no
  metaobject is available.</div>
 </dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#getMetaQualifiedName--">getMetaQualifiedName()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns the qualified name of a metaobject as <a href="com/oracle/truffle/api/debug/DebugValue.html#isString--"><code>String</code></a>.</div>
+</dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#getMetaQualifiedName-java.lang.Object-">getMetaQualifiedName(Object)</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
 <div class="block">Returns the qualified name of a metaobject as <a href="com/oracle/truffle/api/interop/InteropLibrary.html#isString-java.lang.Object-"><code>string</code></a>.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="org/graalvm/polyglot/Value.html#getMetaQualifiedName--">getMetaQualifiedName()</a></span> - Method in class org.graalvm.polyglot.<a href="org/graalvm/polyglot/Value.html" title="class in org.graalvm.polyglot">Value</a></dt>
 <dd>
-<div class="block">Returns the qualified name of a metaobject as <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a>.</div>
+<div class="block">Returns the qualified name of a metaobject as <a href="org/graalvm/polyglot/Value.html#isString--"><code>String</code></a>.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#getMetaSimpleName--">getMetaSimpleName()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns the simple name of a metaobject as <a href="com/oracle/truffle/api/debug/DebugValue.html#isString--"><code>string</code></a>.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#getMetaSimpleName-java.lang.Object-">getMetaSimpleName(Object)</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
@@ -6665,6 +6752,10 @@
 <div class="block">Returns whether this is a special instance that signifies that source information is
  available.</div>
 </dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#isBoolean--">isBoolean()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns <code>true</code> if and only if this value represents a boolean value.</div>
+</dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/frame/Frame.html#isBoolean-com.oracle.truffle.api.frame.FrameSlot-">isBoolean(FrameSlot)</a></span> - Method in interface com.oracle.truffle.api.frame.<a href="com/oracle/truffle/api/frame/Frame.html" title="interface in com.oracle.truffle.api.frame">Frame</a></dt>
 <dd>
 <div class="block">Check whether the given <a href="com/oracle/truffle/api/frame/FrameSlot.html" title="class in com.oracle.truffle.api.frame"><code>FrameSlot</code></a> is of type boolean.</div>
@@ -6750,6 +6841,10 @@
 <div class="block">Returns <code>true</code> if the creation of new threads is allowed in the current
  environment.</div>
 </dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#isDate--">isDate()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns <code>true</code> if this value represents a date, else <code>false</code>.</div>
+</dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#isDate-java.lang.Object-">isDate(Object)</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
 <div class="block">Returns <code>true</code> if this object represents a date, else <code>false</code>.</div>
@@ -6781,6 +6876,10 @@
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/frame/Frame.html#isDouble-com.oracle.truffle.api.frame.FrameSlot-">isDouble(FrameSlot)</a></span> - Method in interface com.oracle.truffle.api.frame.<a href="com/oracle/truffle/api/frame/Frame.html" title="interface in com.oracle.truffle.api.frame">Frame</a></dt>
 <dd>
 <div class="block">Check whether the given <a href="com/oracle/truffle/api/frame/FrameSlot.html" title="class in com.oracle.truffle.api.frame"><code>FrameSlot</code></a> is of type double.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#isDuration--">isDuration()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns <code>true</code> if this object represents a duration, else <code>false</code>.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#isDuration-java.lang.Object-">isDuration(Object)</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
@@ -6957,6 +7056,10 @@
 <dd>
 <div class="block">Returns <code>true</code> if the <a href="com/oracle/truffle/api/CallTarget.html" title="interface in com.oracle.truffle.api"><code>CallTarget</code></a> is forced to be inlined.</div>
 </dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#isInstant--">isInstant()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns <code>true</code> if this value represents an instant.</div>
+</dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#isInstant-java.lang.Object-">isInstant(Object)</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
 <div class="block">Returns <code>true</code> if the receiver represents an instant.</div>
@@ -7103,6 +7206,11 @@
 <div class="block">Returns true if the member is <a href="com/oracle/truffle/api/interop/InteropLibrary.html#isMemberModifiable-java.lang.Object-java.lang.String-"><code>modifiable</code></a> or
  <a href="com/oracle/truffle/api/interop/InteropLibrary.html#isMemberInsertable-java.lang.Object-java.lang.String-"><code>insertable</code></a>.</div>
 </dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#isMetaInstance-com.oracle.truffle.api.debug.DebugValue-">isMetaInstance(DebugValue)</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns <code>true</code> if the given instance is an instance of this value, else
+ <code>false</code>.</div>
+</dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#isMetaInstance-java.lang.Object-java.lang.Object-">isMetaInstance(Object, Object)</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
 <div class="block">Returns <code>true</code> if the given instance is of the provided receiver metaobject, else
@@ -7112,6 +7220,10 @@
 <dd>
 <div class="block">Returns <code>true</code> if the given instance is an instance of this value, else
  <code>false</code>.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#isMetaObject--">isMetaObject()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns <code>true</code> if the value represents a metaobject.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#isMetaObject-java.lang.Object-">isMetaObject(Object)</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
@@ -7166,6 +7278,10 @@
 <dt><span class="memberNameLink"><a href="org/graalvm/word/PointerBase.html#isNull--">isNull()</a></span> - Method in interface org.graalvm.word.<a href="org/graalvm/word/PointerBase.html" title="interface in org.graalvm.word">PointerBase</a></dt>
 <dd>
 <div class="block">Returns true if this pointer is the <a href="org/graalvm/word/WordFactory.html#nullPointer--"><code>null pointer</code></a>.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#isNumber--">isNumber()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns <code>true</code> if and only if this value represents a number.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#isNumber-java.lang.Object-">isNumber(Object)</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
@@ -7328,6 +7444,10 @@
 <div class="block">Returns <code>true</code> if the source location is marked as a statement, else
  <code>false</code>.</div>
 </dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#isString--">isString()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns <code>true</code> if and only if this value represents a string.</div>
+</dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#isString-java.lang.Object-">isString(Object)</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
 <div class="block">Returns <code>true</code> if the receiver represents a <code>string</code> value, else
@@ -7353,6 +7473,10 @@
 <dd>
 <div class="block">Returns <code>true</code> if code of this language is allowed to be executed on this thread.</div>
 </dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#isTime--">isTime()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns <code>true</code> if this value represents a time, else <code>false</code>.</div>
+</dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#isTime-java.lang.Object-">isTime(Object)</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
 <div class="block">Returns <code>true</code> if this object represents a time, else <code>false</code>.</div>
@@ -7360,6 +7484,10 @@
 <dt><span class="memberNameLink"><a href="org/graalvm/polyglot/Value.html#isTime--">isTime()</a></span> - Method in class org.graalvm.polyglot.<a href="org/graalvm/polyglot/Value.html" title="class in org.graalvm.polyglot">Value</a></dt>
 <dd>
 <div class="block">Returns <code>true</code> if this object represents a time, else <code>false</code>.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#isTimeZone--">isTimeZone()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Returns <code>true</code> if this object represents a timezone, else <code>false</code>.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#isTimeZone-java.lang.Object-">isTimeZone(Object)</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
@@ -10954,6 +11082,14 @@
 <div class="block">Provides access to C pointers for the provided Java Strings, encoded with the default
  charset.</div>
 </dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#toDisplayString--">toDisplayString()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Converts the value to a language-specific string representation.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugValue.html#toDisplayString-boolean-">toDisplayString(boolean)</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></dt>
+<dd>
+<div class="block">Converts the value to a language-specific string representation.</div>
+</dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/interop/InteropLibrary.html#toDisplayString-java.lang.Object-boolean-">toDisplayString(Object, boolean)</a></span> - Method in class com.oracle.truffle.api.interop.<a href="com/oracle/truffle/api/interop/InteropLibrary.html" title="class in com.oracle.truffle.api.interop">InteropLibrary</a></dt>
 <dd>
 <div class="block">Converts the receiver to a human readable <a href="com/oracle/truffle/api/interop/InteropLibrary.html#isString-java.lang.Object-"><code>string</code></a>.</div>
@@ -12068,7 +12204,7 @@ the order they are declared.</div>
 <li class="navBarCell1Rev">Index</li>
 <li><a href="help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>91ce8544a821c9f7cea833606b1422a33c74b85a</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>e93b20a5bc6c079e46fded606ec231a5ff2ce78e</div>
 </div>
 <div class="subNav">
 <ul class="navList">
