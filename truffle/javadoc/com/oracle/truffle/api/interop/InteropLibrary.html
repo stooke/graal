@@ -44,7 +44,7 @@ var activeTableTab = "activeTableTab";
 <li><a href="../../../../../index-all.html">Index</a></li>
 <li><a href="../../../../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>83462934202c3e654123309816434d19268e2c9c</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>25048d51e3bd09dcee4904b2df3355a8ca909f24</div>
 </div>
 <div class="subNav">
 <ul class="navList">
@@ -935,7 +935,8 @@ extends <a href="../../../../../com/oracle/truffle/api/library/Library.html" tit
 <dl>
 <dt><span class="throwsLabel">Throws:</span></dt>
 <dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedTypeException.html" title="class in com.oracle.truffle.api.interop">UnsupportedTypeException</a></code> - if one of the arguments is not compatible to the executable
-             signature</dd>
+             signature. The exception is thrown on best effort basis, dynamic languages may
+             throw their own exceptions if the arguments are wrong.</dd>
 <dd><code><a href="../../../../../com/oracle/truffle/api/interop/ArityException.html" title="class in com.oracle.truffle.api.interop">ArityException</a></code> - if the number of expected arguments does not match the number of
              actual arguments.</dd>
 <dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedMessageException.html" title="class in com.oracle.truffle.api.interop">UnsupportedMessageException</a></code> - if and only if <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#isExecutable-java.lang.Object-"><code>InteropLibrary.isExecutable(Object)</code></a> returns
@@ -1314,9 +1315,12 @@ extends <a href="../../../../../com/oracle/truffle/api/library/Library.html" tit
 <li class="blockList">
 <h4>hasMembers</h4>
 <pre>public&nbsp;boolean&nbsp;hasMembers(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true" title="class or interface in java.lang">Object</a>&nbsp;receiver)</pre>
-<div class="block">Returns <code>true</code> if the receiver may have members. Members are structural elements
- of a class. For example, a method or field is a member of a class. Invoking this message does
- not cause any observable side-effects. Returns <code>false</code> by default.</div>
+<div class="block">Returns <code>true</code> if the receiver may have members. Therefore, at least one of
+ <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#readMember-java.lang.Object-java.lang.String-"><code>InteropLibrary.readMember(Object, String)</code></a>, <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#writeMember-java.lang.Object-java.lang.String-java.lang.Object-"><code>InteropLibrary.writeMember(Object, String, Object)</code></a>,
+ <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#removeMember-java.lang.Object-java.lang.String-"><code>InteropLibrary.removeMember(Object, String)</code></a>, <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#invokeMember-java.lang.Object-java.lang.String-java.lang.Object...-"><code>InteropLibrary.invokeMember(Object, String, Object...)</code></a> must
+ not throw <a href="../../../../../com/oracle/truffle/api/interop/UnsupportedMessageException.html" title="class in com.oracle.truffle.api.interop"><code>UnsupportedMessageException</code></a>. Members are structural elements of a class.
+ For example, a method or field is a member of a class. Invoking this message does not cause
+ any observable side-effects. Returns <code>false</code> by default.</div>
 <dl>
 <dt><span class="simpleTagLabel">Since:</span></dt>
 <dd>19.0</dd>
@@ -1419,8 +1423,13 @@ extends <a href="../../../../../com/oracle/truffle/api/library/Library.html" tit
  <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#hasMemberReadSideEffects-java.lang.Object-java.lang.String-"><code>InteropLibrary.hasMemberReadSideEffects(Object, String)</code></a> returns <code>true</code>.</div>
 <dl>
 <dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedMessageException.html" title="class in com.oracle.truffle.api.interop">UnsupportedMessageException</a></code> - if the member is not readable</dd>
-<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnknownIdentifierException.html" title="class in com.oracle.truffle.api.interop">UnknownIdentifierException</a></code> - if the given member does not exist.</dd>
+<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedMessageException.html" title="class in com.oracle.truffle.api.interop">UnsupportedMessageException</a></code> - if when the receiver does not support reading at all. An
+             empty receiver with no readable members supports the read operation (even though
+             there is nothing to read), therefore it throws <a href="../../../../../com/oracle/truffle/api/interop/UnknownIdentifierException.html" title="class in com.oracle.truffle.api.interop"><code>UnknownIdentifierException</code></a>
+             for all arguments instead.</dd>
+<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnknownIdentifierException.html" title="class in com.oracle.truffle.api.interop">UnknownIdentifierException</a></code> - if the given member is not
+             <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#isMemberReadable-java.lang.Object-java.lang.String-"><code>readable</code></a>, e.g. when the member with the
+             given name does not exist.</dd>
 <dt><span class="simpleTagLabel">Since:</span></dt>
 <dd>19.0</dd>
 <dt><span class="seeLabel">See Also:</span></dt>
@@ -1490,9 +1499,12 @@ extends <a href="../../../../../com/oracle/truffle/api/library/Library.html" tit
  <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#hasMemberWriteSideEffects-java.lang.Object-java.lang.String-"><code>side-effects</code></a> are allowed.</div>
 <dl>
 <dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedMessageException.html" title="class in com.oracle.truffle.api.interop">UnsupportedMessageException</a></code> - if the member is not writable</dd>
-<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnknownIdentifierException.html" title="class in com.oracle.truffle.api.interop">UnknownIdentifierException</a></code> - if the given member is not insertable and does not exist.</dd>
-<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedTypeException.html" title="class in com.oracle.truffle.api.interop">UnsupportedTypeException</a></code> - if the provided value type is not allowed to be written</dd>
+<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedMessageException.html" title="class in com.oracle.truffle.api.interop">UnsupportedMessageException</a></code> - when the receiver does not support writing at all, e.g.
+             when it is immutable.</dd>
+<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnknownIdentifierException.html" title="class in com.oracle.truffle.api.interop">UnknownIdentifierException</a></code> - if the given member is not
+             <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#isMemberModifiable-java.lang.Object-java.lang.String-"><code>modifiable</code></a> nor
+             <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#isMemberInsertable-java.lang.Object-java.lang.String-"><code>insertable</code></a>.</dd>
+<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedTypeException.html" title="class in com.oracle.truffle.api.interop">UnsupportedTypeException</a></code> - if the provided value type is not allowed to be written.</dd>
 <dt><span class="simpleTagLabel">Since:</span></dt>
 <dd>19.0</dd>
 <dt><span class="seeLabel">See Also:</span></dt>
@@ -1536,9 +1548,11 @@ extends <a href="../../../../../com/oracle/truffle/api/library/Library.html" tit
  This method does not have not observable side-effects other than the removed member.</div>
 <dl>
 <dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedMessageException.html" title="class in com.oracle.truffle.api.interop">UnsupportedMessageException</a></code> - if the member is not removable</dd>
-<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnknownIdentifierException.html" title="class in com.oracle.truffle.api.interop">UnknownIdentifierException</a></code> - if the given member is not existing but removing would be
-             allowed</dd>
+<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedMessageException.html" title="class in com.oracle.truffle.api.interop">UnsupportedMessageException</a></code> - when the receiver does not support removing at all, e.g.
+             when it is immutable.</dd>
+<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnknownIdentifierException.html" title="class in com.oracle.truffle.api.interop">UnknownIdentifierException</a></code> - if the given member is not
+             <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#isMemberRemovable-java.lang.Object-java.lang.String-"><code>InteropLibrary.isMemberRemovable(Object, String)</code></a> removable}, e.g. the receiver does not
+             have a member with the given name.</dd>
 <dt><span class="simpleTagLabel">Since:</span></dt>
 <dd>19.0</dd>
 <dt><span class="seeLabel">See Also:</span></dt>
@@ -1582,12 +1596,15 @@ extends <a href="../../../../../com/oracle/truffle/api/library/Library.html" tit
 <div class="block">Invokes a member for a given receiver and arguments.</div>
 <dl>
 <dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnknownIdentifierException.html" title="class in com.oracle.truffle.api.interop">UnknownIdentifierException</a></code> - if the given member does not exist.</dd>
+<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnknownIdentifierException.html" title="class in com.oracle.truffle.api.interop">UnknownIdentifierException</a></code> - if the given member does not exist or is not
+             <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#isMemberInvocable-java.lang.Object-java.lang.String-"><code>invocable</code></a>.</dd>
 <dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedTypeException.html" title="class in com.oracle.truffle.api.interop">UnsupportedTypeException</a></code> - if one of the arguments is not compatible to the executable
-             signature</dd>
+             signature. The exception is thrown on best effort basis, dynamic languages may
+             throw their own exceptions if the arguments are wrong.</dd>
 <dd><code><a href="../../../../../com/oracle/truffle/api/interop/ArityException.html" title="class in com.oracle.truffle.api.interop">ArityException</a></code> - if the number of expected arguments does not match the number of
              actual arguments.</dd>
-<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedMessageException.html" title="class in com.oracle.truffle.api.interop">UnsupportedMessageException</a></code> - if the member is not invocable</dd>
+<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedMessageException.html" title="class in com.oracle.truffle.api.interop">UnsupportedMessageException</a></code> - when the receiver does not support invoking at all, e.g.
+             when storing executable members is not allowed.</dd>
 <dt><span class="simpleTagLabel">Since:</span></dt>
 <dd>19.0</dd>
 <dt><span class="seeLabel">See Also:</span></dt>
@@ -1700,9 +1717,12 @@ extends <a href="../../../../../com/oracle/truffle/api/library/Library.html" tit
 <li class="blockList">
 <h4>hasArrayElements</h4>
 <pre>public&nbsp;boolean&nbsp;hasArrayElements(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true" title="class or interface in java.lang">Object</a>&nbsp;receiver)</pre>
-<div class="block">Returns <code>true</code> if the receiver may have array elements. For example, the contents
- of an array or list datastructure could be interpreted as array elements. Invoking this
- message does not cause any observable side-effects. Returns <code>false</code> by default.</div>
+<div class="block">Returns <code>true</code> if the receiver may have array elements. Therefore, At least one of
+ <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#readArrayElement-java.lang.Object-long-"><code>InteropLibrary.readArrayElement(Object, long)</code></a>, <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#writeArrayElement-java.lang.Object-long-java.lang.Object-"><code>InteropLibrary.writeArrayElement(Object, long, Object)</code></a>,
+ <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#removeArrayElement-java.lang.Object-long-"><code>InteropLibrary.removeArrayElement(Object, long)</code></a> must not throw {#link
+ <a href="../../../../../com/oracle/truffle/api/interop/UnsupportedMessageException.html" title="class in com.oracle.truffle.api.interop"><code>UnsupportedMessageException</code></a>. For example, the contents of an array or list
+ datastructure could be interpreted as array elements. Invoking this message does not cause
+ any observable side-effects. Returns <code>false</code> by default.</div>
 <dl>
 <dt><span class="simpleTagLabel">Since:</span></dt>
 <dd>19.0</dd>
@@ -1725,8 +1745,13 @@ extends <a href="../../../../../com/oracle/truffle/api/library/Library.html" tit
  side-effect.</div>
 <dl>
 <dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedMessageException.html" title="class in com.oracle.truffle.api.interop">UnsupportedMessageException</a></code> - if the array element is not readable.</dd>
-<dd><code><a href="../../../../../com/oracle/truffle/api/interop/InvalidArrayIndexException.html" title="class in com.oracle.truffle.api.interop">InvalidArrayIndexException</a></code> - if the array index is out of bounds or invalid.</dd>
+<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedMessageException.html" title="class in com.oracle.truffle.api.interop">UnsupportedMessageException</a></code> - when the receiver does not support reading at all. An
+             empty receiver with no readable array elements supports the read operation (even
+             though there is nothing to read), therefore it throws
+             <a href="../../../../../com/oracle/truffle/api/interop/UnknownIdentifierException.html" title="class in com.oracle.truffle.api.interop"><code>UnknownIdentifierException</code></a> for all arguments instead.</dd>
+<dd><code><a href="../../../../../com/oracle/truffle/api/interop/InvalidArrayIndexException.html" title="class in com.oracle.truffle.api.interop">InvalidArrayIndexException</a></code> - if the given index is not
+             <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#isArrayElementReadable-java.lang.Object-long-"><code>readable</code></a>, e.g. when the index is
+             invalid or the index is out of bounds.</dd>
 <dt><span class="simpleTagLabel">Since:</span></dt>
 <dd>19.0</dd>
 </dl>
@@ -1788,9 +1813,13 @@ extends <a href="../../../../../com/oracle/truffle/api/library/Library.html" tit
  This method must have not observable side-effects other than the changed array element.</div>
 <dl>
 <dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedMessageException.html" title="class in com.oracle.truffle.api.interop">UnsupportedMessageException</a></code> - if the array element is not writable</dd>
-<dd><code><a href="../../../../../com/oracle/truffle/api/interop/InvalidArrayIndexException.html" title="class in com.oracle.truffle.api.interop">InvalidArrayIndexException</a></code> - if the array element is not insertable and does not exist.</dd>
-<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedTypeException.html" title="class in com.oracle.truffle.api.interop">UnsupportedTypeException</a></code> - if the provided value type is not allowed to be written</dd>
+<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedMessageException.html" title="class in com.oracle.truffle.api.interop">UnsupportedMessageException</a></code> - when the receiver does not support writing at all, e.g.
+             when it is immutable.</dd>
+<dd><code><a href="../../../../../com/oracle/truffle/api/interop/InvalidArrayIndexException.html" title="class in com.oracle.truffle.api.interop">InvalidArrayIndexException</a></code> - if the given index is not
+             <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#isArrayElementInsertable-java.lang.Object-long-"><code>insertable</code></a> nor
+             <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#isArrayElementModifiable-java.lang.Object-long-"><code>modifiable</code></a>, e.g. when the index
+             is invalid or the index is out of bounds and the array does not support growing.</dd>
+<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedTypeException.html" title="class in com.oracle.truffle.api.interop">UnsupportedTypeException</a></code> - if the provided value type is not allowed to be written.</dd>
 <dt><span class="simpleTagLabel">Since:</span></dt>
 <dd>19.0</dd>
 </dl>
@@ -1811,12 +1840,17 @@ extends <a href="../../../../../com/oracle/truffle/api/library/Library.html" tit
  return <code>true</code> if <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#hasArrayElements-java.lang.Object-"><code>InteropLibrary.hasArrayElements(Object)</code></a> returns <code>true</code> as
  well and <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#isArrayElementInsertable-java.lang.Object-long-"><code>InteropLibrary.isArrayElementInsertable(Object, long)</code></a> returns <code>false</code>.
 
- This method does not have not observable side-effects other than the removed array element.</div>
+ This method does not have observable side-effects other than the removed array element and
+ shift of remaining elements. If shifting is not supported then the array might allow only
+ removal of last element.</div>
 <dl>
 <dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedMessageException.html" title="class in com.oracle.truffle.api.interop">UnsupportedMessageException</a></code> - if the array element is not removable</dd>
-<dd><code><a href="../../../../../com/oracle/truffle/api/interop/InvalidArrayIndexException.html" title="class in com.oracle.truffle.api.interop">InvalidArrayIndexException</a></code> - if the given array element index is not existing but
-             removing would be allowed</dd>
+<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedMessageException.html" title="class in com.oracle.truffle.api.interop">UnsupportedMessageException</a></code> - when the receiver does not support removing at all, e.g.
+             when it is immutable.</dd>
+<dd><code><a href="../../../../../com/oracle/truffle/api/interop/InvalidArrayIndexException.html" title="class in com.oracle.truffle.api.interop">InvalidArrayIndexException</a></code> - if the given index is not
+             <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#isArrayElementRemovable-java.lang.Object-long-"><code>removable</code></a>, e.g. when the index is
+             invalid, the index is out of bounds, or the array does not support shifting of
+             remaining elements.</dd>
 <dt><span class="simpleTagLabel">Since:</span></dt>
 <dd>19.0</dd>
 <dt><span class="seeLabel">See Also:</span></dt>
@@ -2011,7 +2045,8 @@ extends <a href="../../../../../com/oracle/truffle/api/library/Library.html" tit
  </pre></div>
 <dl>
 <dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedMessageException.html" title="class in com.oracle.truffle.api.interop">UnsupportedMessageException</a></code> - if <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#isInstant-java.lang.Object-"><code>InteropLibrary.isInstant(Object)</code></a> returns <code>false</code>.</dd>
+<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedMessageException.html" title="class in com.oracle.truffle.api.interop">UnsupportedMessageException</a></code> - if and only if <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#isInstant-java.lang.Object-"><code>InteropLibrary.isInstant(Object)</code></a> returns
+             <code>false</code>.</dd>
 <dt><span class="simpleTagLabel">Since:</span></dt>
 <dd>20.0.0 beta 2</dd>
 <dt><span class="seeLabel">See Also:</span></dt>
@@ -2089,8 +2124,8 @@ extends <a href="../../../../../com/oracle/truffle/api/library/Library.html" tit
 <div class="block">Returns the receiver as timestamp if this object represents a <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#isTimeZone-java.lang.Object-"><code>timezone</code></a>.</div>
 <dl>
 <dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedMessageException.html" title="class in com.oracle.truffle.api.interop">UnsupportedMessageException</a></code> - if <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#isTimeZone-java.lang.Object-"><code>InteropLibrary.isTimeZone(Object)</code></a> returns <code>false</code>
-             .</dd>
+<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedMessageException.html" title="class in com.oracle.truffle.api.interop">UnsupportedMessageException</a></code> - if and only if <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#isTimeZone-java.lang.Object-"><code>InteropLibrary.isTimeZone(Object)</code></a> returns
+             <code>false</code> .</dd>
 <dt><span class="simpleTagLabel">Since:</span></dt>
 <dd>20.0.0 beta 2</dd>
 <dt><span class="seeLabel">See Also:</span></dt>
@@ -2129,7 +2164,8 @@ extends <a href="../../../../../com/oracle/truffle/api/library/Library.html" tit
  otherwise it is naive.</div>
 <dl>
 <dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedMessageException.html" title="class in com.oracle.truffle.api.interop">UnsupportedMessageException</a></code> - if <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#isDate-java.lang.Object-"><code>InteropLibrary.isDate(Object)</code></a> returns <code>false</code>.</dd>
+<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedMessageException.html" title="class in com.oracle.truffle.api.interop">UnsupportedMessageException</a></code> - if and only if <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#isDate-java.lang.Object-"><code>InteropLibrary.isDate(Object)</code></a> returns
+             <code>false</code>.</dd>
 <dt><span class="simpleTagLabel">Since:</span></dt>
 <dd>20.0.0 beta 2</dd>
 <dt><span class="seeLabel">See Also:</span></dt>
@@ -2168,7 +2204,8 @@ extends <a href="../../../../../com/oracle/truffle/api/library/Library.html" tit
  otherwise it is naive.</div>
 <dl>
 <dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedMessageException.html" title="class in com.oracle.truffle.api.interop">UnsupportedMessageException</a></code> - if <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#isTime-java.lang.Object-"><code>InteropLibrary.isTime(Object)</code></a> returns <code>false</code>.</dd>
+<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedMessageException.html" title="class in com.oracle.truffle.api.interop">UnsupportedMessageException</a></code> - if and only if <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#isTime-java.lang.Object-"><code>InteropLibrary.isTime(Object)</code></a> returns
+             <code>false</code>.</dd>
 <dt><span class="simpleTagLabel">Since:</span></dt>
 <dd>20.0.0 beta 2</dd>
 <dt><span class="seeLabel">See Also:</span></dt>
@@ -2204,8 +2241,8 @@ extends <a href="../../../../../com/oracle/truffle/api/library/Library.html" tit
 <div class="block">Returns the receiver as duration if this object represents a <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#isDuration-java.lang.Object-"><code>duration</code></a>.</div>
 <dl>
 <dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedMessageException.html" title="class in com.oracle.truffle.api.interop">UnsupportedMessageException</a></code> - if <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#isDuration-java.lang.Object-"><code>InteropLibrary.isDuration(Object)</code></a> returns <code>false</code>
-             .</dd>
+<dd><code><a href="../../../../../com/oracle/truffle/api/interop/UnsupportedMessageException.html" title="class in com.oracle.truffle.api.interop">UnsupportedMessageException</a></code> - if and only if <a href="../../../../../com/oracle/truffle/api/interop/InteropLibrary.html#isDuration-java.lang.Object-"><code>InteropLibrary.isDuration(Object)</code></a> returns
+             <code>false</code> .</dd>
 <dt><span class="simpleTagLabel">Since:</span></dt>
 <dd>20.0.0 beta 2</dd>
 <dt><span class="seeLabel">See Also:</span></dt>
@@ -2637,7 +2674,7 @@ extends <a href="../../../../../com/oracle/truffle/api/library/Library.html" tit
 <li><a href="../../../../../index-all.html">Index</a></li>
 <li><a href="../../../../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>83462934202c3e654123309816434d19268e2c9c</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>25048d51e3bd09dcee4904b2df3355a8ca909f24</div>
 </div>
 <div class="subNav">
 <ul class="navList">
