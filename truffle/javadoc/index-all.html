@@ -38,7 +38,7 @@
 <li class="navBarCell1Rev">Index</li>
 <li><a href="help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>c015477049fc9bf00ef9bc11a9d6329431f66631</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>8db23e421ba3671e735f2509e842619dc8642969</div>
 </div>
 <div class="subNav">
 <ul class="navList">
@@ -948,6 +948,16 @@
 <dd>
 <div class="block">Attach a <a href="com/oracle/truffle/api/instrumentation/ThreadsListener.html" title="interface in com.oracle.truffle.api.instrumentation"><code>listener</code></a> to be notified about changes in threads in guest
  language application.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="org/graalvm/nativeimage/Isolates.CreateIsolateParameters.Builder.html#auxiliaryImagePath-java.lang.String-">auxiliaryImagePath(String)</a></span> - Method in class org.graalvm.nativeimage.<a href="org/graalvm/nativeimage/Isolates.CreateIsolateParameters.Builder.html" title="class in org.graalvm.nativeimage">Isolates.CreateIsolateParameters.Builder</a></dt>
+<dd>
+<div class="block">Sets the file path to an auxiliary image which should be loaded in addition to the
+ main image, or <code>null</code> if no such image should be loaded.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="org/graalvm/nativeimage/Isolates.CreateIsolateParameters.Builder.html#auxiliaryImageReservedSpaceSize-org.graalvm.word.UnsignedWord-">auxiliaryImageReservedSpaceSize(UnsignedWord)</a></span> - Method in class org.graalvm.nativeimage.<a href="org/graalvm/nativeimage/Isolates.CreateIsolateParameters.Builder.html" title="class in org.graalvm.nativeimage">Isolates.CreateIsolateParameters.Builder</a></dt>
+<dd>
+<div class="block">Sets the size in bytes of an address space to reserve for loading an auxiliary image
+ in addition to the main image, or 0 if no space should be reserved.</div>
 </dd>
 </dl>
 <a name="I:B">
@@ -3939,6 +3949,16 @@
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/TruffleFile.html#getAttributes-java.util.Collection-java.nio.file.LinkOption...-">getAttributes(Collection&lt;? extends TruffleFile.AttributeDescriptor&lt;?&gt;&gt;, LinkOption...)</a></span> - Method in class com.oracle.truffle.api.<a href="com/oracle/truffle/api/TruffleFile.html" title="class in com.oracle.truffle.api">TruffleFile</a></dt>
 <dd>
 <div class="block">Reads file's attributes as a bulk operation.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="org/graalvm/nativeimage/Isolates.CreateIsolateParameters.html#getAuxiliaryImagePath--">getAuxiliaryImagePath()</a></span> - Method in class org.graalvm.nativeimage.<a href="org/graalvm/nativeimage/Isolates.CreateIsolateParameters.html" title="class in org.graalvm.nativeimage">Isolates.CreateIsolateParameters</a></dt>
+<dd>
+<div class="block">Returns the file path to an auxiliary image which should be loaded in addition to the
+ main image, or <code>null</code> if no such image should be loaded.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="org/graalvm/nativeimage/Isolates.CreateIsolateParameters.html#getAuxiliaryImageReservedSpaceSize--">getAuxiliaryImageReservedSpaceSize()</a></span> - Method in class org.graalvm.nativeimage.<a href="org/graalvm/nativeimage/Isolates.CreateIsolateParameters.html" title="class in org.graalvm.nativeimage">Isolates.CreateIsolateParameters</a></dt>
+<dd>
+<div class="block">Returns the size in bytes of an address space to reserve for loading an auxiliary image
+ in addition to the main image, or 0 if no space should be reserved.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="org/graalvm/polyglot/Context.html#getBindings-java.lang.String-">getBindings(String)</a></span> - Method in class org.graalvm.polyglot.<a href="org/graalvm/polyglot/Context.html" title="class in org.graalvm.polyglot">Context</a></dt>
 <dd>
@@ -12204,7 +12224,7 @@ the order they are declared.</div>
 <li class="navBarCell1Rev">Index</li>
 <li><a href="help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>c015477049fc9bf00ef9bc11a9d6329431f66631</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>8db23e421ba3671e735f2509e842619dc8642969</div>
 </div>
 <div class="subNav">
 <ul class="navList">
