@@ -642,19 +642,12 @@ $(document).ready(function(){
                 <h3 id="known-issues">Known Issues</h3>
 
 <ul>
-  <li>
-    <p>New application security checks introduced by Apple in macOS 10.15 (Catalina)
-prevent a <a href="/docs/getting-started/#install-graalvm">regular GraalVM installation</a> on this operating
-system. When a software is installed for the first time, it is verified for
-being notarized. A user can install non-notarized software on macOS 10.15
-systems by <a href="https://support.apple.com/guide/mac-help/change-security-privacy-general-preferences-mh11784/mac">modifying the security preferences</a>.</p>
-  </li>
-  <li>The GraalVM CE image for macOS currently depends on some libraries that are not installed by default on current macOS versions.
-This might cause issues with UI-related functionality:
-    <pre><code>Library not loaded: /usr/X11/lib/libfreetype.6.dylib
+  <li>With macOS 10.15, Apple introduced new requirements for software notarization.
+The GraalVM distribution is not currently notarized and will be quarantined by
+default. To install GraalVM, you will need to run the following command to
+remove from quarantine:
+    <pre><code>xattr -d com.apple.quarantine /path/to/GRAALVM_HOME
 </code></pre>
-    <p>The necessary components can be added, e.g., by installing <a href="https://www.xquartz.org">https://www.xquartz.org</a>.
-We will remove this dependency in upcoming versions of GraalVM CE for macOS.</p>
   </li>
   <li>Due do the issue with the underlying platform Java Mission control freezes at startup on macOS. Because of that we removed the <code>jmc</code> utility from the distribution. For more information and workarounds please see the <a href="https://www.oracle.com/technetwork/java/javase/jmc55-release-notes-2412446.html#known-iss">JMC known issues page</a>.</li>
 </ul>
