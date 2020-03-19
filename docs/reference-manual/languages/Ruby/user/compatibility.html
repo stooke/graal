@@ -956,12 +956,12 @@ fixed, please report these cases.</p>
 
 <p><code>rb_scan_args</code> only supports up to ten pointers.</p>
 
-<h4 id="rdata"><code>RDATA</code></h4>
+<h4 id="mark-functions-of-rdata-and-rtypeddata">mark functions of <code>RDATA</code> and <code>RTYPEDDATA</code></h4>
 
-<p>The <code>mark</code> function of <code>RDATA</code> and <code>RTYPEDDATA</code> is not called during
-garbage collection. Instead we simulate this by caching information
+<p>The <code>mark</code> functions of <code>RDATA</code> and <code>RTYPEDDATA</code> are not called during
+garbage collection but periodically. We cache information
 about objects as they are assigned to structs, and periodically run
-all mark functions when the cache has become full to represent those
+all <code>mark</code> functions when the cache has become full to represent those
 object relationships in a way that the our garbage collector will
 understand. The process should behave identically to MRI.</p>
 
