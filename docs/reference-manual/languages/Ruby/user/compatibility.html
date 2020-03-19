@@ -935,26 +935,22 @@ experimental <code>--backtraces-omit-unused</code> option.</p>
 
 <h2 id="c-extension-compatibility">C Extension Compatibility</h2>
 
-<h4 id="value-is-a-pointer"><code>VALUE</code> is a pointer</h4>
-
-<p>In TruffleRuby <code>VALUE</code> is a pointer type (<code>void *</code>) rather than a
-integer type (<code>long</code>). This means that <code>switch</code> statements cannot be
-done using a raw <code>VALUE</code> as they can with MRI. You can normally
-replace any <code>switch</code> statement with <code>if</code> statements with little
-difficulty if required.</p>
-
 <h4 id="identifiers-may-be-macros-or-functions">Identifiers may be macros or functions</h4>
 
 <p>Identifiers which are normally macros may be functions, functions may be macros,
 and global variables may be macros. This may cause problems where they are used
 in a context which relies on a particular implementation (e.g., taking the
-address of it, assigning to a function pointer variable and using defined() to
+address of it, assigning to a function pointer variable and using <code>defined()</code> to
 check if a macro exists). These issues should all be considered bugs and be
 fixed, please report these cases.</p>
 
 <h4 id="rb_scan_args"><code>rb_scan_args</code></h4>
 
-<p><code>rb_scan_args</code> only supports up to ten pointers.</p>
+<p><code>rb_scan_args</code> only supports up to 10 pointers.</p>
+
+<h4 id="rb_funcall"><code>rb_funcall</code></h4>
+
+<p><code>rb_funcall</code> only supports up to 15 arguments.</p>
 
 <h4 id="mark-functions-of-rdata-and-rtypeddata">mark functions of <code>RDATA</code> and <code>RTYPEDDATA</code></h4>
 
