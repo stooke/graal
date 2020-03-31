@@ -17,7 +17,7 @@
     catch(err) {
     }
 //-->
-var methods = {"i0":10,"i1":10,"i2":10,"i3":10,"i4":10,"i5":10,"i6":10,"i7":10,"i8":10,"i9":10,"i10":10,"i11":10,"i12":10,"i13":10,"i14":10,"i15":10,"i16":10,"i17":10,"i18":9,"i19":10,"i20":10,"i21":10,"i22":10,"i23":10,"i24":10,"i25":10,"i26":10,"i27":10,"i28":10,"i29":10,"i30":10,"i31":10,"i32":10,"i33":10,"i34":10,"i35":10,"i36":10,"i37":10,"i38":10,"i39":10,"i40":10,"i41":10,"i42":10,"i43":10,"i44":10,"i45":10,"i46":10,"i47":10,"i48":10,"i49":10,"i50":10,"i51":10,"i52":10,"i53":10,"i54":10,"i55":10,"i56":10,"i57":10,"i58":10,"i59":10,"i60":10,"i61":10,"i62":10,"i63":10,"i64":10};
+var methods = {"i0":10,"i1":10,"i2":10,"i3":10,"i4":10,"i5":10,"i6":10,"i7":10,"i8":10,"i9":10,"i10":10,"i11":10,"i12":10,"i13":10,"i14":10,"i15":10,"i16":10,"i17":10,"i18":9,"i19":10,"i20":10,"i21":10,"i22":10,"i23":10,"i24":10,"i25":10,"i26":10,"i27":10,"i28":10,"i29":10,"i30":10,"i31":10,"i32":10,"i33":10,"i34":10,"i35":10,"i36":10,"i37":10,"i38":10,"i39":10,"i40":10,"i41":10,"i42":10,"i43":10,"i44":10,"i45":10,"i46":10,"i47":10,"i48":10,"i49":10,"i50":10,"i51":10,"i52":10,"i53":10,"i54":10,"i55":10,"i56":10,"i57":10,"i58":10,"i59":10,"i60":10,"i61":10,"i62":10,"i63":10,"i64":10,"i65":10,"i66":10};
 var tabs = {65535:["t0","All Methods"],1:["t1","Static Methods"],2:["t2","Instance Methods"],8:["t4","Concrete Methods"]};
 var altColor = "altColor";
 var rowColor = "rowColor";
@@ -44,7 +44,7 @@ var activeTableTab = "activeTableTab";
 <li><a href="../../../index-all.html">Index</a></li>
 <li><a href="../../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>6ff944afe045276f0437cb1484e2422c5da60370</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>97876cd0075b1cdd169342af8125e2a3132ec47e</div>
 </div>
 <div class="subNav">
 <ul class="navList">
@@ -158,7 +158,7 @@ extends <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?
  In addition to the language agnostic types, the language specific type can be accessed using
  <a href="../../../org/graalvm/polyglot/Value.html#getMetaObject--"><code>Value.getMetaObject()</code></a>. The identity of value objects is unspecified and should not be relied
  upon. For example, multiple calls to <a href="../../../org/graalvm/polyglot/Value.html#getArrayElement-long-"><code>Value.getArrayElement(long)</code></a> with the same index might
- return the same or different instances of <a href="../../../org/graalvm/polyglot/Value.html" title="class in org.graalvm.polyglot"><code>Value</code></a>. The <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#equals-java.lang.Object-" title="class or interface in java.lang"><code>equality</code></a> of
+ return the same or different instances of <a href="../../../org/graalvm/polyglot/Value.html" title="class in org.graalvm.polyglot"><code>Value</code></a>. The <a href="../../../org/graalvm/polyglot/Value.html#equals-java.lang.Object-"><code>equality</code></a> of
  values is based on the identity of the value instance. All values return a human-readable
  <a href="../../../org/graalvm/polyglot/Value.html#toString--"><code>string</code></a> for debugging, formatted by the original language.
  <p>
@@ -344,271 +344,279 @@ extends <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?
 </td>
 </tr>
 <tr id="i22" class="altColor">
+<td class="colFirst"><code>boolean</code></td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#equals-java.lang.Object-">equals</a></span>(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true" title="class or interface in java.lang">Object</a>&nbsp;obj)</code></td>
+</tr>
+<tr id="i23" class="rowColor">
 <td class="colFirst"><code><a href="../../../org/graalvm/polyglot/Value.html" title="class in org.graalvm.polyglot">Value</a></code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#execute-java.lang.Object...-">execute</a></span>(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true" title="class or interface in java.lang">Object</a>...&nbsp;arguments)</code>
 <div class="block">Executes this value if it <a href="../../../org/graalvm/polyglot/Value.html#canExecute--"><code>can</code></a> be executed and returns its result.</div>
 </td>
 </tr>
-<tr id="i23" class="rowColor">
+<tr id="i24" class="altColor">
 <td class="colFirst"><code>void</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#executeVoid-java.lang.Object...-">executeVoid</a></span>(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true" title="class or interface in java.lang">Object</a>...&nbsp;arguments)</code>
 <div class="block">Executes this value if it <a href="../../../org/graalvm/polyglot/Value.html#canExecute--"><code>can</code></a> be executed.</div>
 </td>
 </tr>
-<tr id="i24" class="altColor">
+<tr id="i25" class="rowColor">
 <td class="colFirst"><code>boolean</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#fitsInByte--">fitsInByte</a></span>()</code>
 <div class="block">Returns <code>true</code> if this value represents a <a href="../../../org/graalvm/polyglot/Value.html#isNumber--"><code>number</code></a> and the value
  fits in <code>byte</code>, else <code>false</code>.</div>
 </td>
 </tr>
-<tr id="i25" class="rowColor">
+<tr id="i26" class="altColor">
 <td class="colFirst"><code>boolean</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#fitsInDouble--">fitsInDouble</a></span>()</code>
 <div class="block">Returns <code>true</code> if this value represents a <a href="../../../org/graalvm/polyglot/Value.html#isNumber--"><code>number</code></a> and the value
  fits in <code>double</code>, else <code>false</code>.</div>
 </td>
 </tr>
-<tr id="i26" class="altColor">
+<tr id="i27" class="rowColor">
 <td class="colFirst"><code>boolean</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#fitsInFloat--">fitsInFloat</a></span>()</code>
 <div class="block">Returns <code>true</code> if this value represents a <a href="../../../org/graalvm/polyglot/Value.html#isNumber--"><code>number</code></a> and the value
  fits in <code>float</code>, else <code>false</code>.</div>
 </td>
 </tr>
-<tr id="i27" class="rowColor">
+<tr id="i28" class="altColor">
 <td class="colFirst"><code>boolean</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#fitsInInt--">fitsInInt</a></span>()</code>
 <div class="block">Returns <code>true</code> if this value represents a <a href="../../../org/graalvm/polyglot/Value.html#isNumber--"><code>number</code></a> and the value
  fits in <code>int</code>, else <code>false</code>.</div>
 </td>
 </tr>
-<tr id="i28" class="altColor">
+<tr id="i29" class="rowColor">
 <td class="colFirst"><code>boolean</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#fitsInLong--">fitsInLong</a></span>()</code>
 <div class="block">Returns <code>true</code> if this value represents a <a href="../../../org/graalvm/polyglot/Value.html#isNumber--"><code>number</code></a> and the value
  fits in <code>long</code>, else <code>false</code>.</div>
 </td>
 </tr>
-<tr id="i29" class="rowColor">
+<tr id="i30" class="altColor">
 <td class="colFirst"><code>boolean</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#fitsInShort--">fitsInShort</a></span>()</code>
 <div class="block">Returns <code>true</code> if this value represents a <a href="../../../org/graalvm/polyglot/Value.html#isNumber--"><code>number</code></a> and the value
  fits in <code>short</code>, else <code>false</code>.</div>
 </td>
 </tr>
-<tr id="i30" class="altColor">
+<tr id="i31" class="rowColor">
 <td class="colFirst"><code><a href="../../../org/graalvm/polyglot/Value.html" title="class in org.graalvm.polyglot">Value</a></code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#getArrayElement-long-">getArrayElement</a></span>(long&nbsp;index)</code>
 <div class="block">Returns the array element of a given index.</div>
 </td>
 </tr>
-<tr id="i31" class="rowColor">
+<tr id="i32" class="altColor">
 <td class="colFirst"><code>long</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#getArraySize--">getArraySize</a></span>()</code>
 <div class="block">Returns the array size for values with array elements.</div>
 </td>
 </tr>
-<tr id="i32" class="altColor">
+<tr id="i33" class="rowColor">
 <td class="colFirst"><code><a href="../../../org/graalvm/polyglot/Context.html" title="class in org.graalvm.polyglot">Context</a></code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#getContext--">getContext</a></span>()</code>
 <div class="block">Returns the context this value was created with.</div>
 </td>
 </tr>
-<tr id="i33" class="rowColor">
+<tr id="i34" class="altColor">
 <td class="colFirst"><code><a href="../../../org/graalvm/polyglot/Value.html" title="class in org.graalvm.polyglot">Value</a></code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#getMember-java.lang.String-">getMember</a></span>(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;identifier)</code>
 <div class="block">Returns the member with a given <code>identifier</code> or <code>null</code> if the member
  does not exist.</div>
 </td>
 </tr>
-<tr id="i34" class="altColor">
+<tr id="i35" class="rowColor">
 <td class="colFirst"><code><a href="http://docs.oracle.com/javase/8/docs/api/java/util/Set.html?is-external=true" title="class or interface in java.util">Set</a>&lt;<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&gt;</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#getMemberKeys--">getMemberKeys</a></span>()</code>
 <div class="block">Returns a set of all member keys.</div>
 </td>
 </tr>
-<tr id="i35" class="rowColor">
+<tr id="i36" class="altColor">
 <td class="colFirst"><code><a href="../../../org/graalvm/polyglot/Value.html" title="class in org.graalvm.polyglot">Value</a></code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#getMetaObject--">getMetaObject</a></span>()</code>
 <div class="block">Returns the metaobject that is associated with this value or <code>null</code> if no
  metaobject is available.</div>
 </td>
 </tr>
-<tr id="i36" class="altColor">
+<tr id="i37" class="rowColor">
 <td class="colFirst"><code><a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a></code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#getMetaQualifiedName--">getMetaQualifiedName</a></span>()</code>
 <div class="block">Returns the qualified name of a metaobject as <a href="../../../org/graalvm/polyglot/Value.html#isString--"><code>String</code></a>.</div>
 </td>
 </tr>
-<tr id="i37" class="rowColor">
+<tr id="i38" class="altColor">
 <td class="colFirst"><code><a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a></code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#getMetaSimpleName--">getMetaSimpleName</a></span>()</code>
 <div class="block">Returns the simple name of a metaobject as <a href="../../../org/graalvm/polyglot/Value.html#isString--"><code>string</code></a>.</div>
 </td>
 </tr>
-<tr id="i38" class="altColor">
+<tr id="i39" class="rowColor">
 <td class="colFirst"><code><a href="../../../org/graalvm/polyglot/SourceSection.html" title="class in org.graalvm.polyglot">SourceSection</a></code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#getSourceLocation--">getSourceLocation</a></span>()</code>
 <div class="block">Returns the declared source location of the value.</div>
 </td>
 </tr>
-<tr id="i39" class="rowColor">
+<tr id="i40" class="altColor">
 <td class="colFirst"><code>boolean</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#hasArrayElements--">hasArrayElements</a></span>()</code>
 <div class="block">Returns <code>true</code> if this polyglot value has array elements.</div>
 </td>
 </tr>
-<tr id="i40" class="altColor">
+<tr id="i41" class="rowColor">
+<td class="colFirst"><code>int</code></td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#hashCode--">hashCode</a></span>()</code></td>
+</tr>
+<tr id="i42" class="altColor">
 <td class="colFirst"><code>boolean</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#hasMember-java.lang.String-">hasMember</a></span>(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;identifier)</code>
 <div class="block">Returns <code>true</code> if such a member exists for a given <code>identifier</code>.</div>
 </td>
 </tr>
-<tr id="i41" class="rowColor">
+<tr id="i43" class="rowColor">
 <td class="colFirst"><code>boolean</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#hasMembers--">hasMembers</a></span>()</code>
 <div class="block">Returns <code>true</code> if this value generally supports containing members.</div>
 </td>
 </tr>
-<tr id="i42" class="altColor">
+<tr id="i44" class="altColor">
 <td class="colFirst"><code><a href="../../../org/graalvm/polyglot/Value.html" title="class in org.graalvm.polyglot">Value</a></code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#invokeMember-java.lang.String-java.lang.Object...-">invokeMember</a></span>(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;identifier,
             <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true" title="class or interface in java.lang">Object</a>...&nbsp;arguments)</code>
 <div class="block">Invokes the given member of this value.</div>
 </td>
 </tr>
-<tr id="i43" class="rowColor">
+<tr id="i45" class="rowColor">
 <td class="colFirst"><code>boolean</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#isBoolean--">isBoolean</a></span>()</code>
 <div class="block">Returns <code>true</code> if this value represents a boolean value.</div>
 </td>
 </tr>
-<tr id="i44" class="altColor">
+<tr id="i46" class="altColor">
 <td class="colFirst"><code>boolean</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#isDate--">isDate</a></span>()</code>
 <div class="block">Returns <code>true</code> if this object represents a date, else <code>false</code>.</div>
 </td>
 </tr>
-<tr id="i45" class="rowColor">
+<tr id="i47" class="rowColor">
 <td class="colFirst"><code>boolean</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#isDuration--">isDuration</a></span>()</code>
 <div class="block">Returns <code>true</code> if this object represents a duration, else <code>false</code>.</div>
 </td>
 </tr>
-<tr id="i46" class="altColor">
+<tr id="i48" class="altColor">
 <td class="colFirst"><code>boolean</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#isException--">isException</a></span>()</code>
 <div class="block">Returns <code>true</code> if this object represents an exception, else <code>false</code>.</div>
 </td>
 </tr>
-<tr id="i47" class="rowColor">
+<tr id="i49" class="rowColor">
 <td class="colFirst"><code>boolean</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#isHostObject--">isHostObject</a></span>()</code>
 <div class="block">Returns <code>true</code> if the value originated form the host language Java.</div>
 </td>
 </tr>
-<tr id="i48" class="altColor">
+<tr id="i50" class="altColor">
 <td class="colFirst"><code>boolean</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#isInstant--">isInstant</a></span>()</code>
 <div class="block">Returns <code>true</code> if this value represents an instant.</div>
 </td>
 </tr>
-<tr id="i49" class="rowColor">
+<tr id="i51" class="rowColor">
 <td class="colFirst"><code>boolean</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#isMetaInstance-java.lang.Object-">isMetaInstance</a></span>(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true" title="class or interface in java.lang">Object</a>&nbsp;instance)</code>
 <div class="block">Returns <code>true</code> if the given instance is an instance of this value, else
  <code>false</code>.</div>
 </td>
 </tr>
-<tr id="i50" class="altColor">
+<tr id="i52" class="altColor">
 <td class="colFirst"><code>boolean</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#isMetaObject--">isMetaObject</a></span>()</code>
 <div class="block">Returns <code>true</code> if the value represents a metaobject.</div>
 </td>
 </tr>
-<tr id="i51" class="rowColor">
+<tr id="i53" class="rowColor">
 <td class="colFirst"><code>boolean</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#isNativePointer--">isNativePointer</a></span>()</code>
 <div class="block">Returns <code>true</code> if this value is a native pointer.</div>
 </td>
 </tr>
-<tr id="i52" class="altColor">
+<tr id="i54" class="altColor">
 <td class="colFirst"><code>boolean</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#isNull--">isNull</a></span>()</code>
 <div class="block">Returns <code>true</code> if this value is a <code>null</code> like.</div>
 </td>
 </tr>
-<tr id="i53" class="rowColor">
+<tr id="i55" class="rowColor">
 <td class="colFirst"><code>boolean</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#isNumber--">isNumber</a></span>()</code>
 <div class="block">Returns <code>true</code> if this value represents a <a href="../../../org/graalvm/polyglot/Value.html#isNumber--"><code>number</code></a>, else
  <code>false</code>.</div>
 </td>
 </tr>
-<tr id="i54" class="altColor">
+<tr id="i56" class="altColor">
 <td class="colFirst"><code>boolean</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#isProxyObject--">isProxyObject</a></span>()</code>
 <div class="block">Returns <code>true</code> if this value represents a <a href="../../../org/graalvm/polyglot/proxy/Proxy.html" title="interface in org.graalvm.polyglot.proxy"><code>Proxy</code></a>.</div>
 </td>
 </tr>
-<tr id="i55" class="rowColor">
+<tr id="i57" class="rowColor">
 <td class="colFirst"><code>boolean</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#isString--">isString</a></span>()</code>
 <div class="block">Returns <code>true</code> if this value represents a string.</div>
 </td>
 </tr>
-<tr id="i56" class="altColor">
+<tr id="i58" class="altColor">
 <td class="colFirst"><code>boolean</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#isTime--">isTime</a></span>()</code>
 <div class="block">Returns <code>true</code> if this object represents a time, else <code>false</code>.</div>
 </td>
 </tr>
-<tr id="i57" class="rowColor">
+<tr id="i59" class="rowColor">
 <td class="colFirst"><code>boolean</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#isTimeZone--">isTimeZone</a></span>()</code>
 <div class="block">Returns <code>true</code> if this object represents a timezone, else <code>false</code>.</div>
 </td>
 </tr>
-<tr id="i58" class="altColor">
+<tr id="i60" class="altColor">
 <td class="colFirst"><code><a href="../../../org/graalvm/polyglot/Value.html" title="class in org.graalvm.polyglot">Value</a></code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#newInstance-java.lang.Object...-">newInstance</a></span>(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true" title="class or interface in java.lang">Object</a>...&nbsp;arguments)</code>
 <div class="block">Instantiates this value if it <a href="../../../org/graalvm/polyglot/Value.html#canInstantiate--"><code>can</code></a> be instantiated.</div>
 </td>
 </tr>
-<tr id="i59" class="rowColor">
+<tr id="i61" class="rowColor">
 <td class="colFirst"><code>void</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#putMember-java.lang.String-java.lang.Object-">putMember</a></span>(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;identifier,
          <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true" title="class or interface in java.lang">Object</a>&nbsp;value)</code>
 <div class="block">Sets the value of a member using an identifier.</div>
 </td>
 </tr>
-<tr id="i60" class="altColor">
+<tr id="i62" class="altColor">
 <td class="colFirst"><code>boolean</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#removeArrayElement-long-">removeArrayElement</a></span>(long&nbsp;index)</code>
 <div class="block">Removes an array element at a given index.</div>
 </td>
 </tr>
-<tr id="i61" class="rowColor">
+<tr id="i63" class="rowColor">
 <td class="colFirst"><code>boolean</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#removeMember-java.lang.String-">removeMember</a></span>(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;identifier)</code>
 <div class="block">Removes a single member from the object.</div>
 </td>
 </tr>
-<tr id="i62" class="altColor">
+<tr id="i64" class="altColor">
 <td class="colFirst"><code>void</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#setArrayElement-long-java.lang.Object-">setArrayElement</a></span>(long&nbsp;index,
                <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true" title="class or interface in java.lang">Object</a>&nbsp;value)</code>
 <div class="block">Sets the value at a given index.</div>
 </td>
 </tr>
-<tr id="i63" class="rowColor">
+<tr id="i65" class="rowColor">
 <td class="colFirst"><code><a href="http://docs.oracle.com/javase/8/docs/api/java/lang/RuntimeException.html?is-external=true" title="class or interface in java.lang">RuntimeException</a></code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#throwException--">throwException</a></span>()</code>
 <div class="block">Throws this value if this object represents an <a href="../../../org/graalvm/polyglot/Value.html#isException--"><code>exception</code></a>.</div>
 </td>
 </tr>
-<tr id="i64" class="altColor">
+<tr id="i66" class="altColor">
 <td class="colFirst"><code><a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a></code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/graalvm/polyglot/Value.html#toString--">toString</a></span>()</code>
 <div class="block">Converts this value to a human readable string.</div>
@@ -620,7 +628,7 @@ extends <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?
 <!--   -->
 </a>
 <h3>Methods inherited from class&nbsp;java.lang.<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true" title="class or interface in java.lang">Object</a></h3>
-<code><a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#clone--" title="class or interface in java.lang">clone</a>, <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#equals-java.lang.Object-" title="class or interface in java.lang">equals</a>, <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#finalize--" title="class or interface in java.lang">finalize</a>, <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#getClass--" title="class or interface in java.lang">getClass</a>, <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#hashCode--" title="class or interface in java.lang">hashCode</a>, <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#notify--" title="class or interface in java.lang">notify</a>, <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#notifyAll--" title="class or interface in java.lang">notifyAll</a>, <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#wait--" title="class or interface in java.lang">wait</a>, <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#wait-long-" title="class or interface in java.lang">wait</a>, <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#wait-long-int-" title="class or interface in java.lang">wait</a></code></li>
+<code><a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#clone--" title="class or interface in java.lang">clone</a>, <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#finalize--" title="class or interface in java.lang">finalize</a>, <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#getClass--" title="class or interface in java.lang">getClass</a>, <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#notify--" title="class or interface in java.lang">notify</a>, <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#notifyAll--" title="class or interface in java.lang">notifyAll</a>, <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#wait--" title="class or interface in java.lang">wait</a>, <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#wait-long-" title="class or interface in java.lang">wait</a>, <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#wait-long-int-" title="class or interface in java.lang">wait</a></code></li>
 </ul>
 </li>
 </ul>
@@ -2180,6 +2188,36 @@ extends <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?
 </dl>
 </li>
 </ul>
+<a name="equals-java.lang.Object-">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>equals</h4>
+<pre>public&nbsp;boolean&nbsp;equals(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true" title="class or interface in java.lang">Object</a>&nbsp;obj)</pre>
+<dl>
+<dt><span class="overrideSpecifyLabel">Overrides:</span></dt>
+<dd><code><a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#equals-java.lang.Object-" title="class or interface in java.lang">equals</a></code>&nbsp;in class&nbsp;<code><a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true" title="class or interface in java.lang">Object</a></code></dd>
+<dt><span class="simpleTagLabel">Since:</span></dt>
+<dd>20.1</dd>
+</dl>
+</li>
+</ul>
+<a name="hashCode--">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>hashCode</h4>
+<pre>public&nbsp;int&nbsp;hashCode()</pre>
+<dl>
+<dt><span class="overrideSpecifyLabel">Overrides:</span></dt>
+<dd><code><a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#hashCode--" title="class or interface in java.lang">hashCode</a></code>&nbsp;in class&nbsp;<code><a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true" title="class or interface in java.lang">Object</a></code></dd>
+<dt><span class="simpleTagLabel">Since:</span></dt>
+<dd>20.1</dd>
+</dl>
+</li>
+</ul>
 <a name="asValue-java.lang.Object-">
 <!--   -->
 </a>
@@ -2228,7 +2266,7 @@ extends <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?
 <li><a href="../../../index-all.html">Index</a></li>
 <li><a href="../../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>6ff944afe045276f0437cb1484e2422c5da60370</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>97876cd0075b1cdd169342af8125e2a3132ec47e</div>
 </div>
 <div class="subNav">
 <ul class="navList">
