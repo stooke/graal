@@ -68,8 +68,6 @@ if [ ! -d ${R_DST}/extra ]; then
   mkdir -p ${R_DST}/extra;
 fi
 git clone --branch master  --depth 1 ssh://git@ol-bitbucket.us.oracle.com:7999/g/fastr.git "${WORK_DIR}/fastr"
-rm "${R_SRC}/README.md"
-rm "${R_SRC}/Index.md"
 cp "${R_SRC}/"*.md "${R_DST}/extra"
 for file in $R_DST/extra/*.md
 do

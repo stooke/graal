@@ -711,7 +711,15 @@ into other programs.</p>
 
 <p>Note, GraalWasm is currently an <a href="https://docs.oracle.com/en/graalvm/enterprise/20/guide/overview/license/licensing-information.html">experimental</a> feature.</p>
 
-<p>GraalWasm is shipped as a separate installable and can be installed using the <a href="/docs/reference-manual/install-components/">GraalVM Updater</a> tool. See <code>gu --help</code> for more information. The <code>wasm</code> launcher which runs WebAssembly modules becomes available.</p>
+<h2 id="installing-wasm">Installing Wasm</h2>
+
+<p>GraalWasm is shipped as a separate installable and can be installed using the
+functional <code>gu</code> utility. The <code>wasm</code> launcher which runs WebAssembly modules
+becomes available.</p>
+<pre><code>gu install wasm
+</code></pre>
+<p>The above command will install a community version of a component from GitHub catalog.
+For GraalVM Enterprise users, the <a href="/docs/reference-manual/install-components/#component-installation-modes">manual component installation</a> is required. See <code>gu --help</code> for more information.</p>
 
 <h2 id="running-webassembly-programs">Running WebAssembly Programs</h2>
 

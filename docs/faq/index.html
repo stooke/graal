@@ -598,8 +598,6 @@ security issues on GitHub Issues.</p>
 <a href="https://github.com/oracle/graal/issues">GitHub Issues</a>. GraalVM Enterprise bugs
 or enhancement requests should be reported using <a href="https://support.oracle.com">My Oracle Support</a>.</p>
 
-<p>We always listen to input and feedback from the community and will address issues there time permitting.</p>
-
 <h3 id="how-do-i-contribute-to-graalvm">How do I contribute to GraalVM?</h3>
 <p>We welcome contributions to GraalVM from the community and are thankful for past contributions both big and small. We are happy to accept pull requests at <a href="https://github.com/oracle/graal/pulls">GitHub Pulls</a>.
 We require contributors to sign the <a href="http://www.oracle.com/technetwork/community/oca-486395.html">Oracle Contributor Agreement</a>.</p>
@@ -666,10 +664,13 @@ envision a future where high-performance and standardized language execution
 technology is available without the need for provisioning separate VM
 deployments.</p>
 
-<h3 id="can-i-use-graalvm-with-a-microservices-framework">Can I use GraalVM with a microservices framework?</h3>
-<p>Several Java microservices frameworks have already accepted the <a href="https://www.graalvm.org/docs/reference-manual/aot-compilation/">GraalVM Native Image</a> technology as a platform. Examples include: <a href="https://helidon.io/">Helidon</a>, <a href="https://quarkus.io">Quarkus</a>, <a href="https://micronaut.io">Micronaut</a>.
-For these frameworks GraalVM Native Image significantly reduces the startup time
-and runtime memory requirements.</p>
+<h3 id="can-i-use-graalvm-with-microservices-frameworks">Can I use GraalVM with microservices frameworks?</h3>
+<p>GraalVM can run any Java microservices framework. Several Java microservices
+frameworks have already accepted the <a href="https://www.graalvm.org/docs/reference-manual/aot-compilation/">GraalVM Native Image</a>
+technology as a platform. Examples include: <a href="https://helidon.io/">Helidon</a>,
+<a href="https://quarkus.io">Quarkus</a>, <a href="https://micronaut.io">Micronaut</a>. For these
+frameworks GraalVM Native Image significantly reduces the startup time and
+runtime memory requirements.</p>
 
 <h3 id="can-graalvm-run-spring-applications">Can GraalVM run Spring applications?</h3>
 <p>GraalVM can run Spring applications, compiled with OpenJDK, OracleJDK or other JVMs.

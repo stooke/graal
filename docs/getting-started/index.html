@@ -555,70 +555,48 @@ $(document).ready(function(){
 languages (e.g., Scala, Kotlin), dynamic languages (e.g., JavaScript, R, Ruby, R,
 Python), WebAssembly, LLVM-based languages (e.g., C and C++) in one shared runtime. This
 page guides you through downloading and installing GraalVM and adding support
-for additional languages or components, and shows you how to run simple programs on GraalVM.</p>
+for additional languages or components, and shows you how to run simple programs with GraalVM.</p>
 
 <p>GraalVM 20.0.0 is available as <strong>Community Edition</strong> (CE) and <strong>Enterprise Edition</strong> (EE).
 GraalVM Community Editions are based on OpenJDK version 1.8.0_242 and on OpenJDK version 11.0.6.
 GraalVM Enterprise Editions are based on Oracle Java version 1.8.0_241 and on Oracle Java version 11.0.6.
-GraalVM distributions are available for Linux, macOS and Windows platforms on x86 64-bit systems.
-Proceed to the <a href="/docs/#graalvm-distributions">GraalVM distributions</a> list to see a complete summary or to the <a href="/downloads/">Downloads</a> page and make your choice depending
-on the operating system and the use case.</p>
+GraalVM distributions are available for Linux, macOS and Windows platforms on x86 64-bit systems.</p>
 
-<p>In this getting started guide we will focus on working with GraalVM Enterprise
-Edition based on JDK 8, obtained from the <a href="https://www.oracle.com/technetwork/graalvm/downloads/index.html">Oracle Technology Network</a>. The
-installation steps are similar for GraalVM distributions based on Java 8 and Java 11 for macOS. To install GraalVM on Linux platform, navigate <a href="https://docs.oracle.com/en/graalvm/enterprise/20/guide/overview/install/installation-linux-platforms.html">here</a>.
-For Windows platform, proceed <a href="https://docs.oracle.com/en/graalvm/enterprise/20/guide/overview/install/installation-windows.html">here</a>.</p>
+<p>Besides the core components of GraalVM (the JVM, the GraalVM compiler, the LLVM
+runtime, and the JavaScript runtime with Node.js support), the base installation can
+be extended with:</p>
 
-<p>The base installation includes the JVM, the GraalVM compiler, the LLVM bitcode
-interpreter, and the JavaScript runtime with Node.js support – all in one
-package. GraalVM environment can be extended with:</p>
 <ul>
-  <li><a href="/docs/reference-manual/aot-compilation/">GraalVM Native Image</a> functionality which allows scripted applications to be compiled ahead-of-time into a native machine-code binary. Note: GraalVM Native Image is available as an <a href="https://docs.oracle.com/en/graalvm/enterprise/20/guide/overview/license/licensing-information.html">Early Adopter technology</a> in GraalVM Enterprise. In GraalVM Community Native Image is distributed under the GPL 2 with Classpath Exception license.</li>
-  <li><a href="/docs/reference-manual/languages/llvm/#llvm-toolchain">LLVM toolchain</a> –  a set of tools and APIs for compiling native programs to bitcode that can be executed with the GraalVM LLVM runtime.</li>
-  <li><a href="/docs/reference-manual/languages/python">Python interpreter</a> –  a Python 3.7 compliant implementation.</li>
-  <li><a href="/docs/reference-manual/languages/ruby">Ruby interpreter</a> – an implementation of the Ruby 2.6.5 programming language.</li>
-  <li><a href="/docs/reference-manual/languages/r">R interpreter</a> – a GNU R 3.6.1 compatible implementation of the R programming language.</li>
-  <li><a href="https://www.graalvm.org/docs/reference-manual/languages/wasm/">GraalWasm</a> –  the WebAssembly (Wasm) language interpreter to run Wasm programs in the binary format.</li>
+  <li><a href="/docs/reference-manual/aot-compilation/">Native Image</a></li>
+  <li><a href="/docs/reference-manual/languages/llvm/#llvm-toolchain">LLVM toolchain</a></li>
+  <li><a href="/docs/reference-manual/languages/python">Python interpreter</a></li>
+  <li><a href="/docs/reference-manual/languages/ruby">Ruby interpreter</a></li>
+  <li><a href="/docs/reference-manual/languages/r">R interpreter</a></li>
+  <li><a href="https://www.graalvm.org/docs/reference-manual/languages/wasm/">WebAssembly interpreter</a></li>
 </ul>
 
-<p>Note: Python, R, Ruby and Wasm are <a href="https://docs.oracle.com/en/graalvm/enterprise/20/guide/overview/license/licensing-information.html">experimental</a> and not recommended for production use at this time.</p>
+<p>Proceed to the <a href="/docs/#graalvm-distributions">GraalVM distributions</a> list to see a complete summary or to the <a href="/downloads/">Downloads</a> page and make your choice depending
+on the operating system and the use case.</p>
 
 <h2 id="install-graalvm">Install GraalVM</h2>
 
-<p>Getting GraalVM installed and ready-to-go should only take a few minutes. Please
-note, unlike Java HotSpot VM or OpenJDK distributions for macOS that come as a
-<em>.dmg</em> file, GraalVM does not provide the installation wizard.</p>
+<p>Getting GraalVM installed and ready-to-go should only take a few minutes.
+Choose a platform and proceed to the installation steps:</p>
+<ul>
+  <li><a href="/docs/getting-started/linux">Linux</a></li>
+  <li><a href="/docs/getting-started/macos">macOS</a></li>
+  <li><a href="/docs/getting-started/windows">Windows</a></li>
+</ul>
 
-<ol>
-  <li>Navigate to <a href="https://www.oracle.com/technetwork/graalvm/downloads/index.html">Oracle Technology Network</a> Downloads page and accept the license agreement.</li>
-  <li>Select and download <strong>Oracle GraalVM Enterprise Edition based on JDK8 for macOS (20.0.0)</strong>.</li>
-  <li>Extract the archive to your file system. To extract the file in the Downloads directory from the console, type:
-    <pre><code>~/Downloads$ tar -xvf graalvm-ee-java8-darwin-amd64-20.0.0.tar.gz
-</code></pre>
-    <p>Alternatively, open the file in Finder.</p>
-  </li>
-  <li>Move the obtained GraalVM to its proper location, the <code>/Library/Java/JavaVirtualMachines</code> directory. Since this is a system directory, <code>sudo</code> is required:
-    <pre><code>~/Downloads$ sudo mv graalvm-ee-java8-20.0.0 /Library/Java/JavaVirtualMachines
-</code></pre>
-    <p>To verify if the move is successful and to get a list of all installed JDKs, run  <code>/usr/libexec/java_home -V</code>.</p>
-  </li>
-  <li>Since there can be multiple JDKs installed on the machine, the next step is to configure the runtime environment.
-    <ul>
-      <li>Add the GraalVM <code>bin</code> folder to the <code>PATH</code> environment variable:
-        <pre><code>  $ export PATH=/Library/Java/JavaVirtualMachines/graalvm-ee-20.0.0/Contents/Home/bin:$PATH
-</code></pre>
-        <p>Verify whether you are using GraalVM with the echo command: <code>$ echo $PATH</code>.</p>
-      </li>
-      <li>Set the <code>JAVA_HOME</code> environment variable to resolve to the GraalVM installation directory:
-  <code>$ export JAVA_HOME=&lt;path to GraalVM&gt;/Contents/Home</code>. Please also see the <a href="/docs/getting-started/note/">notice on <code>java_home</code></a> command.
-        <pre><code>  $ export JAVA_HOME=/Library/Java/JavaVirtualMachines/graalvm-ee-20.0.0/Contents/Home
-</code></pre>
-        <p>Please also see the <a href="/docs/getting-started/note/">notice on <code>java_home</code></a> command.</p>
-      </li>
-    </ul>
-  </li>
-  <li>You can also specify GraalVM as the JRE or JDK installation in your Java IDE.</li>
-</ol>
+<h3 id="running-applications">Running Applications</h3>
+
+<p>In this getting started guide we will focus on working with GraalVM Community
+Edition based on OpenJDK 8.</p>
+
+<p>The executables of all language runtimes in GraalVM emulate the behavior of the
+languages’ default runtimes. Setting GraalVM to the <code>PATH</code> and <code>JAVA_HOME</code>
+environment variables during the installation should be enough to run an
+application with GraalVM.</p>
 
 <p>GraalVM’s <code>/bin</code> directory is similar to that of a standard JDK, but includes a set of additional launchers:</p>
 <ul>
@@ -628,107 +606,26 @@ note, unlike Java HotSpot VM or OpenJDK distributions for macOS that come as a
   <li><strong>gu</strong> (GraalVM Updater) can be used to install language packs for Python, R, and Ruby.</li>
 </ul>
 
-<p>Notably, <strong>java</strong> runs the JVM with GraalVM’s default compiler.
-The Ruby, Python, R, Wasm launchers become available only if you install the corresponding languages engines.
-For more information on installing components please refer to <a href="/docs/reference-manual/graal-updater/">GraalVM Updater documentation</a>.</p>
-
-<p>Since the executables of all language runtimes in GraalVM emulate the
-behavior of the languages’ default runtimes, setting GraalVM on your <code>PATH</code>
-should be enough to run an application with GraalVM.</p>
-
-<p>Once the <code>PATH</code> environment variable is set properly, check language versions with GraalVM launchers:</p>
-
+<p>Check the versions of the default runtimes:</p>
 <pre><code>$ java -version
-java version "1.8.0_241"
-Java(TM) SE Runtime Environment (build 1.8.0_241-b07)
-Java HotSpot(TM) 64-Bit Server VM GraalVM EE 20.0.0-dev (build 25.241-b07-jvmci-20.0-b02, mixed mode)
+openjdk version "1.8.0_242"
+OpenJDK Runtime Environment (build 1.8.0_242-b06)
+OpenJDK 64-Bit Server VM GraalVM CE 20.0.0 (build 25.242-b06-jvmci-20.0-b02, mixed mode)
 
 $ node -v
 v12.15.0
 
 $ lli --version
-LLVM (GraalVM EE Native 20.0.0)
-</code></pre>
-
-<h2 id="docker-containers">Docker Containers</h2>
-
-<p>The official Docker images for GraalVM CE are available from the Docker Hub:
-<a href="https://hub.docker.com/r/oracle/graalvm-ce/">https://hub.docker.com/r/oracle/graalvm-ce/</a>.</p>
-
-<p>If you want to use the Docker container with GraalVM CE, use the <code>docker pull</code> command:</p>
-<pre><code>docker pull oracle/graalvm-ce:20.0.0
-</code></pre>
-
-<p>The image is based on Oracle Linux and has GraalVM CE downloaded, unzipped and made available.
-It means that Java, JavaScript, Node and the LLVM interpreter are available out of the box.</p>
-
-<p>You can start a container and enter the <code>bash</code> session with the following run command:</p>
-<pre><code>docker run -it oracle/graalvm-ce:20.0.0 bash
-</code></pre>
-
-<p>Check that <code>java</code>, <code>js</code> and other commands work as expected.</p>
-<pre><code>→ docker run -it oracle/graalvm-ce:20.0.0 bash
-bash-4.2# java -version
-openjdk version "1.8.0_242"
-OpenJDK Runtime Environment (build 1.8.0_242-b06)
-OpenJDK 64-Bit Server VM GraalVM CE 20.0.0-dev (build 25.242-b06-jvmci-20.0-b02, mixed mode)
-bash-4.2# node
-&gt; 1 + 1
-2
-&gt; process.exit()
-bash-4.2# lli --version
 LLVM (GraalVM CE Native 20.0.0)
-bash-4.2#
 </code></pre>
 
-<p>Please note that the image contains only the components immediately available in the GraalVM CE distribution.
-However, the <a href="/docs/reference-manual/graal-updater/">GraalVM Updater utility</a> is on the <code>PATH</code>.
-You can install the support for additional languages like Ruby, R, or Python at will.
-For example, the following command installs the Ruby support (the output below is truncated for brevity):</p>
-
-<pre><code>docker run -it oracle/graalvm-ce:20.0.0 bash
-bash-4.2# gu install ruby
-Downloading: Component catalog
-Processing component archive: Component ruby
-Downloading: Component ruby
-[######              ]
-...
-</code></pre>
-
-<p>If you want to mount a directory from the host system to have it locally available in the container,
-use <a href="https://docs.docker.com/storage/volumes/#choose-the--v-or---mount-flag">Docker volumes</a>.</p>
-
-<p>Here is a sample command that maps the <code>/absolute/path/to/dir/no/trailing/slash</code> directory from the host system to the <code>/path/inside/container</code> inside the container.</p>
-
-<pre><code>docker run -it -v /absolute/path/to/dir/no/trailing/slash:/path/inside/container oracle/graalvm-ce:20.0.0 bash
-</code></pre>
-
-<p>If you want to create docker images that contain GraalVM Ruby, R, or Python implementation, you can use dockerfiles like the example below, which uses <code>oracle/graalvm-ce:20.0.0</code> as the base image, installs Ruby support using the <code>gu</code> utility, then creates and runs a sample Ruby program.</p>
-
-<pre><code>FROM oracle/graalvm-ce:20.0.0
-RUN gu install ruby
-WORKDIR /workdir
-RUN echo 'puts "Hello from Truffleruby!\nVersion: #{RUBY_DESCRIPTION}"' &gt; app.rb
-CMD ruby app.rb
-</code></pre>
-
-<p>If you put the above snippet in the <code>Dockerfile</code> in the current directory,
-you can build and run it with the following commands.</p>
-
-<pre><code>docker build -t truffleruby-demo .
-...
-$ docker run -it --rm truffleruby-demo
-Hello from Truffleruby!
-Version: truffleruby 20.0.0, like ruby 2.6.5, GraalVM CE Native [x86_64-darwin]
-</code></pre>
-
-<h3 id="running-applications">Running Applications</h3>
-
-<p>Since the executables of all language runtimes in GraalVM emulate the behavior of the languages’ default runtimes, putting GraalVM on your <code>PATH</code> should be enough to run your applications with GraalVM.</p>
+<p>The Ruby, Python, R, Wasm launchers become available only if you install the
+corresponding languages engines. For installing languages interpreters, see below.</p>
 
 <h2 id="running-java">Running Java</h2>
 
-<p>Take a look at this typical <code>HelloWorld</code> class:</p>
+<p>The  <strong>java</strong> launchers runs the JVM with GraalVM’s default compiler.
+Take a look at this typical <code>HelloWorld</code> class:</p>
 <pre><code class="language-java">public class HelloWorld {
   public static void main(String[] args) {
     System.out.println("Hello, World!");
@@ -857,10 +754,12 @@ compiled to LLVM bitcode using an LLVM frontend such as <code>clang</code>. C/C+
 be compiled to LLVM bitcode using <code>clang</code> shipped with GraalVM via a pre-built
 LLVM toolchain.</p>
 
-<p>To set up the LLVM toolchain support for GraalVM, execute the following commands:</p>
+<p>To set up the LLVM toolchain support, execute the following commands:</p>
 <pre><code>$ gu install llvm-toolchain
 $ export LLVM_TOOLCHAIN=$(lli --print-toolchain-path)
 </code></pre>
+
+<p>Please note, the installation of the LLVM toolchain component is possible only <a href="/docs/reference-manual/install-components/#component-installation-modes">from GitHub catalog</a> for both GraalVM Community and Enterprise users.</p>
 
 <p>Put this C code example into a file named <code>hello.c</code>:</p>
 
@@ -884,7 +783,8 @@ $ lli hello
 <p>The Ruby engine is not installed by default, but it can be added using <a href="/docs/reference-manual/graal-updater/">GraalVM Updater</a>:</p>
 <pre><code>gu install ruby
 </code></pre>
-<p>The above command will install a community version of a component from GitHub catalog. For GraalVM Enterprise Edition users, a <a href="/docs/reference-manual/install-components/#component-installation-modes">manual component installation</a> is required.
+<p>The above command will install a community version of a component from GitHub catalog.
+For GraalVM Enterprise users, the <a href="/docs/reference-manual/install-components/#component-installation-modes">manual component installation</a> is required.
 Then the Ruby launchers like <code>ruby</code>, <code>gem</code>, <code>irb</code>, <code>rake</code>, <code>rdoc</code> and <code>ri</code> will become available:</p>
 <pre><code>$ ruby [options] program.rb
 </code></pre>
@@ -907,31 +807,12 @@ Therefore its installation, <code>gem install bundler</code>, is not needed.</p>
 
 <p>More examples and additional information on Ruby support in GraalVM can be found in the <a href="/docs/reference-manual/languages/ruby/">reference manual for Ruby</a>.</p>
 
-<h2 id="running-r">Running R</h2>
-
-<p>The R engine is not installed by default, and can be added using <a href="/docs/reference-manual/graal-updater/">GraalVM Updater</a>:</p>
-<pre><code>gu install R
-</code></pre>
-<p>Please note, the installation of the R language component is possible only <a href="/docs/reference-manual/install-components/#component-installation-modes">from catalog</a>.
-When the R engine is installed, you can execute R scripts and use the R REPL with GraalVM:</p>
-
-<pre><code>$ R
-R version 3.6.1 (FastR)
-...
-
-&gt; 1 + 1
-[1] 2
-</code></pre>
-
-<p>More examples and additional information on R support in GraalVM can be found in the <a href="/docs/reference-manual/languages/r/">reference manual for R</a>.</p>
-
 <h2 id="running-python">Running Python</h2>
-
-<p>GraalVM implementation of Python 3.7 has recently been started.
+<p>GraalVM provides an early-stage implementation of Python 3.7.
 The Python engine is not available by default, but it can be installed using <a href="/docs/reference-manual/graal-updater/">GraalVM Updater</a>:</p>
 <pre><code>gu install python
 </code></pre>
-<p>The above command will install a community version of a component from GitHub catalog. For GraalVM Enterprise Edition users, a <a href="/docs/reference-manual/install-components/#component-installation-modes">manual component installation</a> is required.
+<p>The above command will install a community version of a component from GitHub catalog. For GraalVM Enterprise users, the <a href="/docs/reference-manual/install-components/#component-installation-modes">manual component installation</a> is required.
 Once the Python engine is installed, GraalVM can execute Python programs:</p>
 
 <pre><code>$ graalpython
@@ -943,6 +824,24 @@ Once the Python engine is installed, GraalVM can execute Python programs:</p>
 
 <p>More examples and additional information on Python support in GraalVM can be found in the <a href="/docs/reference-manual/languages/python/">reference manual for Python</a>.</p>
 
+<h2 id="running-r">Running R</h2>
+
+<p>The R engine is not installed by default, and can be added using <a href="/docs/reference-manual/graal-updater/">GraalVM Updater</a>:</p>
+<pre><code>gu install R
+</code></pre>
+
+<p>Please note, the installation of the R language component is possible only <a href="/docs/reference-manual/install-components/#component-installation-modes">from GitHub catalog</a> for both GraalVM Community and Enterprise users.
+When the R engine is installed, you can execute R scripts and use the R REPL with GraalVM:</p>
+<pre><code>$ R
+R version 3.6.1 (FastR)
+...
+
+&gt; 1 + 1
+[1] 2
+</code></pre>
+
+<p>More examples and additional information on R support in GraalVM can be found in the <a href="/docs/reference-manual/languages/r/">reference manual for R</a>.</p>
+
 <h2 id="combine-languages">Combine Languages</h2>
 
 <p>If enabled, using the <code>--polyglot</code> flag, scripts executed on GraalVM can use interoperability features to call into other languages and exchange data with them.</p>
@@ -953,8 +852,13 @@ the same runtime as the <code>example.js</code> application. For more informatio
 
 <h2 id="native-images">Native Images</h2>
 
-<p>GraalVM can compile Java bytecode into native images to achieve faster startup and smaller footprint for your applications.
-The <a href="/docs/reference-manual/aot-compilation/">Native Image</a> functionality is not available by default but <a href="/docs/reference-manual/native-image/#install-native-image">can be easily installed</a>.</p>
+<p>GraalVM can compile Java bytecode into native images to achieve faster startup
+and smaller footprint for your applications. The <a href="/docs/reference-manual/aot-compilation/">Native Image</a> functionality is
+not available by default but can be easily installed. Run the following command
+to install Native Image in GraalVM Community:</p>
+<pre><code>gu install native-image
+</code></pre>
+<p>For GraalVM Enterprise users, the <a href="/docs/reference-manual/install-components/#component-installation-modes">manual component installation</a> is required.</p>
 
 <p>The <code>HelloWorld</code> example from above is used here to demonstrate how to compile
 Java bytecode into a native image:</p>
@@ -1052,6 +956,79 @@ $ time ./prettyprintjson &lt; test.json &gt; /dev/null
 real	0m0.037s
 user	0m0.015s
 sys	0m0.016s
+</code></pre>
+
+<!-- Docker Containers -->
+<h2 id="docker-containers">Docker Containers</h2>
+
+<p>The official Docker images for GraalVM CE are available from the Docker Hub:
+<a href="https://hub.docker.com/r/oracle/graalvm-ce/">https://hub.docker.com/r/oracle/graalvm-ce/</a>.</p>
+
+<p>If you want to use the Docker container with GraalVM CE, use the <code>docker pull</code> command:</p>
+<pre><code>docker pull oracle/graalvm-ce:20.0.0
+</code></pre>
+
+<p>The image is based on Oracle Linux and has GraalVM CE downloaded, unzipped and made available.
+It means that Java, JavaScript, Node and the LLVM interpreter are available out of the box.</p>
+
+<p>You can start a container and enter the <code>bash</code> session with the following run command:</p>
+<pre><code>docker run -it oracle/graalvm-ce:20.0.0 bash
+</code></pre>
+
+<p>Check that <code>java</code>, <code>js</code> and other commands work as expected.</p>
+<pre><code>→ docker run -it oracle/graalvm-ce:20.0.0 bash
+bash-4.2# java -version
+openjdk version "1.8.0_242"
+OpenJDK Runtime Environment (build 1.8.0_242-b06)
+OpenJDK 64-Bit Server VM GraalVM CE 20.0.0-dev (build 25.242-b06-jvmci-20.0-b02, mixed mode)
+bash-4.2# node
+&gt; 1 + 1
+2
+&gt; process.exit()
+bash-4.2# lli --version
+LLVM (GraalVM CE Native 20.0.0)
+bash-4.2#
+</code></pre>
+
+<p>Please note that the image contains only the components immediately available in the GraalVM CE distribution.
+However, the <a href="/docs/reference-manual/graal-updater/">GraalVM Updater utility</a> is on the <code>PATH</code>.
+You can install the support for additional languages like Ruby, R, or Python at will.
+For example, the following command installs the Ruby support (the output below is truncated for brevity):</p>
+
+<pre><code>docker run -it oracle/graalvm-ce:20.0.0 bash
+bash-4.2# gu install ruby
+Downloading: Component catalog
+Processing component archive: Component ruby
+Downloading: Component ruby
+[######              ]
+...
+</code></pre>
+
+<p>If you want to mount a directory from the host system to have it locally available in the container,
+use <a href="https://docs.docker.com/storage/volumes/#choose-the--v-or---mount-flag">Docker volumes</a>.</p>
+
+<p>Here is a sample command that maps the <code>/absolute/path/to/dir/no/trailing/slash</code> directory from the host system to the <code>/path/inside/container</code> inside the container.</p>
+
+<pre><code>docker run -it -v /absolute/path/to/dir/no/trailing/slash:/path/inside/container oracle/graalvm-ce:20.0.0 bash
+</code></pre>
+
+<p>If you want to create docker images that contain GraalVM Ruby, R, or Python implementation, you can use dockerfiles like the example below, which uses <code>oracle/graalvm-ce:20.0.0</code> as the base image, installs Ruby support using the <code>gu</code> utility, then creates and runs a sample Ruby program.</p>
+
+<pre><code>FROM oracle/graalvm-ce:20.0.0
+RUN gu install ruby
+WORKDIR /workdir
+RUN echo 'puts "Hello from Truffleruby!\nVersion: #{RUBY_DESCRIPTION}"' &gt; app.rb
+CMD ruby app.rb
+</code></pre>
+
+<p>If you put the above snippet in the <code>Dockerfile</code> in the current directory,
+you can build and run it with the following commands.</p>
+
+<pre><code>docker build -t truffleruby-demo .
+...
+$ docker run -it --rm truffleruby-demo
+Hello from Truffleruby!
+Version: truffleruby 20.0.0, like ruby 2.6.5, GraalVM CE Native [x86_64-darwin]
 </code></pre>
 
 <h2 id="what-to-read-next">What to read next?</h2>

@@ -9,7 +9,7 @@
 
   <title>
     
-      Documentation for Truffle Framework User
+      Documentation for Python User
     
   </title>
   <meta
@@ -27,7 +27,7 @@
   <link rel="stylesheet" href="/resources/styles/extra.css">
   <link rel="stylesheet" href="https://elocation.oracle.com/mapviewer/jslib/v2.3/css/oraclemapsv2.css>
 
-  <link rel="canonical" href="https://www.graalvm.org/docs/reference-manual/languages/Truffle-Framework/user/ReportingPolymorphism">
+  <link rel="canonical" href="https://www.graalvm.org/docs/reference-manual/languages/Python/user/TOOLS">
   <!-- <script src="/resources/lib/jquery/jquery-3.2.1.min.js"></script> -->
   <script src="https://maps.oracle.com/mapviewer/jslib/v2.3/oraclemapsv2.js"></script>
   <link rel="stylesheet" href="https://elocation.oracle.com/mapviewer/jslib/v2.3/css/oraclemapsv2.css">
@@ -335,12 +335,6 @@ $(document).ready(function(){
   
 
   
-
-  
-
-  
-
-  
     
 
     
@@ -393,6 +387,39 @@ $(document).ready(function(){
 
 
         
+          
+          <li class="toc-bullets-sub dsdsd">
+          
+            
+            <a href="/docs/reference-manual/languages/Python/user/JYTHON">
+              About Jython Compatibility
+            </a>
+          </li>
+
+          
+        
+          
+          <li class="toc-bullets-sub dsdsd">
+          
+            
+            <a href="/docs/reference-manual/languages/Python/user/PACKAGES">
+              Installing Supported Packages
+            </a>
+          </li>
+
+          
+        
+          
+          <li class="toc-bullets-sub dsdsd">
+          
+            
+            <a href="/docs/reference-manual/languages/Python/user/POLYGLOT">
+              Interoperability
+            </a>
+          </li>
+
+          
+        
       
     
       
@@ -444,155 +471,6 @@ $(document).ready(function(){
 
 
         
-          
-          <li class="toc-bullets-sub dsdsd">
-          
-            
-            <a href="/docs/reference-manual/languages/Truffle-Framework/user/TruffleLibraries">
-              Truffle Library Tutorial
-            </a>
-          </li>
-
-          
-        
-          
-          <li class="toc-bullets-sub dsdsd">
-          
-            
-            <a href="/docs/reference-manual/languages/Truffle-Framework/user/InteropMigration">
-              
-            </a>
-          </li>
-
-          
-        
-          
-          <li class="toc-bullets-sub dsdsd">
-          
-            
-            <a href="/docs/reference-manual/languages/Truffle-Framework/user/NFI">
-              The Truffle Native Function Interface
-            </a>
-          </li>
-
-          
-        
-          
-          <li class="toc-bullets-sub dsdsd">
-          
-            
-            <a href="/docs/reference-manual/languages/Truffle-Framework/user/Optimizing">
-              Optimizing Truffle Interpreters
-            </a>
-          </li>
-
-          
-        
-          
-          <li class="toc-bullets-sub dsdsd">
-          
-            
-            <a href="/docs/reference-manual/languages/Truffle-Framework/user/Profiling">
-              Profiling Truffle Interpreters
-            </a>
-          </li>
-
-          
-        
-          
-          <li class="toc-bullets-sub dsdsd">
-          
-            
-            <a href="/docs/reference-manual/languages/Truffle-Framework/user/TCK">
-              The polyglot API based Test Compatibility Kit
-            </a>
-          </li>
-
-          
-        
-          
-          <li class="toc-bullets-sub dsdsd">
-          
-            
-            <a href="/docs/reference-manual/languages/Truffle-Framework/user/LanguageTutorial">
-              Truffle Tutorial Implementing a New Language with Truffle
-            </a>
-          </li>
-
-          
-        
-          
-          <li class="toc-bullets-sub dsdsd">
-          
-            
-            <a href="/docs/reference-manual/languages/Truffle-Framework/user/Languages">
-              This page is intended to keep track of the growing number of Truffle language implementations and experiments
-            </a>
-          </li>
-
-          
-        
-          
-          <li class="toc-bullets-sub dsdsd">
-          
-            
-            <a href="/docs/reference-manual/languages/Truffle-Framework/user/README">
-              Monomorphization
-            </a>
-          </li>
-
-          
-        
-          
-          <li class="toc-bullets-sub dsdsd">
-          
-            
-            <a href="/docs/reference-manual/languages/Truffle-Framework/user/Splitting">
-              How it works - Splitting
-            </a>
-          </li>
-
-          
-        
-          
-          <li class="toc-bullets-sub dsdsd">
-          
-            
-            <a href="/docs/reference-manual/languages/Truffle-Framework/user/MonomorphizationUseCases">
-              Monomorphization Use Cases
-            </a>
-          </li>
-
-          
-        
-          
-          <li class="toc-bullets-sub toc-bullets-highlight">
-          
-            
-            <a href="/docs/reference-manual/languages/Truffle-Framework/user/ReportingPolymorphism">
-              Reporting Polymorphic Specializations to the Runtime
-            </a>
-          </li>
-
-          
-            <div>
-    <script>
-      var scriptElement = document.currentScript;
-      var div = $(scriptElement.parentElement);
-      $(window).on("load", function() {
-        $("#content-wrapper h2").each(function() {
-          var li = $("<li></li>", { class: "toc-bullets-sub toc-bullets-sub-3" });
-          var a = $("<a></a>", { href: "#" + $(this).attr("id") });
-          a.text($(this).text());
-          li.append(a);
-          div.append(li);
-        });
-      });
-    </script>
-  </div>
-
-          
-        
       
     
       
@@ -616,6 +494,12 @@ $(document).ready(function(){
 
   
 
+  
+
+  
+
+  
+
 </ul>
 <!-- Search form -->
 <form class="search-container" action="/docs/search" autocomplete="on" method="get">
@@ -631,218 +515,59 @@ $(document).ready(function(){
 
           <div class="col-sm-9">
             <div id="content-wrapper" class="docs-content docs-content--with-sidebar">
-              <h1 id="reporting-polymorphic-specializations-to-the-runtime">Reporting Polymorphic Specializations to the Runtime</h1>
+              <h1 id="tooling-for-python-on-graalvm">Tooling for Python on GraalVM</h1>
 
-<p>This document gives a short overview of what is required of language
-implementers in order to leverage the monomorphization (splitting) strategy.
-More information on how it works can be found in the <a href="/docs/reference-manual/languages/Truffle-Framework/user/Splitting">Splitting</a>
-file.</p>
+<p>We will try to support all the GraalVM tools in a way the user would expect.</p>
 
-<p>In simple terms, the monomorphization heuristic relies on the language
-reporting polymorphic specializations for each node that could potentially be
-returned to a monomorphic state through splitting. In this context a
-polymorphic specialization is any node rewriting which results in the node
-changing “how polymorphic” it is. This includes, but is not limited to,
-activating another specialization, increasing the number of instances of an
-active specialization, excluding a specialization, etc.</p>
+<h3 id="debugger">Debugger</h3>
 
-<h2 id="manual-reporting-of-polymorphic-specializations">Manual Reporting of Polymorphic Specializations</h2>
+<p>To enable debugging, pass the <code>--inspect</code> option to the <code>graalpython</code>
+launcher. For example:</p>
 
-<p>To facilitate reporting of polymorphic specializations we introduce a new API
-into the <code>Node</code> class:
-<a href="http://www.graalvm.org/truffle/javadoc/com/oracle/truffle/api/nodes/Node.html#reportPolymorphicSpecialize">Node#reportPolymorphicSpecialize</a>.
-This method can be used to manually report polymorphic specializations, but only
-in cases when this cannot be automated by using the DSL.</p>
-
-<h2 id="automated-reporting-of-polymorphic-specializations">Automated Reporting of Polymorphic Specializations</h2>
-
-<p>Since the Truffle DSL automates much of the transitions between specializations,
-we added the <code>@ReportPolymorphism</code> <a href="http://www.graalvm.org/truffle/javadoc/com/oracle/truffle/api/dsl/ReportPolymorphism.html">annotation for automated reporting of
-polymorphic
-specializations</a>.
-This annotation instructs the DSL to include checks for polymorphism after
-specializations and to call <code>Node#reportPolymorphicSpecialize</code> if needed.</p>
-
-<p>For an example on how to use this annotation, consider the
-<code>com.oracle.truffle.sl.nodes.SLStatementNode</code>. It is the base class for all
-Simple Language nodes and, since the <code>ReportPolymorphism</code> annotation is
-inherited, simply annotating this class will enable reporting of polymorphic
-specializations for all Simple Language nodes. Below is the diff of the change
-that adds this annotation to he <code>SLStatementNode</code></p>
-
-<pre><code>diff --git
-a/truffle/src/com.oracle.truffle.sl/src/com/oracle/truffle/sl/nodes/SLStatementNode.java
-b/truffle/src/com.oracle.truffle.sl/src/com/oracle/truffle/sl/nodes/SLStatementNode.java
-index 788cc20..89448b2 100644
----
-a/truffle/src/com.oracle.truffle.sl/src/com/oracle/truffle/sl/nodes/SLStatementNode.java
-+++
-b/truffle/src/com.oracle.truffle.sl/src/com/oracle/truffle/sl/nodes/SLStatementNode.java
-@@ -43,6 +43,7 @@ package com.oracle.truffle.sl.nodes;
- import java.io.File;
- 
- import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-+import com.oracle.truffle.api.dsl.ReportPolymorphism;
- import com.oracle.truffle.api.frame.VirtualFrame;
- import com.oracle.truffle.api.instrumentation.GenerateWrapper;
- import com.oracle.truffle.api.instrumentation.InstrumentableNode;
-@@ -62,6 +63,7 @@ import com.oracle.truffle.api.source.SourceSection;
-  */
- @NodeInfo(language = "SL", description = "The abstract base node for all SL
-statements")
- @GenerateWrapper
-+@ReportPolymorphism
- public abstract class SLStatementNode extends Node implements
-InstrumentableNode {
- 
-     private static final int NO_SOURCE = -1;
+<pre><code>$ graalpython --inspect -c "breakpoint(); import os; os.exit()"
+Debugger listening on port 9229.
+To start debugging, open the following URL in Chrome:
+    chrome-devtools://devtools/bundled/js_app.html?ws=127.0.1.1:9229/76fcb6dd-35267eb09c3
 </code></pre>
 
-<h3 id="controlling-automated-reporting-of-polymorphic-specializations">Controlling Automated Reporting of Polymorphic Specializations</h3>
+<p>As you see, the standard Python built-in <code>breakpoint()</code> will work with our
+debugger. You can inspect variables, set watch expressions, interactively
+evaluate code snippets etc. However, this only works if you pass <code>--inspect</code> or
+some other inspect option. Otherwise, <code>pdb</code> is triggered as on CPython (and
+doesn’t currently work).</p>
 
-<p>Applying the <code>ReportPolymorphism</code> annotation to all nodes of a language is the
-simplest way to facilitate the monomorphization, but it could cause reporting
-of polymorphic specializations in cases where that does not necessarily make
-sense. In order to give the language developer more control over which nodes
-and which specializations are taken into consideration for reporting
-polymorphism we introduced the <code>@ReportPolymorphism.Exclude</code>
-<a href="http://www.graalvm.org/truffle/javadoc/com/oracle/truffle/api/dsl/ReportPolymorphism.Exclude.html">annotation</a>
-which is applicable to classes (disabling automated reporting for the entire
-class) or to individual specializations (excluding those specializations from
-consideration when checking for polymorphism).</p>
+<h3 id="coverage">Coverage</h3>
 
-<h3 id="tools-support">Tools Support</h3>
+<p>GraalVM comes with a coverage instrument that can be used with <code>--coverage</code>. See
+the commandline help for more options on how to use it. In order to work better
+with existing Python code, we also partially support the standard library
+<code>trace</code> module with this low-overhead GraalVM coverage instrument. So you can do
+this:</p>
 
-<p>Knowing which nodes should and should not report polymorphic specializations is
-for the language developer to conclude through either knowledge of the language
-in question, or though experimentation with the effects of including/excluding
-particular nodes/specializations. To aid language developers in better
-understanding the impact of reporting polymorphic specializations we provide
-some tool support that could be useful for this task.</p>
-
-<h4 id="tracing-individual-splits">Tracing individual splits</h4>
-
-<p>Adding the <code>--engine.TraceSplitting</code> argument to the command line
-when executing your guest language code will, in real time, print information
-about each split the runtime makes.</p>
-
-<p>A small part of the output from running one of the JavaScript benchmarks with
-said flag enabled follows.</p>
-
-<pre><code>...
-[truffle] split   0-37d4349f-1     multiplyScalar |ASTSize      40/   40 |Calls/Thres       2/    3 |CallsAndLoop/Thres       2/ 1000 |Inval#              0 |SourceSection octane-raytrace.js~441-444:12764-12993
-[truffle] split   1-2ea41516-1     :anonymous |ASTSize       8/    8 |Calls/Thres       3/    3 |CallsAndLoop/Thres       3/ 1000 |Inval#              0 |SourceSection octane-raytrace.js~269:7395-7446
-[truffle] split   2-3a44431a-1     :anonymous |ASTSize      28/   28 |Calls/Thres       4/    5 |CallsAndLoop/Thres       4/ 1000 |Inval#              0 |SourceSection octane-raytrace.js~35-37:1163-1226
-[truffle] split   3-3c7f66c4-1     Function.prototype.apply |ASTSize      18/   18 |Calls/Thres       7/    8 |CallsAndLoop/Thres       7/ 1000 |Inval#              0 |SourceSection octane-raytrace.js~36:1182-1219
-...
+<pre><code>$ graalpython -m trace -m -c -s my_script.py
 </code></pre>
-<h4 id="tracing-a-splitting-summary">Tracing a splitting summary</h4>
 
-<p>Adding the <code>--engine.TraceSplittingSummary</code> argument to the command
-line when executing your guest language code will, after the execution is
-complete, print out a summary of the gathered data regarding splitting. This
-includes how many splits there were, how large is the splitting budget and how
-much of it was used, how many splits were forced, a list of split target names
-and how many times they were split and a list of nodes that reported polymorphic
-specializations and how many.</p>
+<p>And this will work similarly to how it will run on CPython. The programmatic API
+also works, with some limitations. For example, we do not currently track calls,
+only line counts and called functions.</p>
 
-<p>A slightly simplified output of running one of the JavaScript benchmarks with
-said flag enabled follows.</p>
+<h3 id="profiling">Profiling</h3>
 
-<pre><code>[truffle] Split count                             :       9783
-[truffle] Split limit                             :      15342
-[truffle] Split count                             :          0
-[truffle] Split limit                             :        574
-[truffle] Splits                                  :        591
-[truffle] Forced splits                           :          0
-[truffle] Nodes created through splitting         :       9979
-[truffle] Nodes created without splitting         :      10700
-[truffle] Increase in nodes                       :     93.26%
-[truffle] Split nodes wasted                      :        390
-[truffle] Percent of split nodes wasted           :      3.91%
-[truffle] Targets wasted due to splitting         :         27
-[truffle] Total nodes executed                    :       7399
+<p>We implement the <code>_lsprof</code> built-in module using the GraalVM cpusampler
+tool. Not all profiling features are currently supported, but basic profiling
+works:</p>
 
-[truffle] --- SPLIT TARGETS
-[truffle] initialize                              :         60
-[truffle] Function.prototype.apply                :        117
-[truffle] Array.prototype.push                    :          7
-[truffle] initialize                              :          2
-[truffle] magnitude                               :         17
-[truffle] :anonymous                              :        117
-[truffle] add                                     :          5
-...
-
-[truffle] --- NODES
-[truffle] class ANode                             :         42
-[truffle] class AnotherNode                       :        198
-[truffle] class YetAnotherNode                    :          1
-...
+<pre><code>$ graalpython -m cProfile -s sort -m ginstall --help
 </code></pre>
-<h4 id="tracing-polymorphic-specializations">Tracing polymorphic specializations</h4>
 
-<p>NOTE: Consider reading <a href="/docs/reference-manual/languages/Truffle-Framework/user/Splitting">Splitting</a> before this section, as the
-dumped data is directly related to how splitting works.</p>
+<p>The interactive exploration of a stats output file also works:</p>
 
-<p>To better understand how reporting polymorphism impacts which call targets are considered for splitting one can use the <code>--engine.SplittingTraceEvents</code> option. 
-This option will print, in real time, a log detailing which nodes are reporting polymorphism and how that is affecting the call targets.
-Let’s consider a couple of examples:</p>
-
-<h5 id="example-1">Example 1</h5>
-
-<pre><code>[truffle] [poly-event] Polymorphic event! Source: JSObjectWriteElementTypeCacheNode@e3c0e40   WorkerTask.run
-[truffle] [poly-event] Early return: false callCount: 1, numberOfKnownCallNodes: 1            WorkerTask.run
+<pre><code>$ graalpython -m cProfile -o ginstall.profile -m ginstall --help
+$ graalpython -m pstats ginstall.profile
+ginstall.profile%
+callers
+[...]
 </code></pre>
-<p>This log section tells us that the <code>JSObjectWriteElementTypeCacheNode</code> in the <code>WorkerTask.run</code> method turned polymorphic and reported it.
-It also tells us that this is the first time that <code>WorkerTask.run</code> is being executed (<code>callCount: 1</code>), thus we don’t mark it as “needs split” (<code>Early return: false</code>)</p>
-
-<h5 id="example-2">Example 2</h5>
-
-<pre><code>[truffle] [poly-event] Polymorphic event! Source: WritePropertyNode@50313382                  Packet.addTo
-[truffle] [poly-event] One caller! Analysing parent.                                          Packet.addTo
-[truffle] [poly-event]   One caller! Analysing parent.                                        HandlerTask.run
-[truffle] [poly-event]     One caller! Analysing parent.                                      TaskControlBlock.run
-[truffle] [poly-event]       Early return: false callCount: 1, numberOfKnownCallNodes: 1      Scheduler.schedule
-[truffle] [poly-event]     Return: false                                                      TaskControlBlock.run
-[truffle] [poly-event]   Return: false                                                        HandlerTask.run
-[truffle] [poly-event] Return: false                                                          Packet.addTo
-</code></pre>
-<p>In this example the source of the polymorphic specialization is <code>WritePropertyNode</code> in <code>Packet.addTo</code>.
-Since this call target has only one known caller, we analyse it’s parent in the call tree (i.e. the caller).
-This is, in the example, <code>HandlerTask.run</code> and the same applies to it as well, leading us to <code>TaskControlBlock.run</code>, and by the same token to <code>Scheduler.schedule</code>.
-<code>Scheduler.schedule</code> has a <code>callCount</code> of 1 i.e. this is it’s first execution, so we don’t makr it as “needs split” (<code>Early return: false</code>).</p>
-
-<h5 id="example-3">Example 3</h5>
-
-<pre><code>[truffle] [poly-event] Polymorphic event! Source: JSObjectWriteElementTypeCacheNode@3e44f2a5  Scheduler.addTask
-[truffle] [poly-event] Set needs split to true                                                Scheduler.addTask
-[truffle] [poly-event] Return: true                                                           Scheduler.addTask
-</code></pre>
-<p>In this example the source of the polymorphic specialization is <code>JSObjectWriteElementTypeCacheNode</code> in <code>Scheduler.addTask</code>.
-This call target is immediately marked as “needs split”, since all the criteria to do so are met.</p>
-
-<h5 id="example-3-1">Example 3</h5>
-
-<pre><code>[truffle] [poly-event] Polymorphic event! Source: WritePropertyNode@479cbee5                  TaskControlBlock.checkPriorityAdd
-[truffle] [poly-event] One caller! Analysing parent.                                          TaskControlBlock.checkPriorityAdd
-[truffle] [poly-event]   Set needs split to true                                              Scheduler.queue
-[truffle] [poly-event]   Return: true                                                         Scheduler.queue
-[truffle] [poly-event] Set needs split to true via parent                                     TaskControlBlock.checkPriorityAdd
-[truffle] [poly-event] Return: true                                                           TaskControlBlock.checkPriorityAdd
-</code></pre>
-<p>In this example the source of the polymorphic specialization is <code>WritePropertyNode</code> in <code>TaskControlBlock.checkPriorityAdd</code>.
-Since it has only one caller, we look at that caller (<code>Scheduler.queue</code>), and since all the criteria necessary seem to be met, we mark it as “needs split”.</p>
-
-<h4 id="dumping-polymorphic-specializations-to-igv">Dumping polymorphic specializations to IGV</h4>
-
-<p>NOTE: Consider reading <a href="/docs/reference-manual/languages/Truffle-Framework/user/Splitting">Splitting</a> before this section, as the
-dumped data is directly related to how splitting works.</p>
-
-<p>Adding the <code>--engine.SplittingDumpDecisions</code> argument to the command line when
-executing your guest language code will, every time a call target is marked
-“needs split” dump a graph showing a chain of nodes (linked by child
-connections as well as direct call node to callee root node links) ending in
-the node that called <code>Node#reportPolymorphicSpecialize</code>.</p>
 
             </div>
 

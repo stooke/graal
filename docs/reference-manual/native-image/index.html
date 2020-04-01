@@ -737,13 +737,13 @@ available as an <a href="https://docs.oracle.com/en/graalvm/enterprise/20/guide/
 <p>Starting from GraalVM 19.0, Native Image was extracted from the base distribution.
 This functionality can be added to the core installation with <a href="/docs/reference-manual/graal-updater/">GraalVM Updater</a> utility in a similar way as other additional components.</p>
 
-<p>For GraalVM Enterprise Edition users, download the Native Image component JAR
+<p>For GraalVM Community users, install a component from the GitHub catalog by
+its name <code>gu install native-image</code>.</p>
+
+<p>For GraalVM Enterprise users, download the Native Image component JAR
 file from <a href="https://www.oracle.com/downloads/graalvm-downloads.html">Oracle Technology Network</a> and install it
 by running <code>gu -L install component.jar</code>, where <code>-L</code> option, equivalent to
 <code>--local-file</code> or <code>--file</code>, tells to install a component from a downloaded archive.</p>
-
-<p>For GraalVM Community Edition users, install a component from the GitHub catalog by
-its name <code>gu install native-image</code>.</p>
 
 <p>After this additional step, the <code>native-image</code> executable will become available in
 the <code>bin</code> directory, as for the previous releases.</p>

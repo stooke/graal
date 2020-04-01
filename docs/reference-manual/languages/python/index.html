@@ -705,17 +705,19 @@ $(document).ready(function(){
 
             <div class="col-sm-9">
               <div id="content-wrapper" class="docs-content docs-content--with-sidebar">
-                <p>GraalVM provides an early-stage implementation of Python 3.7. A primary goal is
+                <p>GraalVM provides an implementation of Python 3.7. A primary goal is
 to support SciPy and its constituent libraries. At this point, the Python
 implementation is made available for experimentation and curious end-users.</p>
 
-<p>Note: The support for Python is experimental.
-Experimental features might never be included in a production version, or might
-change significantly before being considered production-ready.</p>
+<p>Note, Python is currently <a href="https://docs.oracle.com/en/graalvm/enterprise/20/guide/overview/license/licensing-information.html">experimental</a>.</p>
 
 <h2 id="installing-python">Installing Python</h2>
 
-<p>Python can be installed to a GraalVM build with the <code>gu</code> command. See <code>bin/gu --help</code> for more information.</p>
+<p>Python can be installed to a GraalVM build with the functional <code>gu</code> utility:</p>
+<pre><code>gu install python
+</code></pre>
+<p>The above command will install a community version of a component from GitHub catalog.
+For GraalVM Enterprise users, the <a href="/docs/reference-manual/install-components/#component-installation-modes">manual component installation</a> is required. See <code>bin/gu --help</code> for more information.</p>
 
 <h2 id="running-python">Running Python</h2>
 

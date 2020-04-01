@@ -719,8 +719,8 @@ interoperability with the dynamic languages supported by GraalVM.</p>
 </code></pre>
 <p>Where <code>filename</code> is a single executable that contains LLVM bitcode.</p>
 
-<p><strong>Note:</strong> LLVM bitcode is platform dependent. The program must be compiled to
-bitcode for the appropriate platform.</p>
+<p>Note: LLVM bitcode is platform dependent. The program must be compiled to
+bitcode for an appropriate platform.</p>
 
 <h3 id="compiling-to-llvm-bitcode">Compiling to LLVM Bitcode</h3>
 <p>GraalVM can execute C/C++, Rust, and other languages that can be compiled to
@@ -728,12 +728,13 @@ LLVM bitcode. As a first step, you have to compile the program to LLVM bitcode
 using an LLVM frontend such as <code>clang</code>. C/C++ code can be compiled to LLVM
 bitcode using the <code>clang</code> shipped with GraalVM.</p>
 
-<p>To download a pre-built LLVM toolchain for GraalVM, execute the following
+<p>To install a pre-built LLVM toolchain for GraalVM, execute the following
 commands:</p>
 
 <pre><code class="language-shell">$ gu install llvm-toolchain
 $ export LLVM_TOOLCHAIN=$(lli --print-toolchain-path)
 </code></pre>
+<p>Please note, the installation of the LLVM toolchain component is possible only <a href="/docs/reference-manual/install-components/#component-installation-modes">from GitHub catalog</a> for both GraalVM Community and Enterprise users.</p>
 
 <p>Here is some example C code named <code>hello.c</code>:</p>
 

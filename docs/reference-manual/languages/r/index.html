@@ -714,8 +714,11 @@ ecosystem and provides <a href="#graalvm-r-engine-additional-features">additiona
 
 <h2 id="installing-r">Installing R</h2>
 
-<p>The R language runtime can be installed to a GraalVM build the <a href="/docs/reference-manual/install-components/">GraalVM Updater</a> tool.
-See <code>$GRAALVM_HOME/bin/gu --help</code> for more information.</p>
+<p>The R language runtime is not provided by default, can be added to GraalVM using the functional <code>gu</code> utility:</p>
+<pre><code>gu install r
+</code></pre>
+<p>Please note, the installation of the R language component is possible only <a href="/docs/reference-manual/install-components/#component-installation-modes">from GitHub catalog</a> for both GraalVM Community and Enterprise users.
+See <code>gu --help</code> for more information.</p>
 
 <h3 id="requirements">Requirements</h3>
 <p>GraalVM R engine requires the <a href="https://www.openmprtl.org/">OpenMP runtime library</a> and <a href="https://gcc.gnu.org/wiki/GFortranBinaries">GFortran 3</a> runtime libraries to be installed

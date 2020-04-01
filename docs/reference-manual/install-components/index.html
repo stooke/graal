@@ -767,9 +767,6 @@ use:</p>
 </code></pre>
 <p>Check <code>gu --help</code> or <code>gu -C</code> (see below) how to instruct GraalVM Updater to find and process required components as well.</p>
 
-<p>Note: For GraalVM Enterprise Edition users, a manual installation is required to
-prevent the use of a “community” component version.</p>
-
 <p><strong>Installation from Catalog</strong></p>
 
 <p>There is a component catalog on GitHub maintained by Oracle, from
@@ -792,29 +789,37 @@ as well. If required components could not be found, installation will fail.</p>
 
 <p>When using custom catalog URLs, it is possible, as a convenience, to set
 environment variable <code>GRAALVM_CATALOG</code> pointing to the custom catalog’s URL.
-GraalVM updater will use URL found defined by <code>GRAALVM_CATALOG</code> in preference to
+GraalVM updater will use URL defined by <code>GRAALVM_CATALOG</code> in preference to
 the builtin ones. You may setup the environment variable in startup or profile
 scripts.</p>
 
-<p>Note: The installation of the R language component is possible only from catalog.</p>
+<p>Note, for GraalVM Enterprise Edition users, components should be obtained from <a href="https://www.oracle.com/downloads/graalvm-downloads.html">Oracle Technology Network</a> which requires a manual installation to
+prevent the use of a “community” component version except for the R language and
+LLVM toolchain components which are available only from GitHub catalog.</p>
 
 <p><strong>Installation from Local Components Collection</strong></p>
 
 <p>Components can be downloaded manually in advance to a local file folder, or to a
 folder shared on the local network. GraalVM Updater can then use that folder
 instead of the catalog:</p>
-<pre><code>gu -C /path/to/download/directory
+<pre><code>gu install -C /path/to/downloads/directory &lt;component name&gt;
 </code></pre>
+
 <p>specifying the directory to use as components collection. It is possible to type
 components names (like <code>ruby</code>) instead of filenames. GraalVM Updater also
 attempts to find required dependencies in the local component collection.</p>
+
+<p>When installing components from the given directory, you can allow installing all
+components which have correct version number for the GraalVM core using wildcards:</p>
+<pre><code>./gu install -C ~/Download/Components/ *
+</code></pre>
+<p>For example, <code>gu install native*</code> will install the <code>native-image</code> component, or anything that starts with <code>native</code>.</p>
 
 <p>Similar to the installation from catalog, the path to the directory that
 contains local components collection can be defined in the <code>GRAALVM_CATALOG</code>
 environment variable.</p>
 
 <p>Installed on your machine components can be printed with:</p>
-
 <pre><code>gu list
 </code></pre>
 <h3 id="installation-configuration">Installation Configuration</h3>

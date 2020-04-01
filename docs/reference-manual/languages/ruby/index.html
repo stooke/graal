@@ -717,11 +717,7 @@ $(document).ready(function(){
   <li>All while maintaining very high compatibility with the standard implementation of Ruby</li>
 </ul>
 
-<p>Note: The support for Ruby is experimental.
-Experimental features might never be included in a production version, or might
-change significantly before being considered production-ready.</p>
-
-<p>If you are attempting to experiment with deploying TruffleRuby to production we
+<p>Note, TruffleRuby is currently <a href="https://docs.oracle.com/en/graalvm/enterprise/20/guide/overview/license/licensing-information.html">experimental</a>. If you are attempting to experiment with deploying TruffleRuby to production we
 would encourage you to contact us so we can help you understand what is possible at
 the moment and to help solve any issues for you.</p>
 
@@ -731,8 +727,11 @@ the moment and to help solve any issues for you.</p>
 
 <h2 id="installing-ruby">Installing Ruby</h2>
 
-<p>TruffleRuby can be installed to a GraalVM build with the <code>gu</code> command.
-See <code>graalvm/bin/gu --help</code> for more information.</p>
+<p>TruffleRuby can be installed to a GraalVM build with the functional <code>gu</code> utility:</p>
+<pre><code>gu install ruby
+</code></pre>
+<p>The above command will install a community version of a component from GitHub catalog.
+For GraalVM Enterprise users, the <a href="/docs/reference-manual/install-components/#component-installation-modes">manual component installation</a> is required. See <code>bin/gu --help</code> for more information.</p>
 
 <h2 id="running-ruby-applications">Running Ruby applications</h2>
 
