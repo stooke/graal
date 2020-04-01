@@ -560,7 +560,7 @@ for additional languages or components, and shows you how to run simple programs
 <p>GraalVM 20.0.0 is available as <strong>Community Edition</strong> (CE) and <strong>Enterprise Edition</strong> (EE).
 GraalVM Community Editions are based on OpenJDK version 1.8.0_242 and on OpenJDK version 11.0.6.
 GraalVM Enterprise Editions are based on Oracle Java version 1.8.0_241 and on Oracle Java version 11.0.6.
-GraalVM distributions are available for Linux, macOS and Windows platforms on x86 64-bit systems.</p>
+GraalVM distributions are available for Linux, macOS and Windows platforms on x86 64-bit systems. Proceed to the <a href="/docs/#graalvm-distributions">GraalVM distributions</a> list to see a complete summary.</p>
 
 <p>Besides the core components of GraalVM (the JVM, the GraalVM compiler, the LLVM
 runtime, and the JavaScript runtime with Node.js support), the base installation can
@@ -575,11 +575,7 @@ be extended with:</p>
   <li><a href="https://www.graalvm.org/docs/reference-manual/languages/wasm/">WebAssembly interpreter</a></li>
 </ul>
 
-<p>Proceed to the <a href="/docs/#graalvm-distributions">GraalVM distributions</a> list to see a complete summary or to the <a href="/downloads/">Downloads</a> page and make your choice depending
-on the operating system and the use case.</p>
-
 <h2 id="install-graalvm">Install GraalVM</h2>
-
 <p>Getting GraalVM installed and ready-to-go should only take a few minutes.
 Choose a platform and proceed to the installation steps:</p>
 <ul>
@@ -589,7 +585,6 @@ Choose a platform and proceed to the installation steps:</p>
 </ul>
 
 <h3 id="running-applications">Running Applications</h3>
-
 <p>In this getting started guide we will focus on working with GraalVM Community
 Edition based on OpenJDK 8.</p>
 
@@ -620,7 +615,7 @@ LLVM (GraalVM CE Native 20.0.0)
 </code></pre>
 
 <p>The Ruby, Python, R, Wasm launchers become available only if you install the
-corresponding languages engines. For installing languages interpreters, see below.</p>
+corresponding languages engines. For installing languages, see below.</p>
 
 <h2 id="running-java">Running Java</h2>
 
@@ -809,7 +804,7 @@ Therefore its installation, <code>gem install bundler</code>, is not needed.</p>
 
 <h2 id="running-python">Running Python</h2>
 <p>GraalVM provides an early-stage implementation of Python 3.7.
-The Python engine is not available by default, but it can be installed using <a href="/docs/reference-manual/graal-updater/">GraalVM Updater</a>:</p>
+The Python engine is not available by default, but it can be added using <a href="/docs/reference-manual/graal-updater/">GraalVM Updater</a>:</p>
 <pre><code>gu install python
 </code></pre>
 <p>The above command will install a community version of a component from GitHub catalog. For GraalVM Enterprise users, the <a href="/docs/reference-manual/install-components/#component-installation-modes">manual component installation</a> is required.
