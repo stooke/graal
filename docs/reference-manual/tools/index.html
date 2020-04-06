@@ -1623,9 +1623,8 @@ Two is the result 2
 
 <p>To learn more about T-Trace, proceed to the <a href="https://github.com/oracle/graal/blob/master/tools/docs/T-Trace-Manual.md">GraalVM Tools suite</a> reference. The documentation of the agent object properties and functions is available as part of the <a href="https://www.graalvm.org/tools/javadoc/com/oracle/truffle/tools/agentscript/AgentScript.html">Javadoc</a>.</p>
 
-<h2 id="graalvm-visualvm">GraalVM VisualVM</h2>
-<p>GraalVM comes with <strong>GraalVM VisualVM</strong>, an enhanced version of the popular
-<a href="https://visualvm.github.io">VisualVM</a> tool which includes special heap analysis
+<h2 id="visualvm">VisualVM</h2>
+<p>GraalVM comes with the <a href="https://visualvm.github.io">VisualVM</a> tool which includes heap analysis
 features for the supported guest languages. These languages and features are
 currently available:</p>
 
@@ -1637,17 +1636,17 @@ currently available:</p>
   <li><strong>R:</strong> Heap Summary, Objects View</li>
 </ul>
 
-<h3 id="starting-graalvm-visualvm">Starting GraalVM VisualVM</h3>
-<p>To start GraalVM VisualVM execute <code>jvisualvm</code>. Immediately after the startup,
+<h3 id="starting-visualvm">Starting VisualVM</h3>
+<p>To start VisualVM execute <code>jvisualvm</code>. Immediately after the startup,
 the tool shows all locally running Java processes in the Applications area,
 including the VisualVM process itself.</p>
 
-<p><strong>Important:</strong> <a href="/docs/reference-manual/aot-compilation/">GraalVM Native Image</a> does not implement JVMTI agent, hence triggering heap dump creation from Applications area is impossible. Apply <code>-H:+AllowVMInspection</code> flag with the <code>native-image</code> tool for Native Image processes. This way your application will handle signals and get a heap dump when it receives SIGUSR1 signal. Guest language REPL process must be started also with the <code>--jvm</code> flag to monitor it using GraalVM VisualVM. This functionality is available with <a href="http://www.oracle.com/technetwork/oracle-labs/program-languages/downloads/index.html">GraalVM Enterprise Edition</a>. It is <strong>not</strong> available in GraalVM open source version available on GitHub. See the <a href="/docs/reference-manual/native_heapdump/">Generating Native Heap Dumps</a> page for details on creating heap dumps from a native image process.</p>
+<p><strong>Important:</strong> <a href="/docs/reference-manual/aot-compilation/">GraalVM Native Image</a> does not implement JVMTI agent, hence triggering heap dump creation from Applications area is impossible. Apply <code>-H:+AllowVMInspection</code> flag with the <code>native-image</code> tool for Native Image processes. This way your application will handle signals and get a heap dump when it receives SIGUSR1 signal. Guest language REPL process must be started also with the <code>--jvm</code> flag to monitor it using VisualVM. This functionality is available with <a href="http://www.oracle.com/technetwork/oracle-labs/program-languages/downloads/index.html">GraalVM Enterprise Edition</a>. It is <strong>not</strong> available in GraalVM open source version available on GitHub. See the <a href="/docs/reference-manual/native_heapdump/">Generating Native Heap Dumps</a> page for details on creating heap dumps from a native image process.</p>
 
 <h3 id="getting-heap-dump">Getting Heap Dump</h3>
 <p>To get a heap dump of, for example, a Ruby application for later analysis,
 first start your application, and let it run for a few seconds to warm up. Then
-right-click its process in GraalVM VisualVM and invoke the Heap Dump action. A
+right-click its process in VisualVM and invoke the Heap Dump action. A
 new heap viewer for the Ruby process opens.</p>
 
 <h3 id="analyzing-objects">Analyzing Objects</h3>
@@ -1661,7 +1660,7 @@ Each object displays its logical value as provided by the underlying
 implementation. Expand the objects to access their variables and references,
 where available.</p>
 
-<p><img src="/docs/img/HeapViewer_objects.png" alt="" title="GraalVM VisualVM Heap Viewer - analyzing objects" /></p>
+<p><img src="/docs/img/HeapViewer_objects.png" alt="" title="VisualVM Heap Viewer - analyzing objects" /></p>
 
 <p>Now enable the Preview, Variables and References details by clicking the buttons
 in the toolbar and select the individual <em>ProcType</em> objects. Where available, the
@@ -1675,7 +1674,7 @@ retained sizes must be computed first, which can take a few minutes for the
 <em>server.rb</em> example. Select the Objects aggregation in the toolbar to view the
 individual dominators or GC roots.</p>
 
-<p><img src="/docs/img/HeapViewer_objects_dominators.png" alt="" title="GraalVM VisualVM Heap Viewer - analyzing objects" /></p>
+<p><img src="/docs/img/HeapViewer_objects_dominators.png" alt="" title="VisualVM Heap Viewer - analyzing objects" /></p>
 
 <h3 id="analyzing-threads">Analyzing Threads</h3>
 <p>Click the leftmost dropdown in the heap viewer toolbar and select the Threads
@@ -1683,7 +1682,7 @@ view for the Ruby heap. The heap viewer now displays the Ruby thread stack
 trace, including local objects. The stack trace can alternatively be displayed
 textually by clicking the HTML toolbar button.</p>
 
-<p><img src="/docs/img/HeapViewer_thread.png" alt="" title="GraalVM VisualVM Heap Viewer - analyzing thread" /></p>
+<p><img src="/docs/img/HeapViewer_thread.png" alt="" title="VisualVM Heap Viewer - analyzing thread" /></p>
 
 <h3 id="reading-jfr-snapshots">Reading JFR Snapshots</h3>
 <p>VisualVM tool bundled with GraalVM 19.2.x and later in both Community and Enterprise
@@ -1876,116 +1875,6 @@ install the Ruby component manually.</p>
 configuration can be used to run the Python script in a debug mode.</p>
 
 <p>Python VS Code extension requires a default <a href="https://marketplace.visualstudio.com/items?itemName=ms-python.python">Python language support</a> and GraalVM extension in VS Code.</p>
-
-<h2 id="ideal-graph-visualizer">Ideal Graph Visualizer</h2>
-<p>Ideal Graph Visualizer or IGV is a developer tool, currently maintained as part of the GraalVM compiler, recommended for performance issues investigation.</p>
-
-<p>The tool is essential for any language implementers building on top of <strong>GraalVM Enterprise Edition</strong>.
-It is available as a separate download on <a href="https://www.oracle.com/technetwork/oracle-labs/program-languages/downloads/index.html">Oracle Technology Network</a> and requires accepting the Oracle Technology Network Developer License.</p>
-
-<p>Ideal Graph Visualizer is developed to view and inspect interim graph representations from GraalVM and Truffle compilations.</p>
-
-<p>1.Unzip the downloaded package and enter <code>bin</code> directory:</p>
-
-<pre><code>$ cd idealgraphvisualizer/bin
-</code></pre>
-
-<p>2.Launch the tool:</p>
-
-<pre><code>$ idealgraphvisualizer
-</code></pre>
-
-<p>3.Save the following code snippet as  <code>Test.rb</code>:</p>
-
-<pre><code>require 'json'
-
-obj = {
-  time: Time.now,
-  msg: 'Hello World',
-  payload: (1..10).to_a
-}
-
-encoded = JSON.dump(obj)
-
-js_obj = Polyglot.eval('js', 'JSON.parse').call(encoded)
-
-puts js_obj[:time]
-puts js_obj[:msg]
-puts js_obj[:payload].join(' ')
-</code></pre>
-
-<p>4.From another console window, make sure <code>ruby</code> component is installed in GraalVM,
-and connect <code>Test.rb</code> script to the running IGV:</p>
-
-<pre><code class="language-shell">$ gu list
-$ ruby --jvm --vm.Dgraal.Dump=:1 --vm.Dgraal.PrintGraph=Network Test.rb
-</code></pre>
-<p>This causes GraalVM to dump compiler graphs in IGV format over the network to an IGV process listening
-on <code>127.0.0.1:4445</code>. Once the connection is made, you are able to see the graphs in the Outline window.
-Find e.g., <code>java.lang.String.char(int)</code> folder and open its <em>After parsing</em> graph by double-clicking.
-If the node has <code>sourceNodePosition</code> property, then the Processing Window will attempt to display its location and the entire stacktrace.</p>
-
-<h3 id="browsing-graphs">Browsing Graphs</h3>
-<p>Once a specific graph is opened, you can search for nodes by name, ID, or by <code>property=value</code> data, and all matching results will be shown.
-Another cool feature of this tool is the ability to navigate to the original guest language source code!
-Select a node in graph and press ‘go to source’ button in the Stack View window.</p>
-
-<p><img src="/docs/img/IGV_navigate_to_source.png" alt="" /></p>
-
-<p>Graphs navigation is available also from the context menu, enabled by focusing
-and right-clicking a specific graph node. Extract nodes option will re-render
-a graph and display just selected nodes and their neighbours.</p>
-
-<p><img src="/docs/img/IGV_context_menu.png" alt="" /></p>
-
-<p>If the graph is larger than the screen, manipulate with the ‘satellite’ view button
-in the main toolbar to move the viewport rectangle.</p>
-
-<p><img src="/docs/img/IGV_satellite_view.png" alt="" /></p>
-
-<p>For user preference, the graph color scheme is adjustable by editing
-the Coloring filter, enabled by default in the left sidebar.</p>
-
-<h3 id="viewing-source-code">Viewing Source Code</h3>
-
-<p>Source code views can be opened in manual and assisted modes. Once you select a node
-in the graph view, the Processing View will open. If IGV knows where the source code
-for the current frame is, the green ‘go to source’ arrow is enabled. If IGV does not
-know where the source is, the line is grayed out and a ‘looking glass’ button appears.</p>
-
-<p><img src="/docs/img/IGV_add_source.png" alt="" /></p>
-
-<p>Press it and select “Locate in Java project” to locate the correct project in the dialog.
-IGV hides projects which do not contain the required source file.
-The “Source Collections” serves to display the stand alone roots added by “Add root of sources” general action.
-If the source is located using the preferred method (i.e., from a Java project),
-its project can be later managed on the Project tab. That one is initially hidden,
-but you can display the list of opened projects using Window - Projects.</p>
-
-<h3 id="dumping-graphs">Dumping Graphs</h3>
-
-<p>The IGV tool is developed to allow GraalVM language implementers
-to optimize their languages assembled with the Truffle framework. As a development
-tool it should not be installed to production environments.</p>
-
-<p>To dump the GraalVM compiler graphs from an embedded Java application to IGV,
-you need to add options to GraalVM based processes. Depending on the language/VM
-used, you may need to prefix the options by <code>--vm</code>. See the particular
-language’s documentation for the details. The main option to add is
-<code>-Dgraal.Dump=:1</code>. This will dump graphs in an IGV readable format to the local
-file system. To send the dumps directly to IGV over the network, add
-<code>-Dgraal.PrintGraph=Network</code> when starting a GraalVM instance. Optionally a
-port can be specified. Then dumps are sent to IGV from the running GraalVM on
-localhost. If IGV does not listen on localhost, options “Ideal Graph Settings|
-Accept Data from network” can be checked. If there is not an IGV instance
-listening on <code>127.0.0.1</code> or it cannot be connected to, the dumps will be
-redirected to the local file system. The file system location is <code>graal_dumps/</code>
-under the current working directory of the process and can be changed with the
-<code>-Dgraal.DumpPath</code> option.</p>
-
-<p>In case an older GraalVM is used, you may need to explicitly request that dumps
-include the <code>nodeSourcePosition</code> property. This is done by adding the
-<code>-XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints</code> options.</p>
 
 
               </div>
