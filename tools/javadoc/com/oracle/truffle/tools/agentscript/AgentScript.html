@@ -17,12 +17,6 @@
     catch(err) {
     }
 //-->
-var methods = {"i0":18};
-var tabs = {65535:["t0","All Methods"],2:["t2","Instance Methods"],16:["t5","Default Methods"]};
-var altColor = "altColor";
-var rowColor = "rowColor";
-var tableTab = "tableTab";
-var activeTableTab = "activeTableTab";
 </script>
 <noscript>
 <div>JavaScript is disabled on your browser.</div>
@@ -73,15 +67,15 @@ var activeTableTab = "activeTableTab";
 <ul class="subNavList">
 <li>Summary:&nbsp;</li>
 <li>Nested&nbsp;|&nbsp;</li>
-<li><a href="#field.summary">Field</a>&nbsp;|&nbsp;</li>
+<li>Field&nbsp;|&nbsp;</li>
 <li>Constr&nbsp;|&nbsp;</li>
-<li><a href="#method.summary">Method</a></li>
+<li>Method</li>
 </ul>
 <ul class="subNavList">
 <li>Detail:&nbsp;</li>
-<li><a href="#field.detail">Field</a>&nbsp;|&nbsp;</li>
+<li>Field&nbsp;|&nbsp;</li>
 <li>Constr&nbsp;|&nbsp;</li>
-<li><a href="#method.detail">Method</a></li>
+<li>Method</li>
 </ul>
 </div>
 <a name="skip.navbar.top">
@@ -98,326 +92,12 @@ var activeTableTab = "activeTableTab";
 <ul class="blockList">
 <li class="blockList">
 <hr>
+<div class="block"><span class="deprecatedLabel">Deprecated.</span>&nbsp;
+<div class="block"><span class="deprecationComment">Use <a href="../../../../../org/graalvm/tools/insight/Insight.html" title="class in org.graalvm.tools.insight"><code>Insight</code></a>.</span></div>
+</div>
 <br>
-<pre>public interface <span class="typeNameLabel">AgentScript</span></pre>
-<div class="block">Programatic access to the scripting agent. Obtain an instance of this interface via its
- <a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html#ID"><code>AgentScript.ID</code></a>:
- <p>
- <pre><b>final</b> <code>Engine</code> engine = context.getEngine();
-<code>Instrument</code> instrument = engine.getInstruments().get(<em>"agentscript"</em>);
-<a href="http://docs.oracle.com/javase/8/docs/api/java/util/function/Function.html?is-external=true" title="class or interface in java.util.function"><code>Function</code></a>&lt;<code>Source</code>, <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/AutoCloseable.html?is-external=true" title="class or interface in java.lang"><code>AutoCloseable</code></a>&gt; access = instrument.lookup(<a href="http://docs.oracle.com/javase/8/docs/api/java/util/function/Function.html?is-external=true" title="class or interface in java.util.function"><code>Function</code></a>.<b>class</b>);
-<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/AutoCloseable.html?is-external=true" title="class or interface in java.lang"><code>AutoCloseable</code></a> handle = access.apply(agentSrc);
-</pre>
- 
- and then <a href="http://docs.oracle.com/javase/8/docs/api/java/util/function/Function.html?is-external=true#apply-T-" title="class or interface in java.util.function"><code>evaluate</code></a> <code>Source</code>
- scripts written in any language accessing the <code>agent</code> variable exposed to them. Use
- <a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html#VERSION"><code>current version API</code></a> when dealing with the <code>agent</code> variable.</div>
-</li>
-</ul>
-</div>
-<div class="summary">
-<ul class="blockList">
-<li class="blockList">
-<!-- =========== FIELD SUMMARY =========== -->
-<ul class="blockList">
-<li class="blockList"><a name="field.summary">
-<!--   -->
-</a>
-<h3>Field Summary</h3>
-<table class="memberSummary" border="0" cellpadding="3" cellspacing="0" summary="Field Summary table, listing fields, and an explanation">
-<caption><span>Fields</span><span class="tabEnd">&nbsp;</span></caption>
-<tr>
-<th class="colFirst" scope="col">Modifier and Type</th>
-<th class="colLast" scope="col">Field and Description</th>
-</tr>
-<tr class="altColor">
-<td class="colFirst"><code>static <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a></code></td>
-<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html#ID">ID</a></span></code>
-<div class="block">The ID of the agent script instrument is <code>"agentscript"</code>.</div>
-</td>
-</tr>
-<tr class="rowColor">
-<td class="colFirst"><code>static <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a></code></td>
-<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html#VERSION">VERSION</a></span></code>
-<div class="block">Version of the agent script instrument.</div>
-</td>
-</tr>
-</table>
-</li>
-</ul>
-<!-- ========== METHOD SUMMARY =========== -->
-<ul class="blockList">
-<li class="blockList"><a name="method.summary">
-<!--   -->
-</a>
-<h3>Method Summary</h3>
-<table class="memberSummary" border="0" cellpadding="3" cellspacing="0" summary="Method Summary table, listing methods, and an explanation">
-<caption><span id="t0" class="activeTableTab"><span>All Methods</span><span class="tabEnd">&nbsp;</span></span><span id="t2" class="tableTab"><span><a href="javascript:show(2);">Instance Methods</a></span><span class="tabEnd">&nbsp;</span></span><span id="t5" class="tableTab"><span><a href="javascript:show(16);">Default Methods</a></span><span class="tabEnd">&nbsp;</span></span></caption>
-<tr>
-<th class="colFirst" scope="col">Modifier and Type</th>
-<th class="colLast" scope="col">Method and Description</th>
-</tr>
-<tr id="i0" class="altColor">
-<td class="colFirst"><code>default void</code></td>
-<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html#registerAgentScript-com.oracle.truffle.api.source.Source-">registerAgentScript</a></span>(com.oracle.truffle.api.source.Source&nbsp;file)</code>
-<div class="block">Loads an agent script file into the system.</div>
-</td>
-</tr>
-</table>
-</li>
-</ul>
-</li>
-</ul>
-</div>
-<div class="details">
-<ul class="blockList">
-<li class="blockList">
-<!-- ============ FIELD DETAIL =========== -->
-<ul class="blockList">
-<li class="blockList"><a name="field.detail">
-<!--   -->
-</a>
-<h3>Field Detail</h3>
-<a name="ID">
-<!--   -->
-</a>
-<ul class="blockList">
-<li class="blockList">
-<h4>ID</h4>
-<pre>static final&nbsp;<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a> ID</pre>
-<div class="block">The ID of the agent script instrument is <code>"agentscript"</code>. Use it to obtain access to an
- <a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html" title="interface in com.oracle.truffle.tools.agentscript"><code>AgentScript</code></a> instances inside of your <code>Engine</code>:
- <p>
- <pre><b>final</b> <code>Engine</code> engine = context.getEngine();
-<code>Instrument</code> instrument = engine.getInstruments().get(<em>"agentscript"</em>);
-<a href="http://docs.oracle.com/javase/8/docs/api/java/util/function/Function.html?is-external=true" title="class or interface in java.util.function"><code>Function</code></a>&lt;<code>Source</code>, <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/AutoCloseable.html?is-external=true" title="class or interface in java.lang"><code>AutoCloseable</code></a>&gt; access = instrument.lookup(<a href="http://docs.oracle.com/javase/8/docs/api/java/util/function/Function.html?is-external=true" title="class or interface in java.util.function"><code>Function</code></a>.<b>class</b>);
-<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/AutoCloseable.html?is-external=true" title="class or interface in java.lang"><code>AutoCloseable</code></a> handle = access.apply(agentSrc);
-</pre></div>
-<dl>
-<dt><span class="seeLabel">See Also:</span></dt>
-<dd><a href="../../../../../constant-values.html#com.oracle.truffle.tools.agentscript.AgentScript.ID">Constant Field Values</a></dd>
-</dl>
-</li>
-</ul>
-<a name="VERSION">
-<!--   -->
-</a>
-<ul class="blockListLast">
-<li class="blockList">
-<h4>VERSION</h4>
-<pre>static final&nbsp;<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a> VERSION</pre>
-<div class="block">Version of the agent script instrument. The current version understands following Java-like
- polyglot <em>API</em> made available to the
- <a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html#registerAgentScript-com.oracle.truffle.api.source.Source-"><code>registered agent scripts</code></a>
- via <code>agent</code> reference:
- <p>
- <pre>/** Instance of <b>this</b> <b>class</b> is accessible via {&#064;code agent} variable
- * in the {&#064;link <a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html" title="interface in com.oracle.truffle.tools.agentscript"><code>AgentScript</code></a>}
- * {&#064;link <a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html" title="interface in com.oracle.truffle.tools.agentscript"><code>AgentScript</code></a>#registerAgentScript registered scripts}.
- */
-<b>public</b> <b>interface</b> AgentScriptAPI {
-    /** ID of the instrument. Version {&#064;code 0.4} has been released as
-     * part of GraalVM 20.0.0 release.
-     *
-     * &#064;<b>return</b> same value of {&#064;link <a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html" title="interface in com.oracle.truffle.tools.agentscript"><code>AgentScript</code></a>#ID} - e.g. {&#064;code <em>"agentscript"</em>}
-     * &#064;since 0.3
-     */
-    <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> id();
-
-    /** Version of the API. Version {&#064;code 0.1} has been released as
-     * part of GraalVM 19.3.0 release.
-     *
-     * &#064;<b>return</b> same value of {&#064;link <a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html" title="interface in com.oracle.truffle.tools.agentscript"><code>AgentScript</code></a>#VERSION}
-     * &#064;since 0.1
-     */
-    <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> version();
-
-    /** Marker <b>interface</b> <b>for</b> any handler.
-     * &#064;since 0.1
-     */
-    <b>interface</b> Handler {
-    }
-
-    <b>interface</b> SourceInfo {
-        /** Name of the {&#064;link OnSourceLoadedHandler#sourceLoaded}.
-         * &#064;<b>return</b> name of the loaded source
-         * &#064;since 0.1
-         */
-        <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> name();
-        /** <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Character.html?is-external=true" title="class or interface in java.lang"><code>Character</code></a> content of the {&#064;link OnSourceLoadedHandler#sourceLoaded}.
-         * &#064;<b>return</b> content of the loaded source
-         * &#064;since 0.1
-         */
-        <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> characters();
-        /** Identification of <b>this</b> source's language.
-         * &#064;<b>return</b> <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> representing the language ID
-         * &#064;since 0.1
-         */
-        <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> language();
-        /** Mime type of <b>this</b> source.
-         * &#064;<b>return</b> given mime type or {&#064;code <b>null</b>}
-         * &#064;since 0.1
-         */
-        <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> mimeType();
-        /** URI uniquely identifying the source.
-         * &#064;<b>return</b> the URI
-         * &#064;since 0.1
-         */
-        <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> uri();
-    }
-
-    &#064;<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/FunctionalInterface.html?is-external=true" title="class or interface in java.lang"><code>FunctionalInterface</code></a>
-    <b>interface</b> OnSourceLoadedHandler <b>extends</b> Handler {
-        /** Called when a <b>new</b> source is loaded into the system.
-         * &#064;param info information about the loaded source
-         * &#064;since 0.1
-         */
-        <b>void</b> sourceLoaded(SourceInfo info);
-    }
-    /** Register a handler to be notified when a source is loaded.
-     *
-     * &#064;param event has to be {&#064;code <em>"source"</em>} string
-     * &#064;param handler a callback that takes
-     *      {&#064;link SourceInfo one argument}
-     */
-    <b>void</b> on(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> event, OnSourceLoadedHandler handler);
-
-    &#064;<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/FunctionalInterface.html?is-external=true" title="class or interface in java.lang"><code>FunctionalInterface</code></a>
-    <b>interface</b> OnEventHandler <b>extends</b> Handler {
-        <b>interface</b> Context {
-            /** Name of the enclosing function.
-             * &#064;<b>return</b> the name of the enclosing function
-             * &#064;since 0.1
-             */
-            <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> name();
-
-            /** Information about surrounding source.
-             * &#064;<b>return</b> information about the surrounding source
-             * &#064;since 0.4
-             */
-            SourceInfo source();
-
-            /** Characters of the location.
-             * &#064;<b>return</b> the characters of <b>this</b> {&#064;link Context}
-             * &#064;since 0.4
-             */
-            <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> characters();
-
-            /** Line of <b>this</b> location. The same as {&#064;link #startLine()}.
-             *
-             * &#064;<b>return</b> line number counting from one
-             * &#064;since 0.4
-             */
-            <b>int</b> line();
-
-            /** Staring line of <b>this</b> location.
-             *
-             * &#064;<b>return</b> line number counting from one
-             * &#064;since 0.4
-             */
-            <b>int</b> startLine();
-
-            /** Final line of <b>this</b> location.
-             *
-             * &#064;<b>return</b> line number counting from one
-             * &#064;since 0.4
-             */
-            <b>int</b> endLine();
-
-            /** Column of <b>this</b> location. The same as {&#064;link #startColumn()}.
-             *
-             * &#064;<b>return</b> column number counting from one
-             * &#064;since 0.4
-             */
-            <b>int</b> column();
-
-            /** Starting column of <b>this</b> location.
-             *
-             * &#064;<b>return</b> column number counting from one
-             * &#064;since 0.4
-             */
-            <b>int</b> startColumn();
-
-            /** Final column of <b>this</b> location.
-             *
-             * &#064;<b>return</b> column number counting from one
-             * &#064;since 0.4
-             */
-            <b>int</b> endColumn();
-        }
-        <b>void</b> event(Context ctx, <a href="http://docs.oracle.com/javase/8/docs/api/java/util/Map.html?is-external=true" title="class or interface in java.util"><code>Map</code></a>&lt;<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a>, <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true" title="class or interface in java.lang"><code>Object</code></a>&gt; frame);
-    }
-    <b>class</b> OnConfig {
-        <b>public</b> <b>boolean</b> expressions;
-        <b>public</b> <b>boolean</b> statements;
-        <b>public</b> <b>boolean</b> roots;
-        <b>public</b> <a href="http://docs.oracle.com/javase/8/docs/api/java/util/function/Predicate.html?is-external=true" title="class or interface in java.util.function"><code>Predicate</code></a>&lt;<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a>&gt; rootNameFilter;
-        /* &#064;since 0.4 */
-        <b>public</b> <a href="http://docs.oracle.com/javase/8/docs/api/java/util/function/Predicate.html?is-external=true" title="class or interface in java.util.function"><code>Predicate</code></a>&lt;SourceInfo&gt; sourceFilter;
-    }
-
-    /** Register a handler on a particular elements in the source code.
-     *
-     * &#064;param event one of {&#064;code <em>"enter"</em>}, {&#064;code <em>"return"</em>} strings
-     * &#064;param handler callback
-     *      {&#064;link OnEventHandler#event function with two arguments}
-     * &#064;param config config object to identify locations to listen to
-     */
-    <b>void</b> on(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> event, OnEventHandler handler, OnConfig config);
-
-    &#064;<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/FunctionalInterface.html?is-external=true" title="class or interface in java.lang"><code>FunctionalInterface</code></a>
-    <b>interface</b> OnCloseHandler <b>extends</b> Handler {
-        <b>void</b> closed();
-    }
-    /** Register on close handler.
-     *
-     * &#064;param event must be {&#064;code <em>"close"</em>} string
-     * &#064;param handler no args function to be notified when execution ends
-     */
-    <b>void</b> on(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> event, OnCloseHandler handler);
-
-    /** Unregisters a handler.
-     *
-     * &#064;param event the event type to unregister from
-     * &#064;param handler the instance of handler registered
-     *   by one of the {&#064;code on} methods
-     * &#064;since 0.2
-     */
-    <b>void</b> off(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang"><code>String</code></a> event, Handler handler);
-}
-</pre></div>
-<dl>
-<dt><span class="seeLabel">See Also:</span></dt>
-<dd><a href="../../../../../constant-values.html#com.oracle.truffle.tools.agentscript.AgentScript.VERSION">Constant Field Values</a></dd>
-</dl>
-</li>
-</ul>
-</li>
-</ul>
-<!-- ============ METHOD DETAIL ========== -->
-<ul class="blockList">
-<li class="blockList"><a name="method.detail">
-<!--   -->
-</a>
-<h3>Method Detail</h3>
-<a name="registerAgentScript-com.oracle.truffle.api.source.Source-">
-<!--   -->
-</a>
-<ul class="blockListLast">
-<li class="blockList">
-<h4>registerAgentScript</h4>
-<pre>default&nbsp;void&nbsp;registerAgentScript(com.oracle.truffle.api.source.Source&nbsp;file)</pre>
-<div class="block">Loads an agent script file into the system. The script file may be written in any GraalVM
- supported language and shall access <code>agent</code> variable which provides following
- <a href="../../../../../com/oracle/truffle/tools/agentscript/AgentScript.html#VERSION"><code>polyglot-ready API</code></a>.</div>
-<dl>
-<dt><span class="paramLabel">Parameters:</span></dt>
-<dd><code>file</code> - the file with the code for the agent</dd>
-</dl>
-</li>
-</ul>
-</li>
-</ul>
+<pre><a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Deprecated.html?is-external=true" title="class or interface in java.lang">@Deprecated</a>
+public interface <span class="typeNameLabel">AgentScript</span></pre>
 </li>
 </ul>
 </div>
@@ -469,15 +149,15 @@ var activeTableTab = "activeTableTab";
 <ul class="subNavList">
 <li>Summary:&nbsp;</li>
 <li>Nested&nbsp;|&nbsp;</li>
-<li><a href="#field.summary">Field</a>&nbsp;|&nbsp;</li>
+<li>Field&nbsp;|&nbsp;</li>
 <li>Constr&nbsp;|&nbsp;</li>
-<li><a href="#method.summary">Method</a></li>
+<li>Method</li>
 </ul>
 <ul class="subNavList">
 <li>Detail:&nbsp;</li>
-<li><a href="#field.detail">Field</a>&nbsp;|&nbsp;</li>
+<li>Field&nbsp;|&nbsp;</li>
 <li>Constr&nbsp;|&nbsp;</li>
-<li><a href="#method.detail">Method</a></li>
+<li>Method</li>
 </ul>
 </div>
 <a name="skip.navbar.bottom">

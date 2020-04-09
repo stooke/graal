@@ -124,9 +124,9 @@ var activeTableTab = "activeTableTab";
 <pre>public abstract class <span class="typeNameLabel">FrameLibrary</span>
 extends com.oracle.truffle.api.library.Library</pre>
 <div class="block">Encapsulating access to execution frames.
- <a href="https://github.com/oracle/graal/blob/master/tools/docs/T-Trace.md">T-Trace</a> scripts
- can access local variables of the dynamically <a href=
- "https://github.com/oracle/graal/blob/master/tools/docs/T-Trace-Manual.md#inspecting-values">
+ <a href="https://github.com/oracle/graal/blob/master/tools/docs/Insight.md">GraalVM Insight</a>
+ scripts can access local variables of the dynamically <a href=
+ "https://github.com/oracle/graal/blob/master/tools/docs/Insight-Manual.md#inspecting-values">
  instrumented source code</a>. This library handles such accesses. Implement your own to respond to various messages (like
  <a href="../../../../../com/oracle/truffle/tools/agentscript/FrameLibrary.html#readMember-com.oracle.truffle.tools.agentscript.FrameLibrary.Query-java.lang.String-"><code>FrameLibrary.readMember(com.oracle.truffle.tools.agentscript.FrameLibrary.Query, java.lang.String)</code></a>)
  in a different way - for example by exposing more than it is in their frames
