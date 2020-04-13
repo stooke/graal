@@ -810,7 +810,7 @@ plain C or Fortran numerical computations working on primitive arrays. The <em>l
 better performance for extensions that frequently call between R and the C/C++ code, because GraalVM LLVM
 interpreter is also partially evaluated by the <a href="https://github.com/oracle/graal/tree/master/truffle">Truffle library</a> like the R code, both can be inlined and optimized
 as one compilation unit. Moreover, GraalVM LLVM is supported by
-<a href="/docs/reference-manual/tools/">GraalVM tools</a> which allows to, for instance,
+<a href="/docs/tools/">GraalVM tools</a> which allows to, for instance,
 debug R and C code together.</p>
 
 <p>In one GraalVM R process, any R package can be loaded in either mode. That is, GraalVM R supports
@@ -947,9 +947,9 @@ make the performance advantage of C/C++ negligible:</p>
 <p>The R language integration with the GraalVM ecosystem includes:</p>
 <ul>
   <li>seamless interop with other GraalVM languages and with Java</li>
-  <li>debugging with <a href="/docs/reference-manual/tools/#debugger">Chrome DevTools</a></li>
-  <li><a href="/docs/reference-manual/tools/#profiler">CPU and memory profiling</a></li>
-  <li><a href="/docs/reference-manual/tools/#heap-viewer">VisualVM integration</a></li>
+  <li>debugging with <a href="/docs/tools/chrome-debugger">Chrome DevTools</a></li>
+  <li><a href="/docs/tools/profiler">CPU and memory profiling</a></li>
+  <li><a href="/docs/tools/visualvm">VisualVM integration</a></li>
 </ul>
 
 <p>To start debugging the code start the R script with <code>--inspect</code> option</p>

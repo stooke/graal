@@ -21,4 +21,4 @@ Here are a few tips and tricks you can follow to analyse and improve peak perfor
 * The Polyglot API comes with several tools and options to inspect the performance of your application:
     * `--cpusampler` and `--cputracer` will print a list of the hottest methods when the application is terminated. Use that list to figure out where most time is spent in your application. More details about the command line options for the polyglot commands can be found from the
     [polyglot documentation]({{ "/docs/reference-manual/polyglot/#polyglot-options" | relative_url}}).
-    * `--experimental-options --memtracer` can help you understand the memory allocations of your application. Refer to [Profiling command line tools reference]({{ "/docs/reference-manual/tools/#profiler" | relative_url }}) for more detail.
+    * `--experimental-options --memtracer` can help you understand the memory allocations of your application. Refer to [Profiling command line tools reference]({{ "/docs/tools/profiler" | relative_url }}) for more detail.

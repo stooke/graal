@@ -686,7 +686,7 @@ the GraalVM build process will be remedied in <a href="/docs/release-notes/versi
 <p>Listed below are issues addressed in this release:</p>
 <ul>
   <li>Resolved the issue of <code>NullPointerException</code> being thrown with <code>SecurityServicesFeature</code> when the application uses non-JDK related services (<a href="https://github.com/oracle/graal/pull/1893">#1893</a>).</li>
-  <li>Made efforts to turn <a href="/docs/reference-manual/tools/#code-coverage">Code coverage command line tool</a> more reliable (<a href="https://github.com/oracle/graal/pull/1800">#1800</a>).</li>
+  <li>Made efforts to turn <a href="/docs/tools/code-coverage">Code coverage command line tool</a> more reliable (<a href="https://github.com/oracle/graal/pull/1800">#1800</a>).</li>
   <li>Prevented linking errors in <code>Unsafe</code> and <code>ClassLoader</code> by substituting all native methods (<a href="https://github.com/oracle/graal/issues/1920">#1920</a>).</li>
   <li>Made dynamically generate <code>On_Load_*</code> function call for static libraries so all libraries are known before the image generation to prevent <code>-Djava.net.preferIPv6Addresses=true</code> returning an incorrect value (<a href="https://github.com/oracle/graal/issues/1937">#1937</a>).</li>
   <li>Fixed <code>ProcessHandle</code> properties not providing useful values when running a native image (<a href="https://github.com/oracle/graal/issues/2001">#2001</a>).</li>
@@ -982,7 +982,7 @@ Major changes include:</p>
 <p>As of version 19.3 GraalVM provides a code coverage command line tool to record
 and analyze the source code coverage of a particular execution of code for
 languages implemented with the Truffle framework. Enable it with <code>--codecoverage</code>
-option, for example <code>js --codecoverage</code>. Visit the <a href="/docs/reference-manual/tools/">tool reference documentation</a> for more
+option, for example <code>js --codecoverage</code>. Visit the <a href="/docs/tools/">tool reference documentation</a> for more
 information.</p>
 
 <h4 id="graalvm-visualvm">GraalVM VisualVM</h4>
