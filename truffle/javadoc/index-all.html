@@ -38,7 +38,7 @@
 <li class="navBarCell1Rev">Index</li>
 <li><a href="help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>bf20094444a5e1771479698089522b15d59710d3</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>753b137819416731d2a9ae1c0ec98a5052ea987d</div>
 </div>
 <div class="subNav">
 <ul class="navList">
@@ -1951,6 +1951,10 @@
 <dd>
 <div class="block">Creates a new instance of a <a href="com/oracle/truffle/api/TruffleLanguage.html" title="class in com.oracle.truffle.api"><code>TruffleLanguage</code></a>.</div>
 </dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/TruffleStackTraceElement.html#create-com.oracle.truffle.api.nodes.Node-com.oracle.truffle.api.RootCallTarget-com.oracle.truffle.api.frame.Frame-">create(Node, RootCallTarget, Frame)</a></span> - Static method in class com.oracle.truffle.api.<a href="com/oracle/truffle/api/TruffleStackTraceElement.html" title="class in com.oracle.truffle.api">TruffleStackTraceElement</a></dt>
+<dd>
+<div class="block">Create a new stack trace element.</div>
+</dd>
 <dt><span class="memberNameLink"><a href="org/graalvm/collections/EconomicMap.html#create--">create()</a></span> - Static method in interface org.graalvm.collections.<a href="org/graalvm/collections/EconomicMap.html" title="interface in org.graalvm.collections">EconomicMap</a></dt>
 <dd>
 <div class="block">Creates a new map that guarantees insertion order on the key set with the default
@@ -3372,6 +3376,11 @@
 <dd>
 <div class="block">Find annotation in class/interface hierarchy.</div>
 </dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/nodes/RootNode.html#findAsynchronousFrames-com.oracle.truffle.api.frame.Frame-">findAsynchronousFrames(Frame)</a></span> - Method in class com.oracle.truffle.api.nodes.<a href="com/oracle/truffle/api/nodes/RootNode.html" title="class in com.oracle.truffle.api.nodes">RootNode</a></dt>
+<dd>
+<div class="block">Provide a list of stack frames that led to a schedule of asynchronous execution of this root
+ node on the provided frame.</div>
+</dd>
 <dt><span class="memberNameLink"><a href="org/graalvm/nativeimage/hosted/Feature.FeatureAccess.html#findClassByName-java.lang.String-">findClassByName(String)</a></span> - Method in interface org.graalvm.nativeimage.hosted.<a href="org/graalvm/nativeimage/hosted/Feature.FeatureAccess.html" title="interface in org.graalvm.nativeimage.hosted">Feature.FeatureAccess</a></dt>
 <dd>
 <div class="block">Returns a class if it is present on the classpath.</div>
@@ -3943,6 +3952,19 @@
 </dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/utilities/CyclicAssumption.html#getAssumption--">getAssumption()</a></span> - Method in class com.oracle.truffle.api.utilities.<a href="com/oracle/truffle/api/utilities/CyclicAssumption.html" title="class in com.oracle.truffle.api.utilities">CyclicAssumption</a></dt>
 <dd>&nbsp;</dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/TruffleLanguage.html#getAsynchronousStackDepth--">getAsynchronousStackDepth()</a></span> - Method in class com.oracle.truffle.api.<a href="com/oracle/truffle/api/TruffleLanguage.html" title="class in com.oracle.truffle.api">TruffleLanguage</a></dt>
+<dd>
+<div class="block">Get the depth of asynchronous stack.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/SuspendedEvent.html#getAsynchronousStacks--">getAsynchronousStacks()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/SuspendedEvent.html" title="class in com.oracle.truffle.api.debug">SuspendedEvent</a></dt>
+<dd>
+<div class="block">Get a list of asynchronous stack traces that led to scheduling of the current execution.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/TruffleStackTrace.html#getAsynchronousStackTrace-com.oracle.truffle.api.CallTarget-com.oracle.truffle.api.frame.Frame-">getAsynchronousStackTrace(CallTarget, Frame)</a></span> - Static method in exception com.oracle.truffle.api.<a href="com/oracle/truffle/api/TruffleStackTrace.html" title="class in com.oracle.truffle.api">TruffleStackTrace</a></dt>
+<dd>
+<div class="block">Returns asynchronous guest language stack frames that led to the execution of given
+ <a href="com/oracle/truffle/api/CallTarget.html" title="interface in com.oracle.truffle.api"><code>CallTarget</code></a> on the given <a href="com/oracle/truffle/api/frame/Frame.html" title="interface in com.oracle.truffle.api.frame"><code>Frame</code></a>.</div>
+</dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/TruffleFile.html#getAttribute-com.oracle.truffle.api.TruffleFile.AttributeDescriptor-java.nio.file.LinkOption...-">getAttribute(TruffleFile.AttributeDescriptor&lt;T&gt;, LinkOption...)</a></span> - Method in class com.oracle.truffle.api.<a href="com/oracle/truffle/api/TruffleFile.html" title="class in com.oracle.truffle.api">TruffleFile</a></dt>
 <dd>
 <div class="block">Reads a single file's attribute.</div>
@@ -4216,6 +4238,10 @@
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/TruffleLanguage.Env.html#getCurrentWorkingDirectory--">getCurrentWorkingDirectory()</a></span> - Method in class com.oracle.truffle.api.<a href="com/oracle/truffle/api/TruffleLanguage.Env.html" title="class in com.oracle.truffle.api">TruffleLanguage.Env</a></dt>
 <dd>
 <div class="block">Gets the current working directory.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebugException.html#getDebugAsynchronousStacks--">getDebugAsynchronousStacks()</a></span> - Method in exception com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebugException.html" title="class in com.oracle.truffle.api.debug">DebugException</a></dt>
+<dd>
+<div class="block">Get a list of asynchronous stack traces that led to scheduling of the exception's execution.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebuggerSession.html#getDebugger--">getDebugger()</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebuggerSession.html" title="class in com.oracle.truffle.api.debug">DebuggerSession</a></dt>
 <dd>
@@ -10357,6 +10383,14 @@
 <dd>
 <div class="block">Sets the value at a given index.</div>
 </dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/debug/DebuggerSession.html#setAsynchronousStackDepth-int-">setAsynchronousStackDepth(int)</a></span> - Method in class com.oracle.truffle.api.debug.<a href="com/oracle/truffle/api/debug/DebuggerSession.html" title="class in com.oracle.truffle.api.debug">DebuggerSession</a></dt>
+<dd>
+<div class="block">Request for languages to provide stack frames of scheduled asynchronous execution.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="com/oracle/truffle/api/instrumentation/TruffleInstrument.Env.html#setAsynchronousStackDepth-int-">setAsynchronousStackDepth(int)</a></span> - Method in class com.oracle.truffle.api.instrumentation.<a href="com/oracle/truffle/api/instrumentation/TruffleInstrument.Env.html" title="class in com.oracle.truffle.api.instrumentation">TruffleInstrument.Env</a></dt>
+<dd>
+<div class="block">Request for languages to provide stack frames of scheduled asynchronous execution.</div>
+</dd>
 <dt><span class="memberNameLink"><a href="com/oracle/truffle/api/TruffleFile.html#setAttribute-com.oracle.truffle.api.TruffleFile.AttributeDescriptor-T-java.nio.file.LinkOption...-">setAttribute(TruffleFile.AttributeDescriptor&lt;T&gt;, T, LinkOption...)</a></span> - Method in class com.oracle.truffle.api.<a href="com/oracle/truffle/api/TruffleFile.html" title="class in com.oracle.truffle.api">TruffleFile</a></dt>
 <dd>
 <div class="block">Sets a single file's attribute.</div>
@@ -12238,7 +12272,7 @@ the order they are declared.</div>
 <li class="navBarCell1Rev">Index</li>
 <li><a href="help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>bf20094444a5e1771479698089522b15d59710d3</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>753b137819416731d2a9ae1c0ec98a5052ea987d</div>
 </div>
 <div class="subNav">
 <ul class="navList">

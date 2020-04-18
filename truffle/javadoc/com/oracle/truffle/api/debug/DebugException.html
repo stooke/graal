@@ -17,7 +17,7 @@
     catch(err) {
     }
 //-->
-var methods = {"i0":10,"i1":10,"i2":10,"i3":10,"i4":10,"i5":10,"i6":10,"i7":10,"i8":10,"i9":10,"i10":10,"i11":10};
+var methods = {"i0":10,"i1":10,"i2":10,"i3":10,"i4":10,"i5":10,"i6":10,"i7":10,"i8":10,"i9":10,"i10":10,"i11":10,"i12":10};
 var tabs = {65535:["t0","All Methods"],2:["t2","Instance Methods"],8:["t4","Concrete Methods"]};
 var altColor = "altColor";
 var rowColor = "rowColor";
@@ -44,7 +44,7 @@ var activeTableTab = "activeTableTab";
 <li><a href="../../../../../index-all.html">Index</a></li>
 <li><a href="../../../../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>bf20094444a5e1771479698089522b15d59710d3</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>753b137819416731d2a9ae1c0ec98a5052ea987d</div>
 </div>
 <div class="subNav">
 <ul class="navList">
@@ -192,55 +192,61 @@ extends <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/RuntimeExcep
 </td>
 </tr>
 <tr id="i2" class="altColor">
+<td class="colFirst"><code><a href="http://docs.oracle.com/javase/8/docs/api/java/util/List.html?is-external=true" title="class or interface in java.util">List</a>&lt;<a href="http://docs.oracle.com/javase/8/docs/api/java/util/List.html?is-external=true" title="class or interface in java.util">List</a>&lt;<a href="../../../../../com/oracle/truffle/api/debug/DebugStackTraceElement.html" title="class in com.oracle.truffle.api.debug">DebugStackTraceElement</a>&gt;&gt;</code></td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/api/debug/DebugException.html#getDebugAsynchronousStacks--">getDebugAsynchronousStacks</a></span>()</code>
+<div class="block">Get a list of asynchronous stack traces that led to scheduling of the exception's execution.</div>
+</td>
+</tr>
+<tr id="i3" class="rowColor">
 <td class="colFirst"><code><a href="http://docs.oracle.com/javase/8/docs/api/java/util/List.html?is-external=true" title="class or interface in java.util">List</a>&lt;<a href="../../../../../com/oracle/truffle/api/debug/DebugStackTraceElement.html" title="class in com.oracle.truffle.api.debug">DebugStackTraceElement</a>&gt;</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/api/debug/DebugException.html#getDebugStackTrace--">getDebugStackTrace</a></span>()</code>
 <div class="block">Gets stack trace elements of guest languages.</div>
 </td>
 </tr>
-<tr id="i3" class="rowColor">
+<tr id="i4" class="altColor">
 <td class="colFirst"><code><a href="../../../../../com/oracle/truffle/api/debug/DebugValue.html" title="class in com.oracle.truffle.api.debug">DebugValue</a></code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/api/debug/DebugException.html#getExceptionObject--">getExceptionObject</a></span>()</code>
 <div class="block">Get a guest language object representing the exception, if any.</div>
 </td>
 </tr>
-<tr id="i4" class="altColor">
+<tr id="i5" class="rowColor">
 <td class="colFirst"><code><a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html?is-external=true" title="class or interface in java.lang">Throwable</a></code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/api/debug/DebugException.html#getRawException-java.lang.Class-">getRawException</a></span>(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;? extends <a href="../../../../../com/oracle/truffle/api/TruffleLanguage.html" title="class in com.oracle.truffle.api">TruffleLanguage</a>&lt;?&gt;&gt;&nbsp;languageClass)</code>
 <div class="block">Returns the guest language representation of the exception, or <code>null</code> if the
  requesting language class does not match the root node language at the throw location.</div>
 </td>
 </tr>
-<tr id="i5" class="rowColor">
+<tr id="i6" class="altColor">
 <td class="colFirst"><code><a href="http://docs.oracle.com/javase/8/docs/api/java/lang/StackTraceElement.html?is-external=true" title="class or interface in java.lang">StackTraceElement</a>[]</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/api/debug/DebugException.html#getStackTrace--">getStackTrace</a></span>()</code>
 <div class="block">Gets stack trace elements of guest languages.</div>
 </td>
 </tr>
-<tr id="i6" class="altColor">
+<tr id="i7" class="rowColor">
 <td class="colFirst"><code><a href="../../../../../com/oracle/truffle/api/source/SourceSection.html" title="class in com.oracle.truffle.api.source">SourceSection</a></code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/api/debug/DebugException.html#getThrowLocation--">getThrowLocation</a></span>()</code>
 <div class="block">Get source code location where this exception was thrown from.</div>
 </td>
 </tr>
-<tr id="i7" class="rowColor">
+<tr id="i8" class="altColor">
 <td class="colFirst"><code>boolean</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/api/debug/DebugException.html#isInternalError--">isInternalError</a></span>()</code>
 <div class="block">Returns <code>true</code> if this exception indicates an internal error.</div>
 </td>
 </tr>
-<tr id="i8" class="altColor">
+<tr id="i9" class="rowColor">
 <td class="colFirst"><code>void</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/api/debug/DebugException.html#printStackTrace--">printStackTrace</a></span>()</code></td>
 </tr>
-<tr id="i9" class="rowColor">
+<tr id="i10" class="altColor">
 <td class="colFirst"><code>void</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/api/debug/DebugException.html#printStackTrace-java.io.PrintStream-">printStackTrace</a></span>(<a href="http://docs.oracle.com/javase/8/docs/api/java/io/PrintStream.html?is-external=true" title="class or interface in java.io">PrintStream</a>&nbsp;s)</code></td>
 </tr>
-<tr id="i10" class="altColor">
+<tr id="i11" class="rowColor">
 <td class="colFirst"><code>void</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/api/debug/DebugException.html#printStackTrace-java.io.PrintWriter-">printStackTrace</a></span>(<a href="http://docs.oracle.com/javase/8/docs/api/java/io/PrintWriter.html?is-external=true" title="class or interface in java.io">PrintWriter</a>&nbsp;s)</code></td>
 </tr>
-<tr id="i11" class="rowColor">
+<tr id="i12" class="altColor">
 <td class="colFirst"><code>void</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/oracle/truffle/api/debug/DebugException.html#setStackTrace-java.lang.StackTraceElement:A-">setStackTrace</a></span>(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/StackTraceElement.html?is-external=true" title="class or interface in java.lang">StackTraceElement</a>[]&nbsp;stackTrace)</code>
 <div class="block">Unsupported, <a href="../../../../../com/oracle/truffle/api/debug/DebugException.html" title="class in com.oracle.truffle.api.debug"><code>DebugException</code></a> instances are not writable therefore setting the stack
@@ -339,6 +345,30 @@ extends <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/RuntimeExcep
 <dl>
 <dt><span class="simpleTagLabel">Since:</span></dt>
 <dd>19.0</dd>
+</dl>
+</li>
+</ul>
+<a name="getDebugAsynchronousStacks--">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>getDebugAsynchronousStacks</h4>
+<pre>public&nbsp;<a href="http://docs.oracle.com/javase/8/docs/api/java/util/List.html?is-external=true" title="class or interface in java.util">List</a>&lt;<a href="http://docs.oracle.com/javase/8/docs/api/java/util/List.html?is-external=true" title="class or interface in java.util">List</a>&lt;<a href="../../../../../com/oracle/truffle/api/debug/DebugStackTraceElement.html" title="class in com.oracle.truffle.api.debug">DebugStackTraceElement</a>&gt;&gt;&nbsp;getDebugAsynchronousStacks()</pre>
+<div class="block">Get a list of asynchronous stack traces that led to scheduling of the exception's execution.
+ Returns an empty list if no asynchronous stack is known. The first asynchronous stack is at
+ the first index in the list. A possible next asynchronous stack (that scheduled execution of
+ the previous one) is at the next index in the list.
+ <p>
+ Languages might not provide asynchronous stack traces by default for performance reasons.
+ Call <a href="../../../../../com/oracle/truffle/api/debug/DebuggerSession.html#setAsynchronousStackDepth-int-"><code>DebuggerSession.setAsynchronousStackDepth(int)</code></a> to request asynchronous stacks.
+ Languages may provide asynchronous stacks if it's of no performance penalty, or if requested
+ by other options.</div>
+<dl>
+<dt><span class="simpleTagLabel">Since:</span></dt>
+<dd>20.1.0</dd>
+<dt><span class="seeLabel">See Also:</span></dt>
+<dd><a href="../../../../../com/oracle/truffle/api/debug/DebuggerSession.html#setAsynchronousStackDepth-int-"><code>DebuggerSession.setAsynchronousStackDepth(int)</code></a></dd>
 </dl>
 </li>
 </ul>
@@ -498,7 +528,7 @@ extends <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/RuntimeExcep
 <li><a href="../../../../../index-all.html">Index</a></li>
 <li><a href="../../../../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>bf20094444a5e1771479698089522b15d59710d3</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>753b137819416731d2a9ae1c0ec98a5052ea987d</div>
 </div>
 <div class="subNav">
 <ul class="navList">

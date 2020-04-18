@@ -17,8 +17,8 @@
     catch(err) {
     }
 //-->
-var methods = {"i0":10,"i1":10,"i2":10};
-var tabs = {65535:["t0","All Methods"],2:["t2","Instance Methods"],8:["t4","Concrete Methods"]};
+var methods = {"i0":9,"i1":10,"i2":10,"i3":10};
+var tabs = {65535:["t0","All Methods"],1:["t1","Static Methods"],2:["t2","Instance Methods"],8:["t4","Concrete Methods"]};
 var altColor = "altColor";
 var rowColor = "rowColor";
 var tableTab = "tableTab";
@@ -44,7 +44,7 @@ var activeTableTab = "activeTableTab";
 <li><a href="../../../../index-all.html">Index</a></li>
 <li><a href="../../../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>bf20094444a5e1771479698089522b15d59710d3</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>753b137819416731d2a9ae1c0ec98a5052ea987d</div>
 </div>
 <div class="subNav">
 <ul class="navList">
@@ -128,24 +128,32 @@ extends <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?
 </a>
 <h3>Method Summary</h3>
 <table class="memberSummary" border="0" cellpadding="3" cellspacing="0" summary="Method Summary table, listing methods, and an explanation">
-<caption><span id="t0" class="activeTableTab"><span>All Methods</span><span class="tabEnd">&nbsp;</span></span><span id="t2" class="tableTab"><span><a href="javascript:show(2);">Instance Methods</a></span><span class="tabEnd">&nbsp;</span></span><span id="t4" class="tableTab"><span><a href="javascript:show(8);">Concrete Methods</a></span><span class="tabEnd">&nbsp;</span></span></caption>
+<caption><span id="t0" class="activeTableTab"><span>All Methods</span><span class="tabEnd">&nbsp;</span></span><span id="t1" class="tableTab"><span><a href="javascript:show(1);">Static Methods</a></span><span class="tabEnd">&nbsp;</span></span><span id="t2" class="tableTab"><span><a href="javascript:show(2);">Instance Methods</a></span><span class="tabEnd">&nbsp;</span></span><span id="t4" class="tableTab"><span><a href="javascript:show(8);">Concrete Methods</a></span><span class="tabEnd">&nbsp;</span></span></caption>
 <tr>
 <th class="colFirst" scope="col">Modifier and Type</th>
 <th class="colLast" scope="col">Method and Description</th>
 </tr>
 <tr id="i0" class="altColor">
+<td class="colFirst"><code>static <a href="../../../../com/oracle/truffle/api/TruffleStackTraceElement.html" title="class in com.oracle.truffle.api">TruffleStackTraceElement</a></code></td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../../com/oracle/truffle/api/TruffleStackTraceElement.html#create-com.oracle.truffle.api.nodes.Node-com.oracle.truffle.api.RootCallTarget-com.oracle.truffle.api.frame.Frame-">create</a></span>(<a href="../../../../com/oracle/truffle/api/nodes/Node.html" title="class in com.oracle.truffle.api.nodes">Node</a>&nbsp;location,
+      <a href="../../../../com/oracle/truffle/api/RootCallTarget.html" title="interface in com.oracle.truffle.api">RootCallTarget</a>&nbsp;target,
+      <a href="../../../../com/oracle/truffle/api/frame/Frame.html" title="interface in com.oracle.truffle.api.frame">Frame</a>&nbsp;frame)</code>
+<div class="block">Create a new stack trace element.</div>
+</td>
+</tr>
+<tr id="i1" class="rowColor">
 <td class="colFirst"><code><a href="../../../../com/oracle/truffle/api/frame/Frame.html" title="interface in com.oracle.truffle.api.frame">Frame</a></code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../com/oracle/truffle/api/TruffleStackTraceElement.html#getFrame--">getFrame</a></span>()</code>
 <div class="block">Returns the materialized frame.</div>
 </td>
 </tr>
-<tr id="i1" class="rowColor">
+<tr id="i2" class="altColor">
 <td class="colFirst"><code><a href="../../../../com/oracle/truffle/api/nodes/Node.html" title="class in com.oracle.truffle.api.nodes">Node</a></code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../com/oracle/truffle/api/TruffleStackTraceElement.html#getLocation--">getLocation</a></span>()</code>
 <div class="block">Returns a node representing the callsite on the stack.</div>
 </td>
 </tr>
-<tr id="i2" class="altColor">
+<tr id="i3" class="rowColor">
 <td class="colFirst"><code><a href="../../../../com/oracle/truffle/api/RootCallTarget.html" title="interface in com.oracle.truffle.api">RootCallTarget</a></code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../com/oracle/truffle/api/TruffleStackTraceElement.html#getTarget--">getTarget</a></span>()</code>
 <div class="block">Returns the call target on the stack.</div>
@@ -173,6 +181,26 @@ extends <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?
 <!--   -->
 </a>
 <h3>Method Detail</h3>
+<a name="create-com.oracle.truffle.api.nodes.Node-com.oracle.truffle.api.RootCallTarget-com.oracle.truffle.api.frame.Frame-">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>create</h4>
+<pre>public static&nbsp;<a href="../../../../com/oracle/truffle/api/TruffleStackTraceElement.html" title="class in com.oracle.truffle.api">TruffleStackTraceElement</a>&nbsp;create(<a href="../../../../com/oracle/truffle/api/nodes/Node.html" title="class in com.oracle.truffle.api.nodes">Node</a>&nbsp;location,
+                                              <a href="../../../../com/oracle/truffle/api/RootCallTarget.html" title="interface in com.oracle.truffle.api">RootCallTarget</a>&nbsp;target,
+                                              <a href="../../../../com/oracle/truffle/api/frame/Frame.html" title="interface in com.oracle.truffle.api.frame">Frame</a>&nbsp;frame)</pre>
+<div class="block">Create a new stack trace element.</div>
+<dl>
+<dt><span class="paramLabel">Parameters:</span></dt>
+<dd><code>location</code> - See <a href="../../../../com/oracle/truffle/api/TruffleStackTraceElement.html#getLocation--"><code>TruffleStackTraceElement.getLocation()</code></a></dd>
+<dd><code>target</code> - See <a href="../../../../com/oracle/truffle/api/TruffleStackTraceElement.html#getTarget--"><code>TruffleStackTraceElement.getTarget()</code></a></dd>
+<dd><code>frame</code> - See <a href="../../../../com/oracle/truffle/api/TruffleStackTraceElement.html#getFrame--"><code>TruffleStackTraceElement.getFrame()</code></a></dd>
+<dt><span class="simpleTagLabel">Since:</span></dt>
+<dd>20.1.0</dd>
+</dl>
+</li>
+</ul>
 <a name="getLocation--">
 <!--   -->
 </a>
@@ -250,7 +278,7 @@ extends <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?
 <li><a href="../../../../index-all.html">Index</a></li>
 <li><a href="../../../../help-doc.html">Help</a></li>
 </ul>
-<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>bf20094444a5e1771479698089522b15d59710d3</div>
+<div class="aboutLanguage"><b>GraalVM Truffle Java API Reference<br>20.1.0-dev</b><br>753b137819416731d2a9ae1c0ec98a5052ea987d</div>
 </div>
 <div class="subNav">
 <ul class="navList">
