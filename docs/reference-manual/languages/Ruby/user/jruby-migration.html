@@ -717,8 +717,7 @@ also install via your <a href="/docs/reference-manual/languages/Ruby/user/ruby-m
 as any other implementation of Ruby.</p>
 
 <p>You can also use the <a href="/docs/reference-manual/languages/Ruby/user/standalone-distribution">standalone distribution</a> as
-a simple binary tarball. The binary tarball also doesn’t allow for Java
-interop.</p>
+a simple tarball. The standalone distribution doesn’t allow for Java interop.</p>
 
 <h2 id="using-ruby-from-java">Using Ruby from Java</h2>
 
@@ -730,10 +729,10 @@ interop.</p>
 GraalVM. The API is different because it’s designed to support many languages,
 not just Ruby.</p>
 
-<p>TruffleRuby also supports JSR 223, compatible with JRruby, to make it
+<p>TruffleRuby also supports JSR 223, compatible with JRuby, to make it
 easier to run legacy JRuby code.</p>
 
-<p>You will need to use the GraalVM to use both these APIs.</p>
+<p>You will need to use the GraalVM to use both of these APIs.</p>
 
 <p>See the <a href="/docs/reference-manual/languages/Ruby/user/polyglot">polyglot</a> documentation for more information about how to
 use Ruby from other languages including Java - this document only shows the
@@ -768,15 +767,13 @@ BSFManager bsfManager = new BSFManager();
 <pre><code class="language-java">Context polyglot = Context.newBuilder().allowAllAccess(true).build();
 </code></pre>
 
-<p><code>allowAllAccess(true)</code> allows the permissive access permissions that Ruby needs
-by default. GraalVM by default disallows many things which may not be safe, such
-as native file access, but a normal Ruby installation uses these so we enable
-them. You can use the option <code>ruby.platform.native</code> to disable the need for the
-option, but this will restrict some of Ruby’s functionality.</p>
+<p><code>allowAllAccess(true)</code> allows the permissive access privileges that Ruby needs
+for full functionality. GraalVM by default disallows many privileges which may
+not be safe, such as native file access, but a normal Ruby installation uses
+these so we enable them. You can decide to not grant those privileges, but this
+will restrict some of Ruby’s functionality.</p>
 
-<pre><code class="language-java">Context polyglot = Context.newBuilder()
-  .option("ruby.platform.native", "false")
-  .build();
+<pre><code class="language-java">Context polyglot = Context.newBuilder().build(); // No privileges granted, restricts functionality
 </code></pre>
 
 <p>You would normally create your context inside a <code>try</code> block to ensure it is
@@ -785,6 +782,9 @@ properly disposed.</p>
 <pre><code class="language-java">try (Context polyglot = Context.newBuilder().allowAllAccess(true).build()) {
 }
 </code></pre>
+
+<p>See the <a href="https://www.graalvm.org/sdk/javadoc/org/graalvm/polyglot/Context.html">Context API</a>
+for detailed documentation about <code>Context</code>.</p>
 
 <h3 id="setting-options">Setting options</h3>
 
@@ -822,7 +822,7 @@ scriptEngine.eval("puts a + b", bindings);
 <p>In TruffleRuby the <code>eval</code> method does not take parameters. Instead you should
 return a proc which does take parameters, and then call <code>execute</code> on this value.</p>
 
-<pre><code class="language-java">polyglot.eval("ruby", "lambda { |a, b| puts a + b }").execute(14, 2);
+<pre><code class="language-java">polyglot.eval("ruby", "-&gt; a, b { puts a + b }").execute(14, 2);
 </code></pre>
 
 <h3 id="primitive-values">Primitive values</h3>
@@ -866,9 +866,9 @@ marshal the arguments.</p>
 <pre><code class="language-java">polyglot.eval("ruby", "Math").getMember("sin").execute(2);
 </code></pre>
 
-<p>To call methods on a primitive, write a lambda:</p>
+<p>To call methods on a primitive, use a lambda:</p>
 
-<pre><code class="language-java">polyglot.eval("ruby", "-&gt;(x) { x.succ }").execute().asInt();
+<pre><code class="language-java">polyglot.eval("ruby", "-&gt; x { x.succ }").execute(2).asInt();
 </code></pre>
 
 <h3 id="passing-blocks">Passing blocks</h3>
@@ -881,7 +881,7 @@ clear how you would create a <code>Block</code> object to use this.</p>
 <p>In TruffleRuby you should return a Ruby lambda that performs your call, passing
 a block that executes a Java lambda that you pass in.</p>
 
-<pre><code class="language-java">polyglot.eval("ruby", "lambda { |block| (1..3).each { |n| block.call n } }")
+<pre><code class="language-java">polyglot.eval("ruby", "-&gt; block { (1..3).each { |n| block.call n } }")
   .execute(polyglot.asValue((IntConsumer) n -&gt; System.out.println(n)));
 </code></pre>
 
@@ -905,7 +905,7 @@ You can use <code>canInstantiate</code> to see if this will be possible.</p>
 <h3 id="handling-strings">Handling strings</h3>
 
 <p>In JRuby’s embedding APIs you would use <code>toString</code> to convert to a Java
-<code>String</code>. Do the same in TruffleRuby.</p>
+<code>String</code>. Use <code>asString</code> in TruffleRuby (and <code>isString</code> to check).</p>
 
 <h3 id="accessing-arrays">Accessing arrays</h3>
 
@@ -939,14 +939,14 @@ dictionary-like data structures. At the moment we recommend using a lambda
 accessor.</p>
 
 <pre><code class="language-java">Value hash = polyglot.eval("ruby", "{'a' =&gt; 3, 'b' =&gt; 4, 'c' =&gt; 5}");
-Value accessor = polyglot.eval("ruby", "-&gt;(hash, key) { hash[key] }");
+Value accessor = polyglot.eval("ruby", "-&gt; hash, key { hash[key] }");
 accessor.execute(hash, "b");
 </code></pre>
 
 <h3 id="implementing-interfaces">Implementing interfaces</h3>
 
-<p>You may want to implement a Java interface using a Ruby object. (Example copied
-from the JRuby wiki.)</p>
+<p>You may want to implement a Java interface using a Ruby object (example copied
+from the JRuby wiki).</p>
 
 <pre><code class="language-java">interface FluidForce {
   double getFluidForce(double a, double b, double depth);
@@ -997,7 +997,7 @@ convenient way to get a Java lambda from a Ruby lambda.</p>
 functional interface) from a Ruby lambda by using
 <code>as(FunctionalInterface.class)</code>.</p>
 
-<pre><code class="language-java">BiFunction&lt;Integer, Integer, Integer&gt; adder = polyglot.eval("ruby", "-&gt;(a, b) { a + b }").as(BiFunction.class);
+<pre><code class="language-java">BiFunction&lt;Integer, Integer, Integer&gt; adder = polyglot.eval("ruby", "-&gt; a, b { a + b }").as(BiFunction.class);
 adder.apply(14, 2).intValue();
 </code></pre>
 
@@ -1013,7 +1013,7 @@ compiled.eval();
 <p>In TruffleRuby you can simply return a lambda from parsing and execute this
 many times. It will be subject to optimisation like any other Ruby code.</p>
 
-<pre><code class="language-java">Value parsedOnce = polyglot.eval("ruby", "lambda { run many times }");
+<pre><code class="language-java">Value parsedOnce = polyglot.eval("ruby", "-&gt; { run many times }");
 parsedOnce.execute();
 </code></pre>
 
@@ -1151,14 +1151,14 @@ button.addActionListener ClickAction.new
 end
 </code></pre>
 
-<pre><code class="language-ruby">button.addActionListener -&gt;(event) {
+<pre><code class="language-ruby">button.addActionListener -&gt; event {
   javax.swing.JOptionPane.showMessageDialog nil, 'hello'
 }
 </code></pre>
 
 <p>In TruffleRuby we’d always use the last option to generate an interface.</p>
 
-<pre><code class="language-ruby">button.addActionListener -&gt;(event) {
+<pre><code class="language-ruby">button.addActionListener -&gt; event {
   JOptionPane.showMessageDialog nil, 'hello'
 }
 </code></pre>
