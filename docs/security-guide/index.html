@@ -657,7 +657,7 @@ between the guest and the host:</p>
 <p>The host access policy has three different options:</p>
 
 <ul>
-  <li><code>ALL</code> - all public constructors, methods or fields of public classes of the host can be accessed by the guest.</li>
+  <li><code>ALL</code> - all public constructors, methods or fields of public classes of the host can be accessed by the guest. <strong>Note that this exposes all host functionality to the guest, effectively disabling any security boundary between host and guest.</strong></li>
   <li><code>NONE</code> - no constructors, methods or fields of the host can be accessed by the guest.</li>
   <li><code>EXPLICIT</code> - only public constructors, methods and fields of public classes that are annotated with <code>@HostAccess.Export</code> can be accessed by the guest.</li>
 </ul>
