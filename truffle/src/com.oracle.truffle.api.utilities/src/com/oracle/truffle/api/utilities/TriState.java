@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * The Universal Permissive License (UPL), Version 1.0
@@ -38,27 +38,57 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.oracle.truffle.regex.runtime.nodes;
+package com.oracle.truffle.api.utilities;
 
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.GenerateUncached;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.profiles.ConditionProfile;
-import com.oracle.truffle.regex.result.TraceFinderResult;
+/**
+ * An utility value with three states, {@link #TRUE}, {@link #FALSE}, and {@link #UNDEFINED}.
+ * {@link TriState} is preferable to using a {@link Boolean} value with {@link Boolean#TRUE},
+ * {@link Boolean#FALSE} and <code>null</code>, because {@link Boolean} has a public constructor
+ * which requires the use of {@link Boolean#equals(Object)} to compare the values. The comparison
+ * with {@link Boolean#equals(Object)} is too slow.
+ *
+ * @since 20.2
+ */
+public enum TriState {
 
-@GenerateUncached
-public abstract class TraceFinderGetResultNode extends Node {
+    /**
+     * The state is true. Similar to {@link Boolean#TRUE}.
+     *
+     * @since 20.2
+     */
+    TRUE,
 
-    public abstract int[] execute(TraceFinderResult receiver);
+    /**
+     * The state is false. Similar to {@link Boolean#FALSE}.
+     *
+     * @since 20.2
+     */
+    FALSE,
 
-    @Specialization
-    static int[] doTraceFinderCalc(TraceFinderResult receiver,
-                    @Cached ConditionProfile conditionProfile,
-                    @Cached DispatchNode calcResult) {
-        if (conditionProfile.profile(!receiver.isResultCalculated())) {
-            receiver.applyTraceFinderResult((int) calcResult.execute(receiver.getTraceFinderCallTarget(), receiver.createArgsTraceFinder()));
-        }
-        return receiver.getIndices();
+    /**
+     * The state is undefined. Similar to <code>null</code>.
+     *
+     * @since 20.2
+     */
+    UNDEFINED;
+
+    /**
+     * Create a {@link TriState} from a primitive boolean.
+     *
+     * @since 20.2
+     */
+    public static TriState valueOf(boolean b) {
+        return b ? TRUE : FALSE;
     }
+
+    /**
+     * Create a {@link TriState} from a boxed {@link Boolean} explicitely checking for
+     * <code>null</code> and returning {@link #UNDEFINED}.
+     *
+     * @since 20.2
+     */
+    public static TriState valueOf(Boolean b) {
+        return b == null ? UNDEFINED : (Boolean.TRUE.equals(b) ? TRUE : FALSE);
+    }
+
 }
