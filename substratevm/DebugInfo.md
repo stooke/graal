@@ -9,7 +9,7 @@ javac Hello.java
 native-image -H:GenerateDebugInfo=1 Hello
 ```
 The resulting image should contain code (method) debug records in a
-format the GNU Debugger (GDB) understands (Windows support is still under development).
+format the GNU Debugger (GDB) (or Visual Studio) understands.
 At present it makes no difference which positive value is supplied to the `GenerateDebugInfo` option.
 
 The `GenerateDebugInfo` option also enables caching of sources for any
@@ -93,7 +93,7 @@ The currently implemented features include:
 
 Note that single stepping within a compiled method includes file and
 line number info for inlined code, including inlined GraalVM methods.
-So, GDB may switch files even though you are still in the same
+So, the debugger may switch files even though you are still in the same
 compiled method.
 
 ### Identifying the Location of Source Code
@@ -205,8 +205,12 @@ sources. Once again, top level entries in the directory added to the
 search path must correspond to the top level package for the classes
 whose sources are being included.
 
-<!-- ### Configuring Source Paths in VS
-TO BE ADDED -->
+### Configuring source paths in Visual Studio 
+
+Visual Studio does have a setting for source paths, however it is hidden as a property of
+the current 'Solution'.  To enable Visual Studio to access the cached sources, right click 
+on the solution in the "Solution Explorer", and select "Properties", then "Debug Source Files".
+In the "Debug Source Files" plane, add the cache directories to the source directory list.
 
 ## Checking Debug Info on Linux
 
@@ -259,13 +263,23 @@ Java method code.
 
 ### Currently Supported Targets
 
-The prototype is currently implemented only for the GNU Debugger on Linux:
+The prototype is currently implemented for the GNU Debugger on Linux and Visual Studio on Windows
 
   - Linux/x86_64 support has been tested and should work
-    correctly
+    correctly.
 
   - Linux/AArch64 support is present but has not yet been fully
     verified (break points should work ok but stack backtraces
-    may be incorrect)
+    may be incorrect).
 
-Windows support is still under development.
+  - Windows/X86_64 support has known issues with stack backtraces.
+
+### Windows notes
+
+  -  The first main() function encountered can be referenced as _package.class.main_.  Setting  
+
+  - Currently stack frames are not properly expressed in the debug info. The 
+  stack frame display may have extraneous entries in it, and "Step Out", may work incorrectly.
+
+  - Currently there is no type information in the debug info; as a consequence, variables
+  and members do not appear in the debug information.
