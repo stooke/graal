@@ -665,7 +665,7 @@ final class EngineAccessor extends Accessor {
                 PolyglotValue valueImpl = (PolyglotValue) languageContext.getImpl().getAPIAccess().getImpl((Value) obj);
                 languageContext = valueImpl.languageContext;
             }
-            return languageContext.toGuestValue(obj);
+            return languageContext.toGuestValue(null, obj);
         }
 
         @Override
@@ -901,6 +901,11 @@ final class EngineAccessor extends Accessor {
         @Override
         public void preinitializeContext(Object polyglotEngine) {
             ((PolyglotEngineImpl) polyglotEngine).preInitialize();
+        }
+
+        @Override
+        public void finalizeStore(Object polyglotEngine) {
+            ((PolyglotEngineImpl) polyglotEngine).finalizeStore();
         }
 
         @Override

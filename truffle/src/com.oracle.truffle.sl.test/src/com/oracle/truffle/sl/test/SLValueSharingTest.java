@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * The Universal Permissive License (UPL), Version 1.0
@@ -38,44 +38,45 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package org.graalvm.wasm.predefined.testutil;
+package com.oracle.truffle.sl.test;
 
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.frame.VirtualFrame;
-import org.graalvm.wasm.WasmContext;
-import org.graalvm.wasm.WasmInstance;
-import org.graalvm.wasm.WasmLanguage;
-import org.graalvm.wasm.WasmVoidResult;
-import org.graalvm.wasm.predefined.WasmBuiltinRootNode;
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.PolyglotException;
+import org.graalvm.polyglot.Value;
+import org.junit.Assert;
+import org.junit.Test;
 
-import static org.graalvm.wasm.WasmTracing.trace;
+public class SLValueSharingTest {
 
-/**
- * Reinitialize the memory and the globals of the instance.
- */
-public class ReinitInstanceNode extends WasmBuiltinRootNode {
-    public ReinitInstanceNode(WasmLanguage language, WasmInstance module) {
-        super(language, module);
+    public static class JavaObject {
+        public Object sharedField;
     }
 
-    @Override
-    public Object executeWithContext(VirtualFrame frame, WasmContext context) {
-        final Object[] args = frame.getArguments();
-        assert args.length == 2 || args.length == 1;
-        for (Object arg : args) {
-            trace("argument: %s", arg);
+    /*
+     * Tests that if a language tries to share a value through host interop it fails with an error
+     * that shows the location in the guest code.
+     */
+    @Test
+    public void testImplicitValueSharing() {
+        JavaObject obj = new JavaObject();
+        Context.Builder b = Context.newBuilder().allowAllAccess(true);
+        try (Context c0 = b.build();
+                        Context c1 = b.build()) {
+
+            c0.eval("sl", "function test(obj) { obj.sharedField = new(); }");
+            c1.eval("sl", "function test(obj) { return obj.sharedField; }");
+
+            c0.getBindings("sl").getMember("test").execute(obj);
+            Value test1 = c1.getBindings("sl").getMember("test");
+            try {
+                test1.execute(obj);
+                Assert.fail();
+            } catch (PolyglotException e) {
+                Assert.assertEquals(28, e.getSourceLocation().getCharIndex());
+                Assert.assertEquals(43, e.getSourceLocation().getCharEndIndex());
+                Assert.assertTrue(e.getMessage(), e.getMessage().contains("cannot be passed from one context to another"));
+            }
         }
-        return reinitInstance((WasmInstance) args[0], args.length != 2 || (boolean) args[1], context);
-    }
 
-    @Override
-    public String builtinNodeName() {
-        return TestutilModule.Names.REINIT_INSTANCE;
-    }
-
-    @CompilerDirectives.TruffleBoundary
-    private static WasmVoidResult reinitInstance(WasmInstance anInstance, boolean reinitMemory, WasmContext context) {
-        context.reinitInstance(anInstance, reinitMemory);
-        return WasmVoidResult.getInstance();
     }
 }

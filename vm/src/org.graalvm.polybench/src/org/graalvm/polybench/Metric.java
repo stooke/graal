@@ -28,6 +28,7 @@ import java.util.Optional;
 
 @SuppressWarnings("unused")
 interface Metric {
+
     default void beforeIteration(boolean warmup, int iteration, Config config) {
     }
 
@@ -46,7 +47,7 @@ interface Metric {
     }
 
     default String unit() {
-        return "";
+        return "n/a";
     }
 
     String name();
