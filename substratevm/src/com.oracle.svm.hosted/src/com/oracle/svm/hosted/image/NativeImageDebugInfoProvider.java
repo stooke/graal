@@ -1058,9 +1058,6 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
             if (declaringClass instanceof AnalysisType) {
                 declaringClass = ((AnalysisType) declaringClass).getWrapped();
             }
-            if (declaringClass instanceof SubstitutionType) {
-                declaringClass = ((SubstitutionType) declaringClass).getOriginal();
-            }
             SourceManager sourceManager = ImageSingletons.lookup(SourceManager.class);
             try (DebugContext.Scope s = debugContext.scope("DebugCodeInfo", declaringClass)) {
                 fullFilePath = sourceManager.findAndCacheSource(declaringClass, clazz, debugContext);
