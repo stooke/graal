@@ -55,12 +55,10 @@ import static com.oracle.objectfile.debuginfo.DebugInfoProvider.DebugPrimitiveTy
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_array_data_type;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_array_layout;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_array_pointer;
-import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_array_typedef;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_array_unit;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_builtin_unit;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_class_layout;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_class_pointer;
-import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_class_typedef;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_class_unit1;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_class_unit2;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_field_declaration1;
@@ -71,7 +69,6 @@ import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_head
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_interface_implementor;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_interface_layout;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_interface_pointer;
-import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_interface_typedef;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_method_declaration1;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_method_declaration2;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_method_location;
@@ -521,7 +518,7 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         int abbrevCode = DW_ABBREV_CODE_class_layout;
         log(context, "  [0x%08x] <1> Abbrev Number %d", pos, abbrevCode);
         pos = writeAbbrevCode(abbrevCode, buffer, pos);
-        String name = uniqueDebugString("_" + classEntry.getTypeName());
+        String name = classEntry.getTypeName();
         log(context, "  [0x%08x]     name  0x%x (%s)", pos, debugStringIndex(name), name);
         pos = writeAttrStrp(name, buffer, pos);
         int size = classEntry.getSize();
@@ -733,9 +730,7 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         }
         log(context, "  [0x%08x] <%d> Abbrev Number %d", pos, level, abbrevCode);
         pos = writeAbbrevCode(abbrevCode, buffer, pos);
-        // an artificial 'this' parameter has to be typed using the raw pointer type.
-        // other parameters can be typed using the typedef that retains the Java type name
-        int typeIdx = (artificial ? getPointerIndex(paramTypeName) : getTypeIndex(paramTypeName));
+        int typeIdx = getTypeIndex(paramTypeName);
         log(context, "  [0x%08x]     type 0x%x (%s)", pos, typeIdx, paramTypeName);
         pos = writeAttrRefAddr(typeIdx, buffer, pos);
         if (abbrevCode == DW_ABBREV_CODE_method_parameter_declaration1) {
@@ -753,7 +748,7 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         int abbrevCode = DW_ABBREV_CODE_interface_layout;
         log(context, "  [0x%08x] <1> Abbrev Number %d", pos, abbrevCode);
         pos = writeAbbrevCode(abbrevCode, buffer, pos);
-        String name = uniqueDebugString("_" + interfaceClassEntry.getTypeName());
+        String name = interfaceClassEntry.getTypeName();
         log(context, "  [0x%08x]     name  0x%x (%s)", pos, debugStringIndex(name), name);
         pos = writeAttrStrp(name, buffer, pos);
 
@@ -799,7 +794,7 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         int pointerTypeOffset = pos;
 
         // define a pointer type referring to the underlying layout
-        setPointerIndex(classEntry, pos);
+        setTypeIndex(classEntry, pos);
         log(context, "  [0x%08x] class pointer type", pos);
         int abbrevCode = DW_ABBREV_CODE_class_pointer;
         log(context, "  [0x%08x] <1> Abbrev Number %d", pos, abbrevCode);
@@ -810,18 +805,6 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         log(context, "  [0x%08x]     type 0x%x", pos, layoutOffset);
         pos = writeAttrRefAddr(layoutOffset, buffer, pos);
 
-        // now write a typedef to name the pointer type and use it as the defining type
-        // for the Java class type name
-        setTypeIndex(classEntry, pos);
-        log(context, "  [0x%08x] class pointer typedef", pos);
-        abbrevCode = DW_ABBREV_CODE_class_typedef;
-        log(context, "  [0x%08x] <1> Abbrev Number %d", pos, abbrevCode);
-        pos = writeAbbrevCode(abbrevCode, buffer, pos);
-        log(context, "  [0x%08x]     name  0x%x (%s)", pos, debugStringIndex(name), name);
-        pos = writeAttrStrp(name, buffer, pos);
-        log(context, "  [0x%08x]     type  (typedef) 0x%x (%s)", pos, pointerTypeOffset, name);
-        pos = writeAttrRefAddr(pointerTypeOffset, buffer, pos);
-
         return pos;
     }
 
@@ -831,7 +814,7 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         int pointerTypeOffset = pos;
 
         // define a pointer type referring to the underlying layout
-        setPointerIndex(interfaceClassEntry, pos);
+        setTypeIndex(interfaceClassEntry, pos);
         log(context, "  [0x%08x] interface pointer type", pos);
         int abbrevCode = DW_ABBREV_CODE_interface_pointer;
         log(context, "  [0x%08x] <1> Abbrev Number %d", pos, abbrevCode);
@@ -841,18 +824,6 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         int layoutOffset = getLayoutIndex(interfaceClassEntry);
         log(context, "  [0x%08x]     type 0x%x", pos, layoutOffset);
         pos = writeAttrRefAddr(layoutOffset, buffer, pos);
-        // now write a typedef to name the pointer type and use it as the defining type
-        // for the Java array type name
-
-        setTypeIndex(interfaceClassEntry, pos);
-        log(context, "  [0x%08x] interface pointer typedef", pos);
-        abbrevCode = DW_ABBREV_CODE_interface_typedef;
-        log(context, "  [0x%08x] <1> Abbrev Number %d", pos, abbrevCode);
-        pos = writeAbbrevCode(abbrevCode, buffer, pos);
-        log(context, "  [0x%08x]     name  0x%x (%s)", pos, debugStringIndex(name), name);
-        pos = writeAttrStrp(name, buffer, pos);
-        log(context, "  [0x%08x]     type  (typedef) 0x%x (%s)", pos, pointerTypeOffset, name);
-        pos = writeAttrRefAddr(pointerTypeOffset, buffer, pos);
 
         return pos;
     }
@@ -985,7 +956,7 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         int abbrevCode = DW_ABBREV_CODE_array_layout;
         log(context, "  [0x%08x] <1> Abbrev Number %d", pos, abbrevCode);
         pos = writeAbbrevCode(abbrevCode, buffer, pos);
-        String name = uniqueDebugString("_" + arrayTypeEntry.getTypeName());
+        String name = arrayTypeEntry.getTypeName();
         log(context, "  [0x%08x]     name 0x%x (%s)", pos, debugStringIndex(name), name);
         pos = writeAttrStrp(name, buffer, pos);
         int size = headerType.getSize();
@@ -1069,6 +1040,7 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         int pointerTypeOffset = pos;
         String name = uniqueDebugString(arrayTypeEntry.getTypeName());
 
+        setTypeIndex(arrayTypeEntry, pos);
         // define a pointer type referring to the underlying layout
         log(context, "  [0x%08x] array pointer type", pos);
         int abbrevCode = DW_ABBREV_CODE_array_pointer;
@@ -1078,18 +1050,6 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         pos = writeAttrData1((byte) 8, buffer, pos);
         log(context, "  [0x%08x]     type (pointer) 0x%x (%s)", pos, layoutOffset, name);
         pos = writeAttrRefAddr(layoutOffset, buffer, pos);
-
-        // now write a typedef to name the pointer type and use it as the defining type
-        // for the Java array type name
-        setTypeIndex(arrayTypeEntry, pos);
-        log(context, "  [0x%08x] array pointer typedef", pos);
-        abbrevCode = DW_ABBREV_CODE_array_typedef;
-        log(context, "  [0x%08x] <1> Abbrev Number %d", pos, abbrevCode);
-        pos = writeAbbrevCode(abbrevCode, buffer, pos);
-        log(context, "  [0x%08x]     name  0x%x (%s)", pos, debugStringIndex(name), name);
-        pos = writeAttrStrp(name, buffer, pos);
-        log(context, "  [0x%08x]     type  (typedef) 0x%x (%s)", pos, pointerTypeOffset, name);
-        pos = writeAttrRefAddr(pointerTypeOffset, buffer, pos);
 
         return pos;
     }

@@ -32,12 +32,10 @@ import org.graalvm.compiler.debug.DebugContext;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_array_data_type;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_array_layout;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_array_pointer;
-import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_array_typedef;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_array_unit;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_builtin_unit;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_class_layout;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_class_pointer;
-import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_class_typedef;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_class_unit1;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_class_unit2;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_field_declaration1;
@@ -48,7 +46,6 @@ import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_head
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_interface_implementor;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_interface_layout;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_interface_pointer;
-import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_interface_typedef;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_method_declaration1;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_method_declaration2;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ABBREV_CODE_method_location;
@@ -103,7 +100,6 @@ import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_TAG_member;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_TAG_pointer_type;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_TAG_structure_type;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_TAG_subprogram;
-import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_TAG_typedef;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_TAG_union_type;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_TAG_unspecified_type;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_TAG_variable;
@@ -201,9 +197,6 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
          * <li><code>code = class_pointer, tag = pointer_type, parent = class_unit<code> - Java
          * instance ref type
          *
-         * <li><code>code = class_typedef, tag = typedef, parent = class_unit<code> - Java instance
-         * ref typedef
-         *
          * <li><code>code = method_location, tag = subprogram , parent = class_unit<code> - Java
          * method code definition (i.e. location of code)
          *
@@ -216,17 +209,11 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
          * <li><code>code = array_pointer, tag = pointer_type, parent = array_unit<code> - Java
          * array ref type
          *
-         * <li><code>code = array_typedef, tag = typedef, parent = array_unit<code> - Java array ref
-         * typedef
-         *
          * <li><code>code = interface_layout, tag = union_type, parent = class_unit<code> - Java
          * array type structure definition
          *
          * <li><code>code = interface_pointer, tag = pointer_type, parent = class_unit<code> - Java
          * interface ref type
-         *
-         * <li><code>code = interface_typedef, tag = typedef, parent = class_unit<code> - Java array
-         * ref typedef
          *
          * </ul>
          *
@@ -482,15 +469,8 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
          * </ul>
          *
          * Instance Class Reference Types: A level 1 class_layout DIE is followed by a DIE defining
-         * a pointer to the class and a second DIE that defines a typedef for that pointer using the
-         * Java class name as the typedef name. This reflects the fact that a Java object reference
-         * is actually implemented as a pointer.
-         *
-         * n.b. the name used in the class_layout DIE is not the Java class name. It is derived by
-         * appending '_' to the Java class name (preceding the package prefix). So this means that,
-         * for example, the Java type java.lang.Object appears to gdb to be defined as follows
-         *
-         * <code>typedef struct _java.lang.Object { ... } *java.lang.Object;</code>
+         * a pointer to the class. This reflects the fact that a Java object reference is actually
+         * implemented as a pointer.
          *
          * <ul>
          *
@@ -502,13 +482,28 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
          *
          * </ul>
          *
+         * n.b. the name used in the class_layout DIE is the Java class name. This is deliberately
+         * inconsistent with the Java naming where the name refers to the pointer type. In consequence
+         * when gdb displays Java types and signatures oop reference appear as pointer types. So, for
+         * example the Java String class looks like
+         *
          * <ul>
          *
-         * <li><code>abbrev_code == class_typedef, tag == DW_TAG_typedef, no_children</code>
+         * <li><code>class java.lang.String : public java.lang.Object {<code>
          *
-         * <li><code>Dw_AT_name : ... DW_FORM_strp</code>
+         * <li><code>  private:</code>
          *
-         * <li><code>Dw_AT_type : ........ DW_FORM_ref_addr</code>
+         * <li><code>  byte[] value;</code>
+         *
+         * <li><code>...</code>
+         *
+         * <li><code>public:</code>
+         *
+         * <li><code>...</code>
+         *
+         * <li><code>  java.lang.String *concat(java.lang.String *);</code>
+         *
+         * <li><code>...</code>
          *
          * </ul>
          *
@@ -563,7 +558,7 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
          *
          * </ul>
          *
-         * Array Structure: Each array_unit DIE contains three level 1 DIEs. The first one describes
+         * Array Structure: Each array_unit DIE contains two level 1 DIEs. The first one describes
          * the array layout:
          *
          * <ul>
@@ -588,23 +583,10 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
          *
          * <li><code>Dw_AT_type : ........ DW_FORM_ref_addr</code>
          *
-         * The third DIE defines the array type name as a typedef for the pointer type
-         *
-         * <ul>
-         *
-         * <li><code>abbrev_code == array_typedef, tag == DW_TAG_typedef, no_children</code>
-         *
-         * <li><code>Dw_AT_name : ....... DW_FORM_strp</code>
-         *
-         * <li><code>Dw_AT_type : ........ DW_FORM_ref_addr</code>
-         *
-         * </ul>
-         *
-         * n.b. the name used in the array_layout DIE is not the Java array name. It is derived by
-         * appending '_' to the Java array name (preceding the package prefix). So this means that,
-         * for example, the Java type java.lang.String[] appears to gdb to be defined as follows
-         *
-         * <code>typedef struct _java.lang.String[] { ... } *java.lang.String[];</code>
+         * n.b. the name used in the array_layout DIE is the Java array name. This is deliberately
+         * inconsistent with the Java naming where the name refers to the pointer type. As with
+         * normal objects an array reference in a Java signature appears as a pointer to an array
+         * layout when printed by gdb.
          *
          * Array members: The level 1 array_layout DIE includes level 2 child DIEs with tag member
          * that describe the layout of the array. header_field DIEs are used to declare members of
@@ -627,16 +609,13 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
          *
          * Interface Layout and Reference Types: The level 0 class_unit DIE for an interface is
          * followed by a level 1 DIE defining the interface layout as a union of all the layouts for
-         * the classes which implement the interface. Two more level 1 DIEs define the a pointer to
-         * this layout type and a typedef that names the interface pointer type using the Java
-         * interface name.
+         * the classes which implement the interface. A second level 1 DIEs defines a pointer to
+         * this layout type.
          *
-         * n.b. the name used in the interface_layout DIE is not the Java interface name. It is
-         * derived by appending '_' to the Java class name (preceding the package prefix). So this
-         * means that, for example, the Java interface java.lang.CharSequence appears to gdb to be
-         * defined as follows
-         *
-         * <code>typedef union _java.lang.CharSequence { ... } *java.lang.CharSequence; </code>
+         * n.b. the name used in the interface_layout DIE is the Java array name. This is deliberately
+         * inconsistent with the Java naming where the name refers to the pointer type. As with
+         * normal objects an interface reference in a Java signature appears as a pointer to an
+         * interface layout when printed by gdb.
          *
          * <ul>
          *
@@ -675,8 +654,8 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
          * class. So, this means that, for example, the Java interface java.lang.CharSequence will
          * include members for String, StringBuffer etc as follows
          *
-         * <code>typedef union _java.lang.CharSequence { _java.lang.String _java.lang.String;
-         * _java.lang.StringBuffer _java.lang.StringBuffer; ... } *java.lang.CharSequence;</code>
+         * <code>union java.lang.CharSequence { java.lang.String _java.lang.String;
+         * java.lang.StringBuffer _java.lang.StringBuffer; ... };</code>
          *
          */
 
@@ -912,20 +891,6 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
          */
         pos = writeAttrType(DW_AT_null, buffer, pos);
         pos = writeAttrForm(DW_FORM_null, buffer, pos);
-
-        // we wll also need a typedef to advertise the class name as the pointer type
-        pos = writeAbbrevCode(DW_ABBREV_CODE_class_typedef, buffer, pos);
-        pos = writeTag(DW_TAG_typedef, buffer, pos);
-        pos = writeFlag(DW_CHILDREN_no, buffer, pos);
-        pos = writeAttrType(DW_AT_name, buffer, pos);
-        pos = writeAttrForm(DW_FORM_strp, buffer, pos);
-        pos = writeAttrType(DW_AT_type, buffer, pos);
-        pos = writeAttrForm(DW_FORM_ref_addr, buffer, pos);
-        /*
-         * Now terminate.
-         */
-        pos = writeAttrType(DW_AT_null, buffer, pos);
-        pos = writeAttrForm(DW_FORM_null, buffer, pos);
         return pos;
     }
 
@@ -1060,20 +1025,6 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
          */
         pos = writeAttrType(DW_AT_null, buffer, pos);
         pos = writeAttrForm(DW_FORM_null, buffer, pos);
-
-        // we wll also need a typedef to advertise the array name as the pointer type
-        pos = writeAbbrevCode(DW_ABBREV_CODE_array_typedef, buffer, pos);
-        pos = writeTag(DW_TAG_typedef, buffer, pos);
-        pos = writeFlag(DW_CHILDREN_no, buffer, pos);
-        pos = writeAttrType(DW_AT_name, buffer, pos);
-        pos = writeAttrForm(DW_FORM_strp, buffer, pos);
-        pos = writeAttrType(DW_AT_type, buffer, pos);
-        pos = writeAttrForm(DW_FORM_ref_addr, buffer, pos);
-        /*
-         * Now terminate.
-         */
-        pos = writeAttrType(DW_AT_null, buffer, pos);
-        pos = writeAttrForm(DW_FORM_null, buffer, pos);
         return pos;
     }
 
@@ -1101,20 +1052,6 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         pos = writeFlag(DW_CHILDREN_no, buffer, pos);
         pos = writeAttrType(DW_AT_byte_size, buffer, pos);
         pos = writeAttrForm(DW_FORM_data1, buffer, pos);
-        pos = writeAttrType(DW_AT_type, buffer, pos);
-        pos = writeAttrForm(DW_FORM_ref_addr, buffer, pos);
-        /*
-         * Now terminate.
-         */
-        pos = writeAttrType(DW_AT_null, buffer, pos);
-        pos = writeAttrForm(DW_FORM_null, buffer, pos);
-
-        // we wll also need a typedef to advertise the interface name as the pointer type
-        pos = writeAbbrevCode(DW_ABBREV_CODE_interface_typedef, buffer, pos);
-        pos = writeTag(DW_TAG_typedef, buffer, pos);
-        pos = writeFlag(DW_CHILDREN_no, buffer, pos);
-        pos = writeAttrType(DW_AT_name, buffer, pos);
-        pos = writeAttrForm(DW_FORM_strp, buffer, pos);
         pos = writeAttrType(DW_AT_type, buffer, pos);
         pos = writeAttrForm(DW_FORM_ref_addr, buffer, pos);
         /*

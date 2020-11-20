@@ -485,17 +485,6 @@ public abstract class DwarfSectionImpl extends BasicProgbitsSectionImpl {
         dwarfSections.setTypeIndex(typeEntry, pos);
     }
 
-    protected int getPointerIndex(String typeName) {
-        if (!contentByteArrayCreated()) {
-            return 0;
-        }
-        return dwarfSections.getPointerIndex(typeName);
-    }
-
-    protected void setPointerIndex(ClassEntry classEntry, int pos) {
-        dwarfSections.setPointerIndex(classEntry, pos);
-    }
-
     protected int getCUIndex(ClassEntry classEntry) {
         if (!contentByteArrayCreated()) {
             return 0;
