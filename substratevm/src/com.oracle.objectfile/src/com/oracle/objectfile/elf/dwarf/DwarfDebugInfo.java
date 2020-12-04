@@ -140,6 +140,7 @@ public class DwarfDebugInfo extends DebugInfoBase {
     @SuppressWarnings("unused") public static final int DW_AT_frame_base = 0x40;
     public static final int DW_AT_specification = 0x47;
     public static final int DW_AT_type = 0x49;
+    public static final int DW_AT_data_location = 0x50;
     public static final int Dw_AT_object_pointer = 0x64;
 
     /*
@@ -229,7 +230,15 @@ public class DwarfDebugInfo extends DebugInfoBase {
      * Values used to build DWARF expressions and locations
      */
     public static final byte DW_OP_addr = 0x03;
+    @SuppressWarnings("unused") public static final byte DW_OP_deref = 0x06;
+    public static final byte DW_OP_dup = 0x12;
+    public static final byte DW_OP_and = 0x1a;
+    public static final byte DW_OP_not = 0x20;
+    public static final byte DW_OP_shl = 0x20;
     public static final byte DW_OP_plus = 0x22;
+    public static final byte DW_OP_bra = 0x28;
+    public static final byte DW_OP_eq = 0x29;
+    public static final byte DW_OP_lit0 = 0x30;
     public static final byte DW_OP_breg0 = 0x70;
     public static final byte DW_OP_push_object_address = (byte) 0x97;
 

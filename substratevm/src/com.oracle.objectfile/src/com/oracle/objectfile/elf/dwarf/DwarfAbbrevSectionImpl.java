@@ -65,6 +65,7 @@ import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_AT_bit_size;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_AT_byte_size;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_AT_comp_dir;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_AT_containing_type;
+import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_AT_data_location;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_AT_data_member_location;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_AT_decl_file;
 import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_AT_declaration;
@@ -289,6 +290,8 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
          *
          * <li><code>DW_AT_byte_size : ... DW_FORM_data1</code> "oop"
          *
+         * <li><code>DW_AT_location : ........ DW_FORM_expr_loc</code>
+         *
          * </ul>
          *
          * Header Data: A level 1 DIE of type member is used to describe the fields of both object
@@ -352,7 +355,7 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
          * <li><code>Dw_AT_decl_line : ... DW_FORM_data1/2</code> ??? how many bytes do we really
          * need?
          *
-         * <li><code>Dw_AT_containing_type : ..... DW_FORM_ref_addr</code>
+         * <li><code>Dw_AT_data_location : ... DW_FORM_expr_loc</code>
          *
          * </ul>
          *
@@ -464,8 +467,6 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
          * <li><code>Dw_AT_artificial : ... DW_FORM_flag</code> (optional only for
          * method_parameter_declaration1 $this, $access)
          *
-         * <li><code>Dw_AT_location(list???) : ... DW_FORM_exprloc</code>
-         *
          * </ul>
          *
          * Instance Class Reference Types: A level 1 class_layout DIE is followed by a DIE defining
@@ -483,17 +484,17 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
          * </ul>
          *
          * n.b. the name used in the class_layout DIE is the Java class name. This is deliberately
-         * inconsistent with the Java naming where the name refers to the pointer type. In consequence
-         * when gdb displays Java types and signatures oop reference appear as pointer types. So, for
-         * example the Java String class looks like
+         * inconsistent with the Java naming where the name refers to the pointer type. In
+         * consequence when gdb displays Java types and signatures oop reference appear as pointer
+         * types. So, for example the Java String class looks like
          *
          * <ul>
          *
          * <li><code>class java.lang.String : public java.lang.Object {<code>
          *
-         * <li><code>  private:</code>
+         * <li><code> private:</code>
          *
-         * <li><code>  byte[] value;</code>
+         * <li><code> byte[] value;</code>
          *
          * <li><code>...</code>
          *
@@ -501,7 +502,7 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
          *
          * <li><code>...</code>
          *
-         * <li><code>  java.lang.String *concat(java.lang.String *);</code>
+         * <li><code> java.lang.String *concat(java.lang.String *);</code>
          *
          * <li><code>...</code>
          *
@@ -542,7 +543,7 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
          *
          * <li><code>DW_AT_linkage_name : .... DW_FORM_strp</code>
          *
-         * <li><code>DW_AT_location : ........ DW_FORM_exprloc</code>
+         * <li><code>DW_AT_location : ........ DW_FORM_expr_loc</code>
          *
          * </ul>
          *
@@ -569,6 +570,8 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
          *
          * <li><code>Dw_AT_byte_size : ... DW_FORM_data1/2</code> size up to base of embedded array
          * elements?
+         *
+         * <li><code>DW_AT_location : .... DW_FORM_expr_loc</code>
          *
          * </ul>
          *
@@ -612,16 +615,18 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
          * the classes which implement the interface. A second level 1 DIEs defines a pointer to
          * this layout type.
          *
-         * n.b. the name used in the interface_layout DIE is the Java array name. This is deliberately
-         * inconsistent with the Java naming where the name refers to the pointer type. As with
-         * normal objects an interface reference in a Java signature appears as a pointer to an
-         * interface layout when printed by gdb.
+         * n.b. the name used in the interface_layout DIE is the Java array name. This is
+         * deliberately inconsistent with the Java naming where the name refers to the pointer type.
+         * As with normal objects an interface reference in a Java signature appears as a pointer to
+         * an interface layout when printed by gdb.
          *
          * <ul>
          *
          * <li><code>abbrev_code == interface_layout, tag == union_type, has_children</code>
          *
          * <li><code>Dw_AT_name : ....... DW_FORM_strp</code>
+         *
+         * <li><code>DW_AT_location : ... DW_FORM_expr_loc</code>
          *
          * </ul>
          *
@@ -840,6 +845,8 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         pos = writeAttrForm(DW_FORM_strp, buffer, pos);
         pos = writeAttrType(DW_AT_byte_size, buffer, pos);
         pos = writeAttrForm(DW_FORM_data1, buffer, pos);
+        pos = writeAttrType(DW_AT_data_location, buffer, pos);
+        pos = writeAttrForm(DW_FORM_expr_loc, buffer, pos);
         /*
          * Now terminate.
          */
@@ -863,10 +870,9 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         // at present we definitely don't have line numbers
         // pos = writeAttrType(DW_AT_decl_line, buffer, pos);
         // pos = writeAttrForm(DW_FORM_data2, buffer, pos);
-        // n.b. the containing_type attribute is not strict DWARF but gdb expects it
-        // we also add an inheritance member with the same info
-        pos = writeAttrType(DW_AT_containing_type, buffer, pos);
-        pos = writeAttrForm(DW_FORM_ref_addr, buffer, pos);
+        // add a data location expression to mask and/or rebase oop pointers
+        pos = writeAttrType(DW_AT_data_location, buffer, pos);
+        pos = writeAttrForm(DW_FORM_expr_loc, buffer, pos);
         /*
          * Now terminate.
          */
@@ -1002,6 +1008,9 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         pos = writeAttrForm(DW_FORM_strp, buffer, pos);
         pos = writeAttrType(DW_AT_byte_size, buffer, pos);
         pos = writeAttrForm(DW_FORM_data2, buffer, pos);
+        // add a data location expression to mask and/or rebase oop pointers
+        pos = writeAttrType(DW_AT_data_location, buffer, pos);
+        pos = writeAttrForm(DW_FORM_expr_loc, buffer, pos);
         /*
          * Now terminate.
          */
@@ -1036,6 +1045,9 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         pos = writeFlag(DW_CHILDREN_yes, buffer, pos);
         pos = writeAttrType(DW_AT_name, buffer, pos);
         pos = writeAttrForm(DW_FORM_strp, buffer, pos);
+        // add a data location expression to mask and/or rebase oop pointers
+        pos = writeAttrType(DW_AT_data_location, buffer, pos);
+        pos = writeAttrForm(DW_FORM_expr_loc, buffer, pos);
         /*
          * Now terminate.
          */

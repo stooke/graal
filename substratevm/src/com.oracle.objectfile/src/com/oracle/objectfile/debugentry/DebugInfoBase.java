@@ -113,10 +113,16 @@ public abstract class DebugInfoBase {
      * otherwise false.
      */
     private boolean useHeapBase;
+    private int oopShiftBitCount;
+    private int oopFlagBitsMask;
+    private int oopReferenceByteCount;
 
     public DebugInfoBase(ByteOrder byteOrder) {
         this.byteOrder = byteOrder;
         this.useHeapBase = true;
+        this.oopFlagBitsMask = 0;
+        this.oopShiftBitCount = 0;
+        this.oopReferenceByteCount = 0;
     }
 
     /**
@@ -137,6 +143,25 @@ public abstract class DebugInfoBase {
          * track whether we need to use a heap base regsiter
          */
         useHeapBase = debugInfoProvider.useHeapBase();
+
+        /*
+         * save mask for low order flag bits
+         */
+        oopFlagBitsMask = debugInfoProvider.oopFlagBitsMask();
+        // flag bits be bewteen 1 and 32 for us to emit as DW_OP_lit<n>
+        assert oopFlagBitsMask > 0 && oopFlagBitsMask < 32;
+        // mask must be contiguous from bit 0
+        assert ((oopFlagBitsMask + 1) & oopFlagBitsMask) == 0;
+
+        /*
+         * save amount we need to shift references by when loading from an object field
+         */
+        oopShiftBitCount = debugInfoProvider.oopShiftBitCount();
+
+        /*
+         * save number of bytes in a reference field
+         */
+        oopReferenceByteCount = debugInfoProvider.oopReferenceByteCount();
 
         /*
          * Ensure we have a null string in the string section.
@@ -416,5 +441,17 @@ public abstract class DebugInfoBase {
 
     public boolean useHeapBase() {
         return useHeapBase;
+    }
+
+    public byte oopFlagBitsMask() {
+        return (byte) oopFlagBitsMask;
+    }
+
+    public int oopShiftBitCount() {
+        return oopShiftBitCount;
+    }
+
+    public int oopReferenceByteCount() {
+        return oopReferenceByteCount;
     }
 }

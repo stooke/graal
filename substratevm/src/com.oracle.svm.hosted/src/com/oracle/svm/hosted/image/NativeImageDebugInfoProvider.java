@@ -46,6 +46,8 @@ import com.oracle.svm.core.SubstrateOptions;
 import com.oracle.svm.core.config.ConfigurationValues;
 import com.oracle.svm.core.config.ObjectLayout;
 import com.oracle.svm.core.graal.code.SubstrateBackend;
+import com.oracle.svm.core.heap.Heap;
+import com.oracle.svm.core.heap.ObjectHeader;
 import com.oracle.svm.core.image.ImageHeapPartition;
 import com.oracle.svm.hosted.annotation.CustomSubstitutionMethod;
 import com.oracle.svm.hosted.annotation.CustomSubstitutionType;
@@ -91,6 +93,8 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
     @SuppressWarnings("unused") private final NativeImageHeap heap;
     boolean useHeapBase;
     int heapShift;
+    int flagBitsMask;
+    int referenceByteCount;
     int primitiveStartOffset;
     int referenceStartOffset;
 
@@ -99,15 +103,19 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
         this.debugContext = debugContext;
         this.codeCache = codeCache;
         this.heap = heap;
+        ObjectHeader objectHeader = Heap.getHeap().getObjectHeader();
         ObjectInfo primitiveFields = heap.getObjectInfo(StaticFieldsSupport.getStaticPrimitiveFields());
         ObjectInfo objectFields = heap.getObjectInfo(StaticFieldsSupport.getStaticObjectFields());
+        this.flagBitsMask = objectHeader.getReservedBitsMask();
         if (SubstrateOptions.SpawnIsolates.getValue()) {
             CompressEncoding compressEncoding = ImageSingletons.lookup(CompressEncoding.class);
             this.useHeapBase = compressEncoding.hasBase();
             this.heapShift = (compressEncoding.hasShift() ? compressEncoding.getShift() : 0);
+            this.referenceByteCount = OBJECTLAYOUT.getReferenceSize();
         } else {
             this.useHeapBase = false;
             this.heapShift = 0;
+            this.referenceByteCount = 8;
         }
         // offsets need to be adjusted relative to the heap base plus partition-specific offset
         primitiveStartOffset = (int) primitiveFields.getOffset();
@@ -117,6 +125,21 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
     @Override
     public boolean useHeapBase() {
         return useHeapBase;
+    }
+
+    @Override
+    public int oopShiftBitCount() {
+        return heapShift;
+    }
+
+    @Override
+    public int oopReferenceByteCount() {
+        return referenceByteCount;
+    }
+
+    @Override
+    public int oopFlagBitsMask() {
+        return flagBitsMask;
     }
 
     @Override

@@ -40,6 +40,12 @@ import org.graalvm.compiler.debug.DebugContext;
 public interface DebugInfoProvider {
     boolean useHeapBase();
 
+    int oopShiftBitCount();
+
+    int oopFlagBitsMask();
+
+    int oopReferenceByteCount();
+
     /**
      * An interface implemented by items that can be located in a file.
      */

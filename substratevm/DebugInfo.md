@@ -12,11 +12,7 @@ The resulting image should contain code (method) debug records in a
 format the GNU Debugger (GDB) understands (Windows support is still under development).
 At present it makes no difference which positive value is supplied to the `GenerateDebugInfo` option.
 
-Note that it is currently recommended to pass flag `-H:-UseIsolates` on the command
-line whenever  debug info generation is enabled. When isolates are enabled field
-values of Object (reference) type are stored as offsets from the heap base rather
-than direct addresses and this confuses the debugger when it tries to read through
-object fields. This problem should be corrected in a later release.
+## Source File Caching
 
 The `GenerateDebugInfo` option also enables caching of sources for any
 JDK runtime classes, GraalVM classes, and application classes which can
@@ -90,6 +86,77 @@ _apps/target/hello.jar_ and _apps/target/greeter.jar_ will be used to
 derive the default search roots _apps/target/hello-sources.jar_ and
 _apps/target/greeter-sources.jar_.
 
+## Debugging with Isolates
+
+Note that it is currently recommended to disable use of Isolates by
+passing flag `-H:-UseIsolates` on the command line when debug info
+generation is enabled. Enabling of Isolates affects the way that oops
+(object references) are encoded. In turn that means the debug info
+generator has to provide gdb with information about how to translate
+an encoded oop to the address in memory where the object data is
+stored. This sometimes requires care when asking gdb to process
+encoded oops vs decoded raw addresses.
+
+When isolates are disabled oops are essentially raw addresses pointing
+directly at the object contents. This is the same whether the oop is
+stored in a static/instance field or has been loaded into a register.
+
+When an oop is stored in a static or instance field gdb knows the type
+of the value stored in the field and knows how to dereference it to
+locate the object contents. For example, assume we have a `Units` type
+that details the scale used for a blueprint drawing and that the
+`Units` instance has a `String` field called `print_name`. Assume also
+we have a static field `DEFAULT_UNIT` that holds the standard `Units`
+instance. The following command will print the name for the default
+units.
+
+```
+(gdb) print *com.acme.Blueprint::DEFAULT_UNIT->print_name
+```
+
+gdb knows the type of the oop stored in `Blueprint::DEFAULT_UNIT` and
+kows how to dereference it to locate the object field
+values. Likewise, it knows that the `print_name` field is a `String`
+it will translate the oop stored in that field to an address where the
+String contents are stored and it will print the values of the
+`String` instance fields one by one.
+
+If, say, an oop referring to the `print_name` String has been loaded
+into $rdx it is still possible to print it using a straightforward
+cast to the pointer type that gdb associates with oop references.
+
+```
+(gdb) print/x *('java.lang.String' *)$rdx
+```
+
+The raw address in the register is the same as the oop value stored
+in the field.
+
+By contrast, when isolates are enabled oop references stored in static
+or instance fields are actually relative addresses, offsets from a
+dedicated heap base register (r14 on x86_64, r29 on AArch64), rather
+than direct addresses.  However, when an oop gets loaded during
+execution it is almost always immediately converted to a direct
+address by adding the offset to the heap base register value. The
+DWARF info encoded into the image tells gdb to rebase object pointers
+whenever it tries to dereference them to access the underlying object
+data.
+
+This still means gdb will do the right thing when it accesses an
+object via a static field. When processing the field expression above
+that prints the default unit name gdb will automatically rebase the
+`Units` oop stored in field `DEFAULT_UNIT` by adding it to the heap
+base register. It will then fetch and rebase the oop stored in its
+`print_name` field to access the contents of the `String`.
+
+However, this transformation won't work correctly in the secodn case
+where gdb is passed an oop that has already been loaded into a
+register and converted to a pointer. It is necessary to restore the
+original oop by reverting it back to an offset:
+
+```
+(gdb) print/x *('java.lang.String' *)($rdx - $r14)
+```
 
 ## Currently Implemented Features
 
