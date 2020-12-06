@@ -457,6 +457,7 @@ public class DwarfDebugInfo extends DebugInfoBase {
         return typeProperties;
     }
 
+    @SuppressWarnings("unused")
     private DwarfClassProperties lookupClassProperties(String typeName) {
         DwarfTypeProperties classProperties = propertiesIndex.get(typeName);
         assert classProperties != null;

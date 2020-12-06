@@ -686,7 +686,8 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         assert pos == size;
     }
 
-    public int writeAbbrevs(DebugContext context, byte[] buffer, int pos) {
+    public int writeAbbrevs(DebugContext context, byte[] buffer, int p) {
+        int pos = p;
         pos = writeBuiltInUnitAbbrev(context, buffer, pos);
         pos = writeClassUnitAbbrevs(context, buffer, pos);
         pos = writeArrayUnitAbbrev(context, buffer, pos);
@@ -731,7 +732,7 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         }
     }
 
-    private int writeBuiltInUnitAbbrev(DebugContext context, byte[] buffer, int p) {
+    private int writeBuiltInUnitAbbrev(@SuppressWarnings("unused") DebugContext context, byte[] buffer, int p) {
         int pos = p;
         pos = writeAbbrevCode(DW_ABBREV_CODE_builtin_unit, buffer, pos);
         pos = writeTag(DW_TAG_compile_unit, buffer, pos);
@@ -755,7 +756,7 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         return pos;
     }
 
-    private int writeClassUnitAbbrev(DebugContext context, int abbrevCode, byte[] buffer, int p) {
+    private int writeClassUnitAbbrev(@SuppressWarnings("unused") DebugContext context, int abbrevCode, byte[] buffer, int p) {
         int pos = p;
         pos = writeAbbrevCode(abbrevCode, buffer, pos);
         pos = writeTag(DW_TAG_compile_unit, buffer, pos);
@@ -782,7 +783,7 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         return pos;
     }
 
-    private int writeArrayUnitAbbrev(DebugContext context, byte[] buffer, int p) {
+    private int writeArrayUnitAbbrev(@SuppressWarnings("unused") DebugContext context, byte[] buffer, int p) {
         int pos = p;
 
         pos = writeAbbrevCode(DW_ABBREV_CODE_array_unit, buffer, pos);
@@ -800,7 +801,7 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         return pos;
     }
 
-    private int writePrimitiveTypeAbbrev(DebugContext context, byte[] buffer, int p) {
+    private int writePrimitiveTypeAbbrev(@SuppressWarnings("unused") DebugContext context, byte[] buffer, int p) {
         int pos = p;
         pos = writeAbbrevCode(DW_ABBREV_CODE_primitive_type, buffer, pos);
         pos = writeTag(DW_TAG_base_type, buffer, pos);
@@ -821,7 +822,7 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         return pos;
     }
 
-    private int writeVoidTypeAbbrev(DebugContext context, byte[] buffer, int p) {
+    private int writeVoidTypeAbbrev(@SuppressWarnings("unused") DebugContext context, byte[] buffer, int p) {
         int pos = p;
         pos = writeAbbrevCode(DW_ABBREV_CODE_void_type, buffer, pos);
         pos = writeTag(DW_TAG_unspecified_type, buffer, pos);
@@ -836,7 +837,7 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         return pos;
     }
 
-    private int writeObjectHeaderAbbrev(DebugContext context, byte[] buffer, int p) {
+    private int writeObjectHeaderAbbrev(@SuppressWarnings("unused") DebugContext context, byte[] buffer, int p) {
         int pos = p;
         pos = writeAbbrevCode(DW_ABBREV_CODE_object_header, buffer, pos);
         pos = writeTag(DW_TAG_structure_type, buffer, pos);
@@ -855,7 +856,7 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         return pos;
     }
 
-    private int writeClassLayoutAbbrev(DebugContext context, byte[] buffer, int p) {
+    private int writeClassLayoutAbbrev(@SuppressWarnings("unused") DebugContext context, byte[] buffer, int p) {
         int pos = p;
 
         pos = writeAbbrevCode(DW_ABBREV_CODE_class_layout, buffer, pos);
@@ -881,7 +882,7 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         return pos;
     }
 
-    private int writeClassReferenceAbbrev(DebugContext context, byte[] buffer, int p) {
+    private int writeClassReferenceAbbrev(@SuppressWarnings("unused") DebugContext context, byte[] buffer, int p) {
         int pos = p;
 
         // first the basic pointer type for a pointer to the class struct type
@@ -900,14 +901,14 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         return pos;
     }
 
-    private int writeMethodDeclarationAbbrevs(DebugContext context, byte[] buffer, int p) {
+    private int writeMethodDeclarationAbbrevs(@SuppressWarnings("unused") DebugContext context, byte[] buffer, int p) {
         int pos = p;
         pos = writeMethodDeclarationAbbrev(context, DW_ABBREV_CODE_method_declaration1, buffer, pos);
         pos = writeMethodDeclarationAbbrev(context, DW_ABBREV_CODE_method_declaration2, buffer, pos);
         return pos;
     }
 
-    private int writeMethodDeclarationAbbrev(DebugContext context, int abbrevCode, byte[] buffer, int p) {
+    private int writeMethodDeclarationAbbrev(@SuppressWarnings("unused") DebugContext context, int abbrevCode, byte[] buffer, int p) {
         int pos = p;
         pos = writeAbbrevCode(abbrevCode, buffer, pos);
         pos = writeTag(DW_TAG_subprogram, buffer, pos);
@@ -959,7 +960,7 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         return pos;
     }
 
-    private int writeFieldDeclarationAbbrev(DebugContext context, int abbrevCode, byte[] buffer, int p) {
+    private int writeFieldDeclarationAbbrev(@SuppressWarnings("unused") DebugContext context, int abbrevCode, byte[] buffer, int p) {
         int pos = p;
         pos = writeAbbrevCode(abbrevCode, buffer, pos);
         pos = writeTag(DW_TAG_member, buffer, pos);
@@ -998,7 +999,7 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         return pos;
     }
 
-    private int writeArrayLayoutAbbrev(DebugContext context, byte[] buffer, int p) {
+    private int writeArrayLayoutAbbrev(@SuppressWarnings("unused") DebugContext context, byte[] buffer, int p) {
         int pos = p;
 
         pos = writeAbbrevCode(DW_ABBREV_CODE_array_layout, buffer, pos);
@@ -1019,7 +1020,7 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         return pos;
     }
 
-    private int writeArrayReferenceAbbrev(DebugContext context, byte[] buffer, int p) {
+    private int writeArrayReferenceAbbrev(@SuppressWarnings("unused") DebugContext context, byte[] buffer, int p) {
         int pos = p;
 
         pos = writeAbbrevCode(DW_ABBREV_CODE_array_pointer, buffer, pos);
@@ -1037,7 +1038,7 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         return pos;
     }
 
-    private int writeInterfaceLayoutAbbrev(DebugContext context, byte[] buffer, int p) {
+    private int writeInterfaceLayoutAbbrev(@SuppressWarnings("unused") DebugContext context, byte[] buffer, int p) {
         int pos = p;
 
         pos = writeAbbrevCode(DW_ABBREV_CODE_interface_layout, buffer, pos);
@@ -1056,7 +1057,7 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         return pos;
     }
 
-    private int writeInterfaceReferenceAbbrev(DebugContext context, byte[] buffer, int p) {
+    private int writeInterfaceReferenceAbbrev(@SuppressWarnings("unused") DebugContext context, byte[] buffer, int p) {
         int pos = p;
 
         pos = writeAbbrevCode(DW_ABBREV_CODE_interface_pointer, buffer, pos);
@@ -1074,7 +1075,7 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         return pos;
     }
 
-    private int writeInterfaceImplementorAbbrev(DebugContext context, byte[] buffer, int p) {
+    private int writeInterfaceImplementorAbbrev(@SuppressWarnings("unused") DebugContext context, byte[] buffer, int p) {
         int pos = p;
 
         pos = writeAbbrevCode(DW_ABBREV_CODE_interface_implementor, buffer, pos);
@@ -1094,12 +1095,7 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         return pos;
     }
 
-    private int writeNarrowLayoutAbbrev(DebugContext context, byte[] buffer, int p) {
-        int pos = p;
-        return pos;
-    }
-
-    private int writeHeaderFieldAbbrev(DebugContext context, byte[] buffer, int p) {
+    private int writeHeaderFieldAbbrev(@SuppressWarnings("unused") DebugContext context, byte[] buffer, int p) {
         int pos = p;
 
         pos = writeAbbrevCode(DW_ABBREV_CODE_header_field, buffer, pos);
@@ -1121,7 +1117,7 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         return pos;
     }
 
-    private int writeArrayDataTypeAbbrev(DebugContext context, byte[] buffer, int p) {
+    private int writeArrayDataTypeAbbrev(@SuppressWarnings("unused") DebugContext context, byte[] buffer, int p) {
         int pos = p;
 
         pos = writeAbbrevCode(DW_ABBREV_CODE_array_data_type, buffer, pos);
@@ -1139,7 +1135,7 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         return pos;
     }
 
-    private int writeMethodLocationAbbrev(DebugContext context, byte[] buffer, int p) {
+    private int writeMethodLocationAbbrev(@SuppressWarnings("unused") DebugContext context, byte[] buffer, int p) {
         int pos = p;
         pos = writeAbbrevCode(DW_ABBREV_CODE_method_location, buffer, pos);
         pos = writeTag(DW_TAG_subprogram, buffer, pos);
@@ -1160,7 +1156,7 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         return pos;
     }
 
-    private int writeStaticFieldLocationAbbrev(DebugContext context, byte[] buffer, int p) {
+    private int writeStaticFieldLocationAbbrev(@SuppressWarnings("unused") DebugContext context, byte[] buffer, int p) {
         int pos = p;
 
         pos = writeAbbrevCode(DW_ABBREV_CODE_static_field_location, buffer, pos);
@@ -1180,7 +1176,7 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         return pos;
     }
 
-    private int writeSuperReferenceAbbrev(DebugContext context, byte[] buffer, int p) {
+    private int writeSuperReferenceAbbrev(@SuppressWarnings("unused") DebugContext context, byte[] buffer, int p) {
         int pos = p;
 
         pos = writeAbbrevCode(DW_ABBREV_CODE_super_reference, buffer, pos);
@@ -1208,7 +1204,7 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         return pos;
     }
 
-    private int writeParameterDeclarationAbbrev(DebugContext context, int abbrevCode, byte[] buffer, int p) {
+    private int writeParameterDeclarationAbbrev(@SuppressWarnings("unused") DebugContext context, int abbrevCode, byte[] buffer, int p) {
         int pos = p;
         pos = writeAbbrevCode(abbrevCode, buffer, pos);
         pos = writeTag(DW_TAG_formal_parameter, buffer, pos);

@@ -72,7 +72,7 @@ public class MethodEntry extends MemberEntry {
         return paramNames[idx];
     }
 
-    public boolean match(String methodName, String paramSignature, String returnTypeName, boolean isDeoptTarget) {
+    public boolean match(String methodName, String paramSignature, String returnTypeName) {
         if (!methodName.equals(this.memberName)) {
             return false;
         }

@@ -96,7 +96,7 @@ public interface DebugInfoProvider {
                         return "???";
                 }
             }
-        };
+        }
 
         void debugContext(Consumer<DebugContext> action);
 

@@ -246,7 +246,8 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         return pos;
     }
 
-    public int writeBuiltInUnit(DebugContext context, byte[] buffer, int pos) {
+    public int writeBuiltInUnit(DebugContext context, byte[] buffer, int p) {
+        int pos = p;
         int lengthPos = pos;
         log(context, "  [0x%08x] <0> builtin unit", pos);
         pos = writeCUHeader(buffer, pos);
@@ -260,12 +261,12 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         // write child entries for basic Java types
 
         pos = getTypes().filter(TypeEntry::isPrimitive).reduce(pos,
-                        (p, typeEntry) -> {
+                        (pos1, typeEntry) -> {
                             PrimitiveTypeEntry primitiveTypeEntry = (PrimitiveTypeEntry) typeEntry;
                             if (primitiveTypeEntry.getBitCount() > 0) {
-                                return writePrimitiveType(context, primitiveTypeEntry, buffer, p);
+                                return writePrimitiveType(context, primitiveTypeEntry, buffer, pos1);
                             } else {
-                                return writeVoidType(context, primitiveTypeEntry, buffer, p);
+                                return writeVoidType(context, primitiveTypeEntry, buffer, pos1);
                             }
                         },
                         (oldpos, newpos) -> newpos);
@@ -273,9 +274,9 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         // write child entries for object header and array header structs
 
         pos = getTypes().filter(TypeEntry::isHeader).reduce(pos,
-                        (p, typeEntry) -> {
+                        (pos1, typeEntry) -> {
                             HeaderTypeEntry headerTypeEntry = (HeaderTypeEntry) typeEntry;
-                            return writeHeaderType(context, headerTypeEntry, buffer, p);
+                            return writeHeaderType(context, headerTypeEntry, buffer, pos1);
                         },
                         (oldpos, newpos) -> newpos);
 
@@ -563,7 +564,8 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         return writeAttrNull(buffer, pos);
     }
 
-    private int writeSuperReference(DebugContext context, int superTypeOffset, String superName, byte[] buffer, int pos) {
+    private int writeSuperReference(DebugContext context, int superTypeOffset, String superName, byte[] buffer, int p) {
+        int pos = p;
         log(context, "  [0x%08x] super reference", pos);
         int abbrevCode = DW_ABBREV_CODE_super_reference;
         log(context, "  [0x%08x] <2> Abbrev Number %d", pos, abbrevCode);
@@ -729,7 +731,7 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         return pos;
     }
 
-    private int writeMethodParameterDeclaration(DebugContext context, String paramName, String paramTypeName, boolean artificial, boolean isSpecification, byte[] buffer, int p) {
+    private int writeMethodParameterDeclaration(DebugContext context, @SuppressWarnings("unused") String paramName, String paramTypeName, boolean artificial, boolean isSpecification, byte[] buffer, int p) {
         int pos = p;
         log(context, "  [0x%08x] method parameter declaration", pos);
         int abbrevCode;
@@ -741,6 +743,7 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         }
         log(context, "  [0x%08x] <%d> Abbrev Number %d", pos, level, abbrevCode);
         pos = writeAbbrevCode(abbrevCode, buffer, pos);
+        // we don't have parameter names at present
         int typeIdx = getTypeIndex(paramTypeName);
         log(context, "  [0x%08x]     type 0x%x (%s)", pos, typeIdx, paramTypeName);
         pos = writeAttrRefAddr(typeIdx, buffer, pos);
@@ -803,8 +806,6 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
 
     private int writeClassType(DebugContext context, ClassEntry classEntry, byte[] buffer, int p) {
         int pos = p;
-        String name = classEntry.getTypeName();
-        int pointerTypeOffset = pos;
 
         // define a pointer type referring to the underlying layout
         setTypeIndex(classEntry, pos);
@@ -824,8 +825,6 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
 
     private int writeInterfaceType(DebugContext context, InterfaceClassEntry interfaceClassEntry, byte[] buffer, int p) {
         int pos = p;
-        String name = interfaceClassEntry.getTypeName();
-        int pointerTypeOffset = pos;
 
         // define a pointer type referring to the underlying layout
         setTypeIndex(interfaceClassEntry, pos);
@@ -1029,7 +1028,8 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
 
     }
 
-    private int writeArraySuperReference(DebugContext context, ArrayTypeEntry arrayTypeEntry, byte[] buffer, int pos) {
+    private int writeArraySuperReference(DebugContext context, ArrayTypeEntry arrayTypeEntry, byte[] buffer, int p) {
+        int pos = p;
         String headerName;
         TypeEntry elementType = arrayTypeEntry.getElementType();
         if (elementType.isPrimitive()) {
@@ -1055,7 +1055,6 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
 
     private int writeArrayType(DebugContext context, ArrayTypeEntry arrayTypeEntry, int layoutOffset, byte[] buffer, int p) {
         int pos = p;
-        int pointerTypeOffset = pos;
         String name = uniqueDebugString(arrayTypeEntry.getTypeName());
 
         setTypeIndex(arrayTypeEntry, pos);

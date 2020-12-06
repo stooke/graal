@@ -122,6 +122,7 @@ public class ClassEntry extends StructureTypeEntry {
                 /* deopt targets should all come after normal methods */
                 assert includesDeoptTarget == false;
             }
+            @SuppressWarnings("hiding")
             FileEntry fileEntry = primary.getFileEntry();
             assert fileEntry != null;
             indexFileEntry(fileEntry);
@@ -147,7 +148,7 @@ public class ClassEntry extends StructureTypeEntry {
         }
     }
 
-    private void indexFileEntry(FileEntry fileEntry) {
+    private void indexFileEntry(@SuppressWarnings("hiding")FileEntry fileEntry) {
         if (localFilesIndex.get(fileEntry) == null) {
             localFiles.add(fileEntry);
             localFilesIndex.put(fileEntry, localFiles.size());
@@ -205,6 +206,7 @@ public class ClassEntry extends StructureTypeEntry {
         return primaryEntries;
     }
 
+    @SuppressWarnings("unused")
     public Object primaryIndexFor(Range primaryRange) {
         return primaryIndex.get(primaryRange);
     }
@@ -289,11 +291,12 @@ public class ClassEntry extends StructureTypeEntry {
         Path cachePath = debugMethodInfo.cachePath();
         // n.b. the method file may differ from the owning class file when the method is a
         // substitution
+        @SuppressWarnings("hiding")
         FileEntry fileEntry = debugInfoBase.ensureFileEntry(fileName, filePath, cachePath);
         methods.add(new MethodEntry(fileEntry, methodName, this, resultType, paramTypeArray, paramNameArray, modifiers));
     }
 
-    private String formatParams(List<String> paramTypes, List<String> paramNames) {
+    private static String formatParams(List<String> paramTypes, List<String> paramNames) {
         if (paramNames.size() == 0) {
             return "";
         }
@@ -321,13 +324,13 @@ public class ClassEntry extends StructureTypeEntry {
         return superClass;
     }
 
-    public Range makePrimaryRange(String methodName, String symbolName, String paramSignature, String returnTypeName, StringTable stringTable, FileEntry fileEntry, int lo, int hi, int primaryLine,
+    public Range makePrimaryRange(String methodName, String symbolName, String paramSignature, String returnTypeName, StringTable stringTable, @SuppressWarnings("hiding") FileEntry fileEntry, int lo, int hi, int primaryLine,
                     int modifiers, boolean isDeoptTarget) {
         if (fileEntry == null) {
             // search for a matching method to supply the file entry
             // or failing that use the one from this class
             for (MethodEntry methodEntry : methods) {
-                if (methodEntry.match(methodName, paramSignature, returnTypeName, isDeoptTarget)) {
+                if (methodEntry.match(methodName, paramSignature, returnTypeName)) {
                     // maybe the method's file entry
                     fileEntry = methodEntry.getFileEntry();
                     break;

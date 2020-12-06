@@ -40,7 +40,6 @@ public class Range {
     private String symbolName;
     private String paramSignature;
     private String returnTypeName;
-    private String methodNameWithParams;
     private String fullMethodName;
     private String fullMethodNameWithParams;
     private String fullMethodNameWithParamsAndReturnType;
