@@ -252,12 +252,7 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
         @SuppressWarnings("try")
         NativeImageDebugFileInfo(HostedType hostedType) {
             ResolvedJavaType javaType = getJavaType(hostedType, false);
-            Class<?> clazz;
-            if (hostedType instanceof OriginalClassProvider) {
-                clazz = ((OriginalClassProvider) hostedType).getJavaClass();
-            } else {
-                clazz = null;
-            }
+            Class<?> clazz = hostedType.getJavaClass();
             SourceManager sourceManager = ImageSingletons.lookup(SourceManager.class);
             try (DebugContext.Scope s = debugContext.scope("DebugFileInfo", hostedType)) {
                 fullFilePath = sourceManager.findAndCacheSource(javaType, clazz, debugContext);
@@ -270,12 +265,7 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
         NativeImageDebugFileInfo(HostedMethod hostedMethod) {
             ResolvedJavaType javaType = getJavaType(hostedMethod, false);
             HostedType hostedType = hostedMethod.getDeclaringClass();
-            Class<?> clazz;
-            if (hostedType instanceof OriginalClassProvider) {
-                clazz = ((OriginalClassProvider) hostedType).getJavaClass();
-            } else {
-                clazz = null;
-            }
+            Class<?> clazz = hostedType.getJavaClass();
             SourceManager sourceManager = ImageSingletons.lookup(SourceManager.class);
             try (DebugContext.Scope s = debugContext.scope("DebugFileInfo", hostedType)) {
                 fullFilePath = sourceManager.findAndCacheSource(javaType, clazz, debugContext);
@@ -288,12 +278,7 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
         NativeImageDebugFileInfo(HostedField hostedField) {
             ResolvedJavaType javaType = getJavaType(hostedField, false);
             HostedType hostedType = hostedField.getDeclaringClass();
-            Class<?> clazz;
-            if (hostedType instanceof OriginalClassProvider) {
-                clazz = ((OriginalClassProvider) hostedType).getJavaClass();
-            } else {
-                clazz = null;
-            }
+            Class<?> clazz = hostedType.getJavaClass();
             SourceManager sourceManager = ImageSingletons.lookup(SourceManager.class);
             try (DebugContext.Scope s = debugContext.scope("DebugFileInfo", hostedType)) {
                 fullFilePath = sourceManager.findAndCacheSource(javaType, clazz, debugContext);
@@ -346,7 +331,7 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
             }
         }
 
-        public String toJavaName(HostedType hostedType) {
+        public String toJavaName(@SuppressWarnings("hiding") HostedType hostedType) {
             return getJavaType(hostedType, true).toJavaName();
         }
 
@@ -378,17 +363,15 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
     private class NativeImageHeaderTypeInfo implements DebugHeaderTypeInfo {
         String typeName;
         int size;
-        JavaKind elementKind;
         List<DebugFieldInfo> fieldInfos;
 
-        NativeImageHeaderTypeInfo(String typeName, int size, JavaKind baseKind) {
+        NativeImageHeaderTypeInfo(String typeName, int size) {
             this.typeName = typeName;
             this.size = size;
-            this.elementKind = baseKind;
             this.fieldInfos = new LinkedList<>();
         }
 
-        void addField(String name, String valueType, int offset, int size) {
+        void addField(String name, String valueType, int offset, @SuppressWarnings("hiding") int size) {
             NativeImageDebugHeaderFieldInfo fieldinfo = new NativeImageDebugHeaderFieldInfo(name, typeName, valueType, offset, size);
             fieldInfos.add(fieldinfo);
         }
@@ -515,7 +498,7 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
         int objHeaderSize = OBJECTLAYOUT.getFirstFieldOffset();
         // we need array headers for all Java kinds
 
-        NativeImageHeaderTypeInfo objHeader = new NativeImageHeaderTypeInfo("_objhdr", objHeaderSize, null);
+        NativeImageHeaderTypeInfo objHeader = new NativeImageHeaderTypeInfo("_objhdr", objHeaderSize);
         objHeader.addField("hub", hubTypeName, hubOffset, hubFieldSize);
         if (idHashOffset > 0) {
             objHeader.addField("idHash", "int", idHashOffset, idHashSize);
@@ -526,7 +509,7 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
         for (JavaKind arrayKind : ARRAY_KINDS) {
             String name = "_arrhdr" + arrayKind.getTypeChar();
             int headerSize = OBJECTLAYOUT.getArrayBaseOffset(arrayKind);
-            NativeImageHeaderTypeInfo arrHeader = new NativeImageHeaderTypeInfo(name, headerSize, arrayKind);
+            NativeImageHeaderTypeInfo arrHeader = new NativeImageHeaderTypeInfo(name, headerSize);
             arrHeader.addField("hub", hubTypeName, hubOffset, hubFieldSize);
             if (idHashOffset > 0) {
                 arrHeader.addField("idHash", "int", idHashOffset, idHashSize);
@@ -538,13 +521,12 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
     }
 
     private class NativeImageDebugEnumTypeInfo extends NativeImageDebugInstanceTypeInfo implements DebugEnumTypeInfo {
-        HostedInstanceClass enumClass;
 
         NativeImageDebugEnumTypeInfo(HostedInstanceClass enumClass) {
             super(enumClass);
-            this.enumClass = enumClass;
         }
 
+        @Override
         public DebugTypeKind typeKind() {
             return DebugTypeKind.ENUM;
         }
@@ -555,6 +537,7 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
             super(hostedType);
         }
 
+        @Override
         public DebugTypeKind typeKind() {
             return DebugTypeKind.INSTANCE;
         }
@@ -596,7 +579,6 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
 
         @Override
         public Stream<String> interfaces() {
-            final NativeImageDebugTypeInfo typeInfo = this;
             return Arrays.stream(hostedType.getInterfaces()).map(this::toJavaName);
         }
 
@@ -733,13 +715,12 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
     }
 
     private class NativeImageDebugInterfaceTypeInfo extends NativeImageDebugInstanceTypeInfo implements DebugInterfaceTypeInfo {
-        HostedInterface interfaceClass;
 
         NativeImageDebugInterfaceTypeInfo(HostedInterface interfaceClass) {
             super(interfaceClass);
-            this.interfaceClass = interfaceClass;
         }
 
+        @Override
         public DebugTypeKind typeKind() {
             return DebugTypeKind.INTERFACE;
         }
@@ -753,6 +734,7 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
             this.arrayClass = arrayClass;
         }
 
+        @Override
         public DebugTypeKind typeKind() {
             return DebugTypeKind.ARRAY;
         }
@@ -782,6 +764,7 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
             this.primitiveType = primitiveType;
         }
 
+        @Override
         public DebugTypeKind typeKind() {
             return DebugTypeKind.PRIMITIVE;
         }
@@ -826,7 +809,7 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
         if (hostedType.isEnum()) {
             return new NativeImageDebugEnumTypeInfo((HostedInstanceClass) hostedType);
         } else if (hostedType.isInstanceClass()) {
-            return new NativeImageDebugInstanceTypeInfo((HostedInstanceClass) hostedType);
+            return new NativeImageDebugInstanceTypeInfo(hostedType);
         } else if (hostedType.isInterface()) {
             return new NativeImageDebugInterfaceTypeInfo((HostedInterface) hostedType);
         } else if (hostedType.isArray()) {
@@ -891,6 +874,7 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
             return NativeBootImage.localSymbolNameForMethod(hostedMethod);
         }
 
+        @Override
         public String paramSignature() {
             return hostedMethod.format("%P");
         }
@@ -961,6 +945,7 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
             return methodName().endsWith(HostedMethod.METHOD_NAME_DEOPT_SUFFIX);
         }
 
+        @Override
         public int getModifiers() {
             return hostedMethod.getModifiers();
         }
@@ -1124,8 +1109,6 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
         long offset;
         long address;
         long size;
-        ResolvedJavaType javaType;
-        Class<?> clazz;
         String typeName;
         String provenance;
 
@@ -1146,41 +1129,36 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
             address = objectInfo.getAddress();
             size = objectInfo.getSize();
             provenance = objectInfo.toString();
-            /*
-             * HostedType wraps an AnalysisType and both HostedType and AnalysisType punt calls to
-             * getSourceFilename to the wrapped class so for consistency we need to do the type name
-             * and path lookup relative to the doubly unwrapped HostedType.
-             */
-            javaType = hostedClass.getWrapped().getWrappedWithoutResolve();
-            if (hostedClass instanceof OriginalClassProvider) {
-                clazz = ((OriginalClassProvider) hostedClass).getJavaClass();
-            } else {
-                clazz = null;
-            }
             typeName = hostedClass.toJavaName();
         }
 
         // accessors
+        @Override
         public String getProvenance() {
             return provenance;
         }
 
+        @Override
         public String getTypeName() {
             return typeName;
         }
 
+        @Override
         public String getPartition() {
             return partition.getName() + "{" + partition.getSize() + "}@" + partition.getStartOffset();
         }
 
+        @Override
         public long getOffset() {
             return offset;
         }
 
+        @Override
         public long getAddress() {
             return address;
         }
 
+        @Override
         public long getSize() {
             return size;
         }
