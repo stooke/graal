@@ -166,8 +166,8 @@ def test():
                       [r"%s = {"%(wildcard_pattern),
                        r"%s<_arrhdrA> = {"%(spaces_pattern),
                        r"%shub = %s,"%(spaces_pattern, address_pattern),
-                       r"%slen = 0x0,"%(spaces_pattern),
-                       r"%sidHash = %s"%(spaces_pattern, address_pattern),
+                       r"%sidHash = %s,"%(spaces_pattern, address_pattern),
+                       r"%slen = 0x0"%(spaces_pattern),
                        r"%s},"%(spaces_pattern),
                        r"%smembers of java\.lang\.String\[\]:"%(spaces_pattern),
                        r"%sdata = %s"%(spaces_pattern, address_pattern),
@@ -181,10 +181,11 @@ def test():
                       [r"%s = {"%(wildcard_pattern),
                        r"%s<java.lang.Object> = {"%(spaces_pattern),
                        r"%s<_objhdr> = {"%(spaces_pattern),
-                       r"%shub = %s"%(spaces_pattern, address_pattern),
+                       r"%shub = %s,"%(spaces_pattern, address_pattern),
+                       r"%sidHash = %s"%(spaces_pattern, address_pattern),
                        r"%s}, <No data fields>},"%(spaces_pattern),
-                       r"%smembers of _java\.lang\.Class:"%(spaces_pattern),
-                       r"%sname = %s"%(spaces_pattern, address_pattern),
+                       r"%smembers of java\.lang\.Class:"%(spaces_pattern),
+                       r"%sname = %s,"%(spaces_pattern, address_pattern),
                        "}"])
 
     checker.check(exec_string, skip_fails=True)
@@ -194,7 +195,7 @@ def test():
     # so we need a wild card before the final quote
     exec_string = execute("x/s (('java.lang.String[]' *)$rdi)->hub->name->value->data")
     checker = Checker("print String[] hub name",
-                      r"%s:%s\"\[Ljava.lang.String;.*\""%(address_pattern, spaces_pattern))
+                      r"%s:%s\"\[Ljava.lang.String;%s\""%(address_pattern, spaces_pattern, wildcard_pattern))
     checker.check(exec_string, skip_fails=False)
 
     # look up PrintStream.println methods
@@ -247,7 +248,7 @@ def test():
     exec_string = execute("ptype 'hello.Hello$Greeter'")
     rexp = [r"type = class hello\.Hello\$Greeter : public java\.lang\.Object {",
             r"%spublic:"%(spaces_pattern),
-            r"%sstatic hello\.Hello\$Greeter greeter\(java\.lang\.String\[\] \*\);"%(spaces_pattern),
+            r"%sstatic hello\.Hello\$Greeter \* greeter\(java\.lang\.String\[\] \*\);"%(spaces_pattern),
             r"}"]
 
     checker = Checker('ptype Greeter', rexp)
@@ -260,7 +261,7 @@ def test():
             r"%sboolean equals\(java\.lang\.Object \*\);"%(spaces_pattern),
             r"%sprivate:"%(spaces_pattern),
             r"%sint hashCode\(void\);"%(spaces_pattern),
-            r"%sjava\.lang\.String *toString\(void\);"%(spaces_pattern),
+            r"%sjava\.lang\.String \* toString\(void\);"%(spaces_pattern),
             r"}"]
     
     checker = Checker('ptype Object', rexp)
@@ -268,7 +269,8 @@ def test():
 
     exec_string = execute("ptype _objhdr")
     rexp = [r"type = struct _objhdr {",
-            r"%sjava\.lang\.Class hub;"%(spaces_pattern),
+            r"%sjava\.lang\.Class \*hub;"%(spaces_pattern),
+            r"%sint idHash;"%(spaces_pattern),
             r"}"]
     checker = Checker('ptype _objhdr', rexp)
     checker.check(exec_string, skip_fails=True)
@@ -278,9 +280,9 @@ def test():
 
     exec_string = execute("ptype _arrhdrA")
     rexp = [r"type = struct _arrhdrA {",
-            r"%sjava\.lang\.Class hub;"%(spaces_pattern),
-            r"%sint len;"%(spaces_pattern),
+            r"%sjava\.lang\.Class \*hub;"%(spaces_pattern),
             r"%sint idHash;"%(spaces_pattern),
+            r"%sint len;"%(spaces_pattern),
             r"}"]
     checker = Checker('ptype _objhdr', rexp)
     checker.check(exec_string, skip_fails=True)
@@ -350,18 +352,19 @@ def test():
                        r"%s<java.io.OutputStream> = {"%(spaces_pattern),
                        r"%s<java.lang.Object> = {"%(spaces_pattern),
                        r"%s<_objhdr> = {"%(spaces_pattern),
-                       r"%shub = %s"%(spaces_pattern, address_pattern),
+                       r"%shub = %s,"%(spaces_pattern, address_pattern),
+                       r"%sidHash = %s"%(spaces_pattern, address_pattern),
                        r"%s}, <No data fields>}, <No data fields>},"%(spaces_pattern),
                        r"%smembers of java.io.FilterOutputStream:"%(spaces_pattern),
+                       r"%sclosed = 0x0,"%(spaces_pattern),
                        r"%sout = %s,"%(spaces_pattern, address_pattern),
-                       r"%scloseLock = %s,"%(spaces_pattern, address_pattern),
-                       r"%sclosed = 0x0"%(spaces_pattern),
+                       r"%scloseLock = %s"%(spaces_pattern, address_pattern),
                        r"%s},"%(spaces_pattern),
                        r"%smembers of java.io.PrintStream:"%(spaces_pattern),
-                       r"%sautoFlush = 0x1,"%(spaces_pattern),
-                       r"%sclosing = 0x0,"%(spaces_pattern),
                        r"%stextOut = %s,"%(spaces_pattern, address_pattern),
-                       r"%scharOut = %s"%(spaces_pattern, address_pattern),
+                       r"%scharOut = %s,"%(spaces_pattern, address_pattern),
+                       r"%sautoFlush = 0x1,"%(spaces_pattern),
+                       r"%sclosing = 0x0"%(spaces_pattern),
                        r"}"])
 
     checker.check(exec_string, skip_fails=True)
