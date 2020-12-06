@@ -510,13 +510,16 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
         String hubTypeName = "java.lang.Class";
         int arrayLengthOffset = OBJECTLAYOUT.getArrayLengthOffset();
         int arrayLengthSize = OBJECTLAYOUT.sizeInBytes(JavaKind.Int);
-        int arrayIdHashOffset = OBJECTLAYOUT.getArrayIdentityHashcodeOffset();
-        int arrayIdHashSize = OBJECTLAYOUT.sizeInBytes(JavaKind.Int);
+        int idHashOffset = OBJECTLAYOUT.getIdentityHashCodeOffset();
+        int idHashSize = OBJECTLAYOUT.sizeInBytes(JavaKind.Int);
         int objHeaderSize = OBJECTLAYOUT.getFirstFieldOffset();
         // we need array headers for all Java kinds
 
         NativeImageHeaderTypeInfo objHeader = new NativeImageHeaderTypeInfo("_objhdr", objHeaderSize, null);
         objHeader.addField("hub", hubTypeName, hubOffset, hubFieldSize);
+        if (idHashOffset > 0) {
+            objHeader.addField("idHash", "int", idHashOffset, idHashSize);
+        }
         infos.add(objHeader);
 
         // create a header for each
@@ -525,10 +528,10 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
             int headerSize = OBJECTLAYOUT.getArrayBaseOffset(arrayKind);
             NativeImageHeaderTypeInfo arrHeader = new NativeImageHeaderTypeInfo(name, headerSize, arrayKind);
             arrHeader.addField("hub", hubTypeName, hubOffset, hubFieldSize);
-            arrHeader.addField("len", "int", arrayLengthOffset, arrayLengthSize);
-            if (arrayIdHashOffset > 0) {
-                arrHeader.addField("idHash", "int", arrayIdHashOffset, arrayIdHashSize);
+            if (idHashOffset > 0) {
+                arrHeader.addField("idHash", "int", idHashOffset, idHashSize);
             }
+            arrHeader.addField("len", "int", arrayLengthOffset, arrayLengthSize);
             infos.add(arrHeader);
         }
         return infos.stream();

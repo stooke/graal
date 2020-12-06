@@ -326,21 +326,22 @@ public class ClassEntry extends StructureTypeEntry {
 
     public Range makePrimaryRange(String methodName, String symbolName, String paramSignature, String returnTypeName, StringTable stringTable, @SuppressWarnings("hiding") FileEntry fileEntry, int lo, int hi, int primaryLine,
                     int modifiers, boolean isDeoptTarget) {
-        if (fileEntry == null) {
+        FileEntry fileEntryToUse = fileEntry;
+        if (fileEntryToUse == null) {
             // search for a matching method to supply the file entry
             // or failing that use the one from this class
             for (MethodEntry methodEntry : methods) {
                 if (methodEntry.match(methodName, paramSignature, returnTypeName)) {
                     // maybe the method's file entry
-                    fileEntry = methodEntry.getFileEntry();
+                    fileEntryToUse = methodEntry.getFileEntry();
                     break;
                 }
             }
-            if (fileEntry == null) {
+            if (fileEntryToUse == null) {
                 // last chance is the class's file entry
-                fileEntry = this.fileEntry;
+                fileEntryToUse = this.fileEntry;
             }
         }
-        return new Range(this.typeName, methodName, symbolName, paramSignature, returnTypeName, stringTable, fileEntry, lo, hi, primaryLine, modifiers, isDeoptTarget);
+        return new Range(this.typeName, methodName, symbolName, paramSignature, returnTypeName, stringTable, fileEntryToUse, lo, hi, primaryLine, modifiers, isDeoptTarget);
     }
 }
