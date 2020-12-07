@@ -130,6 +130,23 @@ def test():
     package_file_pattern = '[a-zA-Z0-9_/]+\\.java'
     varname_pattern = '[a-zA-Z0-9_]+'
     wildcard_pattern = '.*'
+    # obtain the gdb version
+    # n.b. we can only test printing in gdb 10.1 upwards
+    exec_string=execute("show version")
+    checker = Checker('show version',
+                      r"GNU gdb \(GDB\) %s(%s)\.(%s)%s"%(wildcard_pattern, digits_pattern, digits_pattern, wildcard_pattern))
+    matches = checker.check(exec_string, skip_fails=False)
+    # n.b. can only get back here with one match
+    match = matches[0]
+    major = int(match.group(1))
+    # may need this if 8.x and 9.x get patched
+    # minor = int(match.group(2))
+    # printing object data requires gdb 10+
+    can_print_data = major > 9
+
+    if not can_print_data:
+        print("warning: cannot test printing of objects!")
+
     # disable prompting to continue output
     execute("set pagination off")
     # enable pretty printing of structures
@@ -160,43 +177,44 @@ def test():
                        ])
     checker.check(exec_string, skip_fails=False)
 
-    # print the contents of the arguments array which will be in rdi
-    exec_string = execute("print /x *(('java.lang.String[]' *)$rdi)")
-    checker = Checker("print String[] args",
-                      [r"%s = {"%(wildcard_pattern),
-                       r"%s<_arrhdrA> = {"%(spaces_pattern),
-                       r"%shub = %s,"%(spaces_pattern, address_pattern),
-                       r"%sidHash = %s,"%(spaces_pattern, address_pattern),
-                       r"%slen = 0x0"%(spaces_pattern),
-                       r"%s},"%(spaces_pattern),
-                       r"%smembers of java\.lang\.String\[\]:"%(spaces_pattern),
-                       r"%sdata = %s"%(spaces_pattern, address_pattern),
-                       "}"])
+    if can_print_data:
+        # print the contents of the arguments array which will be in rdi
+        exec_string = execute("print /x *(('java.lang.String[]' *)$rdi)")
+        checker = Checker("print String[] args",
+                          [r"%s = {"%(wildcard_pattern),
+                           r"%s<_arrhdrA> = {"%(spaces_pattern),
+                           r"%shub = %s,"%(spaces_pattern, address_pattern),
+                           r"%sidHash = %s,"%(spaces_pattern, address_pattern),
+                           r"%slen = 0x0"%(spaces_pattern),
+                           r"%s},"%(spaces_pattern),
+                           r"%smembers of java\.lang\.String\[\]:"%(spaces_pattern),
+                           r"%sdata = %s"%(spaces_pattern, address_pattern),
+                           "}"])
 
-    checker.check(exec_string, skip_fails=False)
+        checker.check(exec_string, skip_fails=False)
 
-    # print the hub of the array and check it has a name field
-    exec_string = execute("print /x *(('java.lang.String[]' *)$rdi)->hub")
-    checker = Checker("print String[] hub",
-                      [r"%s = {"%(wildcard_pattern),
-                       r"%s<java.lang.Object> = {"%(spaces_pattern),
-                       r"%s<_objhdr> = {"%(spaces_pattern),
-                       r"%shub = %s,"%(spaces_pattern, address_pattern),
-                       r"%sidHash = %s"%(spaces_pattern, address_pattern),
-                       r"%s}, <No data fields>},"%(spaces_pattern),
-                       r"%smembers of java\.lang\.Class:"%(spaces_pattern),
-                       r"%sname = %s,"%(spaces_pattern, address_pattern),
-                       "}"])
+        # print the hub of the array and check it has a name field
+        exec_string = execute("print /x *(('java.lang.String[]' *)$rdi)->hub")
+        checker = Checker("print String[] hub",
+                          [r"%s = {"%(wildcard_pattern),
+                           r"%s<java.lang.Object> = {"%(spaces_pattern),
+                           r"%s<_objhdr> = {"%(spaces_pattern),
+                           r"%shub = %s,"%(spaces_pattern, address_pattern),
+                           r"%sidHash = %s"%(spaces_pattern, address_pattern),
+                           r"%s}, <No data fields>},"%(spaces_pattern),
+                           r"%smembers of java\.lang\.Class:"%(spaces_pattern),
+                           r"%sname = %s,"%(spaces_pattern, address_pattern),
+                           "}"])
 
-    checker.check(exec_string, skip_fails=True)
+        checker.check(exec_string, skip_fails=True)
 
-    # print the hub name field and check it is String[]
-    # n.b. the expected String text is not necessarily null terminated
-    # so we need a wild card before the final quote
-    exec_string = execute("x/s (('java.lang.String[]' *)$rdi)->hub->name->value->data")
-    checker = Checker("print String[] hub name",
-                      r"%s:%s\"\[Ljava.lang.String;%s\""%(address_pattern, spaces_pattern, wildcard_pattern))
-    checker.check(exec_string, skip_fails=False)
+        # print the hub name field and check it is String[]
+        # n.b. the expected String text is not necessarily null terminated
+        # so we need a wild card before the final quote
+        exec_string = execute("x/s (('java.lang.String[]' *)$rdi)->hub->name->value->data")
+        checker = Checker("print String[] hub name",
+                          r"%s:%s\"\[Ljava.lang.String;%s\""%(address_pattern, spaces_pattern, wildcard_pattern))
+        checker.check(exec_string, skip_fails=False)
 
     # look up PrintStream.println methods
     # expect "All functions matching regular expression "java.io.PrintStream.println":"
@@ -344,38 +362,39 @@ def test():
     checker = Checker('list println 2', rexp)
     checker.check(exec_string, skip_fails=False)
 
-    # print the java.io.PrintStream instance and check its type
-    exec_string = execute("print /x *(('java.io.PrintStream' *)$rdi)")
-    checker = Checker("print DefaultGreeterSystem.out",
-                      [r"%s = {"%(wildcard_pattern),
-                       r"%s<java.io.FilterOutputStream> = {"%(spaces_pattern),
-                       r"%s<java.io.OutputStream> = {"%(spaces_pattern),
-                       r"%s<java.lang.Object> = {"%(spaces_pattern),
-                       r"%s<_objhdr> = {"%(spaces_pattern),
-                       r"%shub = %s,"%(spaces_pattern, address_pattern),
-                       r"%sidHash = %s"%(spaces_pattern, address_pattern),
-                       r"%s}, <No data fields>}, <No data fields>},"%(spaces_pattern),
-                       r"%smembers of java.io.FilterOutputStream:"%(spaces_pattern),
-                       r"%sclosed = 0x0,"%(spaces_pattern),
-                       r"%sout = %s,"%(spaces_pattern, address_pattern),
-                       r"%scloseLock = %s"%(spaces_pattern, address_pattern),
-                       r"%s},"%(spaces_pattern),
-                       r"%smembers of java.io.PrintStream:"%(spaces_pattern),
-                       r"%stextOut = %s,"%(spaces_pattern, address_pattern),
-                       r"%scharOut = %s,"%(spaces_pattern, address_pattern),
-                       r"%sautoFlush = 0x1,"%(spaces_pattern),
-                       r"%sclosing = 0x0"%(spaces_pattern),
-                       r"}"])
+    if can_print_data:
+        # print the java.io.PrintStream instance and check its type
+        exec_string = execute("print /x *(('java.io.PrintStream' *)$rdi)")
+        checker = Checker("print DefaultGreeterSystem.out",
+                          [r"%s = {"%(wildcard_pattern),
+                           r"%s<java.io.FilterOutputStream> = {"%(spaces_pattern),
+                           r"%s<java.io.OutputStream> = {"%(spaces_pattern),
+                           r"%s<java.lang.Object> = {"%(spaces_pattern),
+                           r"%s<_objhdr> = {"%(spaces_pattern),
+                           r"%shub = %s,"%(spaces_pattern, address_pattern),
+                           r"%sidHash = %s"%(spaces_pattern, address_pattern),
+                           r"%s}, <No data fields>}, <No data fields>},"%(spaces_pattern),
+                           r"%smembers of java.io.FilterOutputStream:"%(spaces_pattern),
+                           r"%sclosed = 0x0,"%(spaces_pattern),
+                           r"%sout = %s,"%(spaces_pattern, address_pattern),
+                           r"%scloseLock = %s"%(spaces_pattern, address_pattern),
+                           r"%s},"%(spaces_pattern),
+                           r"%smembers of java.io.PrintStream:"%(spaces_pattern),
+                           r"%stextOut = %s,"%(spaces_pattern, address_pattern),
+                           r"%scharOut = %s,"%(spaces_pattern, address_pattern),
+                           r"%sautoFlush = 0x1,"%(spaces_pattern),
+                           r"%sclosing = 0x0"%(spaces_pattern),
+                           r"}"])
 
-    checker.check(exec_string, skip_fails=True)
+        checker.check(exec_string, skip_fails=True)
 
-    # print the hub name field and check it is java.io.PrintStream
-    # n.b. the expected String text is not necessarily null terminated
-    # so we need a wild card before the final quote
-    exec_string = execute("x/s (('java.io.PrintStream' *)$rdi)->hub->name->value->data")
-    checker = Checker("print PrintStream hub name",
-                      r"%s:%s\"java.io.PrintStream.*\""%(address_pattern, spaces_pattern))
-    checker.check(exec_string, skip_fails=False)
+        # print the hub name field and check it is java.io.PrintStream
+        # n.b. the expected String text is not necessarily null terminated
+        # so we need a wild card before the final quote
+        exec_string = execute("x/s (('java.io.PrintStream' *)$rdi)->hub->name->value->data")
+        checker = Checker("print PrintStream hub name",
+                          r"%s:%s\"java.io.PrintStream.*\""%(address_pattern, spaces_pattern))
+        checker.check(exec_string, skip_fails=False)
 
     print(execute("quit 0"))
 
