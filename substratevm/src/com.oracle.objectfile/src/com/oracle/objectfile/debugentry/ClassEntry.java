@@ -148,7 +148,7 @@ public class ClassEntry extends StructureTypeEntry {
         }
     }
 
-    private void indexFileEntry(@SuppressWarnings("hiding")FileEntry fileEntry) {
+    private void indexFileEntry(@SuppressWarnings("hiding") FileEntry fileEntry) {
         if (localFilesIndex.get(fileEntry) == null) {
             localFiles.add(fileEntry);
             localFilesIndex.put(fileEntry, localFiles.size());
@@ -324,7 +324,8 @@ public class ClassEntry extends StructureTypeEntry {
         return superClass;
     }
 
-    public Range makePrimaryRange(String methodName, String symbolName, String paramSignature, String returnTypeName, StringTable stringTable, @SuppressWarnings("hiding") FileEntry fileEntry, int lo, int hi, int primaryLine,
+    public Range makePrimaryRange(String methodName, String symbolName, String paramSignature, String returnTypeName, StringTable stringTable, @SuppressWarnings("hiding") FileEntry fileEntry, int lo,
+                    int hi, int primaryLine,
                     int modifiers, boolean isDeoptTarget) {
         FileEntry fileEntryToUse = fileEntry;
         if (fileEntryToUse == null) {

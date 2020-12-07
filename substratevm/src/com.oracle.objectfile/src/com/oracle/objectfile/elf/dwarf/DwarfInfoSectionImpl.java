@@ -731,7 +731,8 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         return pos;
     }
 
-    private int writeMethodParameterDeclaration(DebugContext context, @SuppressWarnings("unused") String paramName, String paramTypeName, boolean artificial, boolean isSpecification, byte[] buffer, int p) {
+    private int writeMethodParameterDeclaration(DebugContext context, @SuppressWarnings("unused") String paramName, String paramTypeName, boolean artificial, boolean isSpecification, byte[] buffer,
+                    int p) {
         int pos = p;
         log(context, "  [0x%08x] method parameter declaration", pos);
         int abbrevCode;
