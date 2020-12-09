@@ -134,7 +134,7 @@ def test():
     # n.b. we can only test printing in gdb 10.1 upwards
     exec_string=execute("show version")
     checker = Checker('show version',
-                      r"GNU gdb \(GDB\) %s(%s)\.(%s)%s"%(wildcard_pattern, digits_pattern, digits_pattern, wildcard_pattern))
+                      r"GNU gdb %s (%s)\.(%s)%s"%(wildcard_pattern, digits_pattern, digits_pattern, wildcard_pattern))
     matches = checker.check(exec_string, skip_fails=False)
     # n.b. can only get back here with one match
     match = matches[0]
