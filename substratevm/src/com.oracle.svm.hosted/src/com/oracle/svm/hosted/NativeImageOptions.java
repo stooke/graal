@@ -29,6 +29,7 @@ import static org.graalvm.compiler.options.OptionType.User;
 
 import java.util.Arrays;
 
+import com.oracle.svm.core.SubstrateOptions;
 import org.graalvm.collections.EconomicMap;
 import org.graalvm.compiler.options.Option;
 import org.graalvm.compiler.options.OptionKey;
@@ -117,6 +118,9 @@ public class NativeImageOptions {
             if (newValue) {
                 AllowIncompleteClasspath.update(values, true);
                 JfrAvailability.withJfr = true;
+                /* these security services are only required for JFR remote, and only if HTTPS is required */
+                // JFR-TODO: add build-time option to add remote control code to executable instead of always
+                SubstrateOptions.EnableAllSecurityServices.update(values, true);
             }
         }
     };

@@ -29,6 +29,7 @@ package com.oracle.svm.core.jdk.jfr;
 import java.lang.management.ManagementFactory;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
 import org.graalvm.nativeimage.ImageSingletons;
@@ -890,6 +891,60 @@ final class Target_jdk_jfr_internal_JVM {
     public boolean shouldRotateDisk() {
         boolean b = JfrChunkRotation.shouldRotate();
         return b;
+    }
+}
+
+@TargetClass(className = "sun.net.httpserver.ServerImpl", innerClass = "Dispatcher", onlyWith = JfrAvailability.WithJfr.class)
+final class Target_sun_net_httpserver_ServerImpl_Dispatcher implements Runnable {
+
+    @Alias
+    public void run() {}
+}
+
+/* this substitution (to add setDaemon(true) is required for http/https JFR remote implementation */
+@TargetClass(className = "sun.net.httpserver.ServerImpl", onlyWith = JfrAvailability.WithJfr.class)
+final class Target_sun_net_httpserver_ServerImpl {
+
+    @Alias
+    private volatile boolean finished = false;
+
+    @Alias
+    private volatile boolean terminating = false;
+
+    @Alias
+    private boolean bound = false;
+
+    @Alias
+    private boolean started = false;
+
+    @Alias
+    private Thread dispatcherThread;
+
+    @Alias
+    private Executor executor;
+
+    @Alias
+    private Target_sun_net_httpserver_ServerImpl_Dispatcher dispatcher;
+
+    @Substitute
+    public void start () {
+        if (!bound || started || finished) {
+            throw new IllegalStateException ("server in wrong state");
+        }
+        if (executor == null) {
+            executor = new DefaultExecutor();
+        }
+        dispatcherThread = new Thread(null, dispatcher, "HTTP-Dispatcher", 0, false);
+        /* JFR: setting the server thread to daemon prevents a hang at the end */
+        dispatcherThread.setDaemon(true);
+        started = true;
+        dispatcherThread.start();
+    }
+
+    private static class DefaultExecutor implements Executor {
+        public void execute (Runnable task) {
+            task.run();
+        }
     }
 }
 

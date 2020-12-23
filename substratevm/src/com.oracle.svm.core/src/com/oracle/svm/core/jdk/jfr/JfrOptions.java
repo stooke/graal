@@ -89,6 +89,13 @@ public class JfrOptions {
     private static final String MAXSIZE = "maxsize";
     private static final String GCROOTS = "path-to-gc-roots";
 
+    // options pertaining to remote control
+    private static final String REMOTE_PORT = "remote-port";
+    private static final String REMOTE_PROTOCOL = "remote-protocol";
+
+    private static int remotePort = -1; // 0 means ephemeral port; print out at startup
+    private static String remoteProtocol = "https";
+
     // Thread Buffer Size, Memory Size, Global Buffer size, Max Chunk Size, Max Recording size are memory arguments
     private static int maxChunkSize = DEFAULT_MAX_CHUNK_SIZE;
     private static int globalBufferSize = 512 * K;
@@ -100,6 +107,7 @@ public class JfrOptions {
     private static int stackDepth = 64;
 
     // Delay, Duration, Max Age are time arguments
+    private static boolean startRecordingAutomatically = false;
     private static long delay = 0;
     private static long duration = 0;
     private static long maxAge = 0; // 0 is a special value indicating no limit
@@ -139,6 +147,7 @@ public class JfrOptions {
         protected void onValueUpdate(EconomicMap<OptionKey<?>, Object> values, String oldValue, String newValue) {
             // Substrate parses it into option=value,option2=value,.... We can pass it on to our own parsing methods from here
             parseStartFlightRecordingOption(newValue);
+            startRecordingAutomatically = true;
             // Do the sanity checks to make sure we have valid options
             if (!adjustMemoryOptions()) {
                 throw new IllegalArgumentException("Failed to validate memory arguments");
@@ -200,6 +209,15 @@ public class JfrOptions {
                     case DUMPONEXIT:
                         dumpOnExit = Boolean.parseBoolean(val);
                         break;
+                    case REMOTE_PORT:
+                        remotePort = Integer.parseInt(val);
+                        break;
+                    case REMOTE_PROTOCOL:
+                        if ("http".equals(val) || "https".equals(val)) {
+                            remoteProtocol = val;
+                        } else {
+                            throw new RuntimeException("JFR remote protocol must be either http or https (default).");
+                        }
                     case THREAD_BUFFER_SIZE:
                         threadBufferSize = parseMemoryOption(val);
                         break;
@@ -339,6 +357,18 @@ public class JfrOptions {
         }
         Target_jdk_jfr_internal_JVM.getJVM().setFileNotification(chunkSize);
         maxChunkSize = chunkSize;
+    }
+
+    public static boolean getStartRecordingAutomatically() {
+        return startRecordingAutomatically;
+    }
+
+    public static int getRemotePort() {
+        return remotePort;
+    }
+
+    public static String getRemoteProtocol() {
+        return remoteProtocol;
     }
 
     public static int getGlobalBufferSize() {

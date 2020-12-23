@@ -68,6 +68,18 @@ public class JfrMetadataEvent {
         assert (writer.isValid());
         assert (thread != null);
         assert (metadata != null);
+        if (metadata == null) {
+            System.err.println("XXXXXXXXXXXXXXXXXXXXXXXX    MDE.writeMetadata(): matadata is null; returning - JFR file will be corrupt");
+            try {
+                writer.writeUnbuffered(new byte[0], 0);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return;
+        } else {
+            System.err.println("MDE.writeMetadata(): matadata is " + metadata.length + " bytes long");
+        }
+        if (writer == null) System.err.println("MDE: writer is null");
         try {
             writer.writeUnbuffered(metadata, metadata.length);
         } catch (IOException e) {
@@ -78,6 +90,20 @@ public class JfrMetadataEvent {
     // Called from JFR Java code
     public static void update(byte[] metadata) {
         JfrMetadataEvent.metadata = metadata;
+        /*
+        at com.oracle.svm.core.jdk.jfr.recorder.checkpoint.JfrMetadataEvent.update(JfrMetadataEvent.java:97)
+        at jdk.jfr.internal.JVM.storeMetadataDescriptor(JfrSubstitutions.java:731)
+        at jdk.jfr.internal.MetadataRepository.storeDescriptorInJVM(MetadataRepository.java:219)
+        at jdk.jfr.internal.MetadataRepository.setOutput(MetadataRepository.java:263)
+        at jdk.jfr.internal.PlatformRecorder.start(PlatformRecorder.java:230)
+        at jdk.jfr.internal.PlatformRecording.start(PlatformRecording.java:114)
+        at jdk.jfr.Recording.start(Recording.java:169)
+        at HelloWorld.main(HelloWorld.java:261)
+MDE.writeMetadata(): matadata is 76039 bytes long
+
+
+        System.err.println("MDE.update() called from");
+        new Exception("foo").printStackTrace(); */
         metadataId++;
     }
 }
