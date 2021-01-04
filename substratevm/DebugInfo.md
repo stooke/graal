@@ -115,7 +115,7 @@ units.
 ```
 
 gdb knows the type of the oop stored in `Blueprint::DEFAULT_UNIT` and
-kows how to dereference it to locate the object field
+knows how to dereference it to locate the object field
 values. Likewise, it knows that the `print_name` field is a `String`
 it will translate the oop stored in that field to an address where the
 String contents are stored and it will print the values of the
@@ -149,7 +149,7 @@ that prints the default unit name gdb will automatically rebase the
 base register. It will then fetch and rebase the oop stored in its
 `print_name` field to access the contents of the `String`.
 
-However, this transformation won't work correctly in the secodn case
+However, this transformation won't work correctly in the second case
 where gdb is passed an oop that has already been loaded into a
 register and converted to a pointer. It is necessary to restore the
 original oop by reverting it back to an offset:
@@ -311,8 +311,7 @@ end
 ```
 
 Notice that the `hubname` command also masks out the low 3 flag bits in
-the hub field that are sometimesmay sometimes get set by the runtime
-during program operation.
+the hub field that may sometimes get set by the runtime during program operation.
 
 Attempting to print the hub name for an invalid reference will fail
 safe, printing an error message.
@@ -326,7 +325,7 @@ Cannot access memory at address 0x2
 
 Array type layouts are modelled with a class. The class inherits
 fields from an array header struct specific to the array element type,
-one of _arrhdrZ _arrhdrB, _arrhdrS, ... _arrhdrA (he last one is for
+one of _arrhdrZ _arrhdrB, _arrhdrS, ... _arrhdrA (the last one is for
 object arrays). Inherited fields include the hub, array length, idHash
 to round up the header size to a boundary suitable for the array
 element type. The array class (layout) type includes only one field, a

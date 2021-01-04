@@ -177,18 +177,9 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
         if (wantOriginal) {
             // check for wholesale replacement of the original class
             javaType = hostedType.getWrapped().getWrappedWithoutResolve();
-            if (javaType instanceof SubstitutionType) {
-                return ((SubstitutionType) javaType).getOriginal();
-            } else if (javaType instanceof CustomSubstitutionType<?, ?>) {
-                return ((CustomSubstitutionType<?, ?>) javaType).getOriginal();
-            } else if (javaType instanceof LambdaSubstitutionType) {
-                return ((LambdaSubstitutionType) javaType).getOriginal();
-            } else if (javaType instanceof InjectedFieldsType) {
-                return ((InjectedFieldsType) javaType).getOriginal();
-            } else {
-                return javaType;
-            }
-        }
+            ResolvedJavaType originalType = getOriginal(javaType);
+            return (originalType != null ? originalType : javaType);
+       }
         return hostedType.getWrapped().getWrapped();
     }
 
@@ -197,14 +188,9 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
             // check for wholesale replacement of the original class
             HostedType hostedType = hostedMethod.getDeclaringClass();
             ResolvedJavaType javaType = hostedType.getWrapped().getWrappedWithoutResolve();
-            if (javaType instanceof SubstitutionType) {
-                return ((SubstitutionType) javaType).getOriginal();
-            } else if (javaType instanceof CustomSubstitutionType<?, ?>) {
-                return ((CustomSubstitutionType<?, ?>) javaType).getOriginal();
-            } else if (javaType instanceof LambdaSubstitutionType) {
-                return ((LambdaSubstitutionType) javaType).getOriginal();
-            } else if (javaType instanceof InjectedFieldsType) {
-                return ((InjectedFieldsType) javaType).getOriginal();
+            ResolvedJavaType originalType = getOriginal(javaType);
+            if (originalType != null) {
+                return originalType;
             }
             // check for replacement of the original method only
             ResolvedJavaMethod javaMethod = hostedMethod.getWrapped().getWrapped();
@@ -224,14 +210,9 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
             // check for wholesale replacement of the original class
             HostedType hostedType = hostedField.getDeclaringClass();
             ResolvedJavaType javaType = hostedType.getWrapped().getWrappedWithoutResolve();
-            if (javaType instanceof SubstitutionType) {
-                return ((SubstitutionType) javaType).getOriginal();
-            } else if (javaType instanceof CustomSubstitutionType<?, ?>) {
-                return ((CustomSubstitutionType<?, ?>) javaType).getOriginal();
-            } else if (javaType instanceof LambdaSubstitutionType) {
-                return ((LambdaSubstitutionType) javaType).getOriginal();
-            } else if (javaType instanceof InjectedFieldsType) {
-                return ((InjectedFieldsType) javaType).getOriginal();
+            ResolvedJavaType originalType = getOriginal(javaType);
+            if (originalType != null) {
+                return originalType;
             }
             // check for replacement of the original field only
             ResolvedJavaField javaField = hostedField.wrapped.wrapped;
@@ -242,6 +223,19 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
         }
         ResolvedJavaField javaField = hostedField.wrapped.wrapped;
         return javaField.getDeclaringClass();
+    }
+
+    private static ResolvedJavaType getOriginal(ResolvedJavaType javaType) {
+        if (javaType instanceof SubstitutionType) {
+            return ((SubstitutionType) javaType).getOriginal();
+        } else if (javaType instanceof CustomSubstitutionType<?, ?>) {
+            return ((CustomSubstitutionType<?, ?>) javaType).getOriginal();
+        } else if (javaType instanceof LambdaSubstitutionType) {
+            return ((LambdaSubstitutionType) javaType).getOriginal();
+        } else if (javaType instanceof InjectedFieldsType) {
+            return ((InjectedFieldsType) javaType).getOriginal();
+        }
+        return null;
     }
 
     private static final Path cachePath = SubstrateOptions.getDebugInfoSourceCacheRoot();
@@ -829,7 +823,6 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
         private final HostedMethod hostedMethod;
         private final CompilationResult compilation;
 
-        @SuppressWarnings("try")
         NativeImageDebugCodeInfo(HostedMethod method, CompilationResult compilation) {
             super(method);
             this.hostedMethod = method;

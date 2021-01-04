@@ -60,8 +60,6 @@ public class FileEntry {
     }
 
     public String getFullName() {
-        @SuppressWarnings("hiding")
-        DirEntry dirEntry = getDirEntry();
         if (dirEntry == null) {
             return fileName;
         } else {

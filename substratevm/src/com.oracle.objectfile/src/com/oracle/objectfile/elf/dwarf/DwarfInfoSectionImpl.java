@@ -201,9 +201,10 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
 
     public int generateContent(DebugContext context, byte[] buffer) {
         int pos = 0;
-        pos = writeBuiltInUnit(context, buffer, pos);
 
         // write entries for all the types known to the generator
+
+        pos = writeBuiltInUnit(context, buffer, pos);
 
         // write class units for non-primary classes i.e. ones which
         // don't have associated methods
