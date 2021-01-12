@@ -94,13 +94,17 @@ public class JfrAutoSessionManager {
         out("Jfr startupHook() - start");
         out(dumpJfrOptions(", "));
         assert instance == null;
-        try {
-            // JFR-TODO fix JfrOptions to parse configuration name instead of using default "default"
-            instance = new JfrAutoSessionManager();
-            String fn = (JfrOptions.getRecordingFileName() != null && JfrOptions.getRecordingFileName().length() > 0) ? JfrOptions.getRecordingFileName() : DEFAULT_JFR_FILENAME;
-            instance.startSession(fn, JfrOptions.getRecordingDelay(), JfrOptions.getDuration());
-        } catch (IOException | ParseException e) {
-            e.printStackTrace();
+        if (JfrOptions.getStartRecordingAutomatically()) {
+            try {
+                // JFR-TODO fix JfrOptions to parse configuration name instead of using default "default"
+                instance = new JfrAutoSessionManager();
+                String fn = (JfrOptions.getRecordingFileName() != null && JfrOptions.getRecordingFileName().length() > 0) ? JfrOptions.getRecordingFileName() : DEFAULT_JFR_FILENAME;
+                instance.startSession(fn, JfrOptions.getRecordingDelay(), JfrOptions.getDuration());
+            } catch (IOException | ParseException e) {
+                e.printStackTrace();
+            }
+        } else {
+            out("Jfr startupHook() - no auto start");
         }
         out("Jfr startupHook() - end");
     }
