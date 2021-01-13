@@ -47,8 +47,8 @@ import java.util.Date;
 
 public class JfrAutoSessionManager {
 
-    private static final String DEFAULT_JFR_CONFIG = "default";
     private static final SimpleDateFormat fmt = new SimpleDateFormat("yyyy_MM_DD_HH_mm_ss");
+    private static final String DEFAULT_JFR_CONFIG = "default";
 
     private final Configuration jfrConfiguration;
     private String filename;

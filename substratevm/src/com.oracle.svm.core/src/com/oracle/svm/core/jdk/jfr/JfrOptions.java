@@ -95,6 +95,7 @@ public class JfrOptions {
 
     private static int remotePort = -1; // 0 means ephemeral port; print out at startup
     private static String remoteProtocol = "https";
+    private static boolean startRecordingAutomatically = false;
 
     // Thread Buffer Size, Memory Size, Global Buffer size, Max Chunk Size, Max Recording size are memory arguments
     private static int maxChunkSize = DEFAULT_MAX_CHUNK_SIZE;
@@ -107,7 +108,6 @@ public class JfrOptions {
     private static int stackDepth = 64;
 
     // Delay, Duration, Max Age are time arguments
-    private static boolean startRecordingAutomatically = false;
     private static long delay = 0;
     private static long duration = 0;
     private static long maxAge = 0; // 0 is a special value indicating no limit
