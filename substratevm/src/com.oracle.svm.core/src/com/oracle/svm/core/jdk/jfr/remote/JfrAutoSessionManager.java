@@ -26,6 +26,7 @@
 
 package com.oracle.svm.core.jdk.jfr.remote;
 
+import com.oracle.svm.core.SubstrateOptions;
 import com.oracle.svm.core.jdk.jfr.JfrOptions;
 import com.oracle.svm.core.jdk.jfr.logging.JfrLogger;
 
@@ -35,6 +36,9 @@ import jdk.jfr.Recording;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.util.Date;
 
 /*
  * Handlers the startup and teardown of JFR when run from either the command line or remote interface.
@@ -43,7 +47,7 @@ import java.text.ParseException;
 
 public class JfrAutoSessionManager {
 
-    private static final String DEFAULT_JFR_FILENAME = "recording.jfr";
+    private static final SimpleDateFormat fmt = new SimpleDateFormat("yyyy_MM_DD_HH_mm_ss");
     private static final String DEFAULT_JFR_CONFIG = "default";
 
     private final Configuration jfrConfiguration;
@@ -124,7 +128,7 @@ public class JfrAutoSessionManager {
             try {
                 // JFR-TODO fix JfrOptions to parse configuration name instead of using default "default"
                 instance = new JfrAutoSessionManager();
-                String fn = (JfrOptions.getRecordingFileName() != null && JfrOptions.getRecordingFileName().length() > 0) ? JfrOptions.getRecordingFileName() : DEFAULT_JFR_FILENAME;
+                String fn = (JfrOptions.getRecordingFileName() != null && JfrOptions.getRecordingFileName().length() > 0) ? JfrOptions.getRecordingFileName() : getDefaultJfrFilename();
                 instance.startSession(fn, JfrOptions.getRecordingDelay(), JfrOptions.getDuration());
             } catch (IOException | ParseException e) {
                 e.printStackTrace();
@@ -174,5 +178,17 @@ public class JfrAutoSessionManager {
                 "maxRecordingSize=\"" + JfrOptions.getMaxRecordingSize() + "\"" + sep +
                 "stackDepth=\"" + JfrOptions.getStackDepth() + "\"" + sep +
                 "logLevel=\"" + JfrOptions.getLogLevel() + "\"";
+    }
+
+    /* NOTE: this changes every time it is called */
+    /* JFR-TODO - should this be the time of the start recording command? */
+    public static String getDefaultJfrFilename() {
+        String program = SubstrateOptions.Name.getValue().replaceAll("[:/\\\\]", "_");
+        if (program.isEmpty()) {
+            program = SubstrateOptions.Class.getValue().replaceAll("[$/]", "_");
+        }
+        long pid = ProcessHandle.current().pid();
+        int id = 1; /* JFR-TODO: don't know how to calculate id; maybe go to filesystem? */
+        return String.format("%s-pid-%d-id-%d-%s.jfr", program, pid, id, fmt.format(Date.from(Instant.now())));
     }
 }
