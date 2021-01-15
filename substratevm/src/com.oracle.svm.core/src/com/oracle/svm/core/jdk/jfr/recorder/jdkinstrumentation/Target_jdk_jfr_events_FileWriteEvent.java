@@ -6,7 +6,7 @@ import com.oracle.svm.core.annotate.TargetClass;
 import com.oracle.svm.core.jdk.jfr.JfrAvailability;
 import jdk.jfr.internal.EventWriter;
 
-@TargetClass(className = "jdk.jfr.events.FileWriteEvent", onlyWith = JfrAvailability.WithJfr.class)
+//@TargetClass(className = "jdk.jfr.events.FileWriteEvent", onlyWith = JfrAvailability.WithJfr.class)
 final class Target_jdk_jfr_events_FileWriteEvent {
 
     // added by JDK instrumentation

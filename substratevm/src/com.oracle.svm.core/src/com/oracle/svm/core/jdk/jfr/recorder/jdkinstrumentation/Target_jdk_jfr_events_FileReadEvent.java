@@ -8,7 +8,7 @@ import com.oracle.svm.core.jdk.jfr.JfrAvailability;
 
 import jdk.jfr.internal.EventWriter;
 
-@TargetClass(className = "jdk.jfr.events.FileReadEvent", onlyWith = JfrAvailability.WithJfr.class)
+//@TargetClass(className = "jdk.jfr.events.FileReadEvent", onlyWith = JfrAvailability.WithJfr.class)
 final class Target_jdk_jfr_events_FileReadEvent {
 
     // added by JDK instrumentation
