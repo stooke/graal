@@ -4,9 +4,12 @@ import com.oracle.svm.core.SubstrateUtil;
 import com.oracle.svm.core.annotate.Alias;
 import com.oracle.svm.core.annotate.TargetClass;
 import com.oracle.svm.core.jdk.jfr.recorder.JfrRecorder;
+import com.oracle.svm.core.jdk.jfr.support.JfrThreadLocal;
+import com.oracle.svm.core.thread.JavaThreads;
 import jdk.jfr.Event;
 import jdk.jfr.EventType;
 import jdk.jfr.internal.PlatformEventType;
+
 
 /*
 NOTE: TODO:
@@ -26,7 +29,10 @@ NOTE: TODO:
 public final class JdkInstrumentationUtil {
 
     static boolean eventIsEnabled(Class<?> clazz) {
-        return true;
+        // JFR-TODO check JFR configuration profile
+        JfrThreadLocal jtl = JavaThreads.getThreadLocal(Thread.currentThread());
+        assert (jtl != null);
+        return !jtl.isExcluded();
     }
 
     static boolean shouldCommit(long duration) {
@@ -46,20 +52,20 @@ public final class JdkInstrumentationUtil {
         return timestamp() - startTime;
     }
 
-    /* TODO - initialize automatically
+    /* TODO - initialize automatically */
     static PlatformEventType FILE_READ_EVENT_TYPE = null;
     static PlatformEventType FILE_WRITE_EVENT_TYPE = null;
     static PlatformEventType FILE_FORCE_EVENT_TYPE = null;
     static PlatformEventType SOCKET_READ_EVENT_TYPE = null;
     static PlatformEventType SOCKET_WRITE_EVENT_TYPE = null;
-    */
+    /*
 
     static PlatformEventType FILE_READ_EVENT_TYPE = getPlatformEventType(jdk.jfr.events.FileReadEvent.class);
     static PlatformEventType FILE_WRITE_EVENT_TYPE = getPlatformEventType(jdk.jfr.events.FileWriteEvent.class);
     static PlatformEventType FILE_FORCE_EVENT_TYPE = getPlatformEventType(jdk.jfr.events.FileForceEvent.class);
     static PlatformEventType SOCKET_READ_EVENT_TYPE = getPlatformEventType(jdk.jfr.events.SocketReadEvent.class);
     static PlatformEventType SOCKET_WRITE_EVENT_TYPE = getPlatformEventType(jdk.jfr.events.SocketWriteEvent.class);
-
+*/
     static boolean initialized = false;
 
     public static void initialize() {
@@ -67,6 +73,8 @@ public final class JdkInstrumentationUtil {
            Ideally, this could happen at build time */
         if ((!SubstrateUtil.HOSTED) && (!initialized)) {
             initialized = true;
+            System.err.println("XXXX inJIutil initialize()");
+            new Exception("foo").printStackTrace();
             FILE_READ_EVENT_TYPE = getPlatformEventType(jdk.jfr.events.FileReadEvent.class);
             FILE_WRITE_EVENT_TYPE = getPlatformEventType(jdk.jfr.events.FileWriteEvent.class);
             FILE_FORCE_EVENT_TYPE = getPlatformEventType(jdk.jfr.events.FileForceEvent.class);
@@ -77,8 +85,12 @@ public final class JdkInstrumentationUtil {
 
 
     public static PlatformEventType getPlatformEventType(Class<? extends Event> clazz) {
-            EventType eventType = EventType.getEventType(clazz);
-            return getPlatformEventType(eventType);
+        EventType eventType = EventType.getEventType(clazz);
+        PlatformEventType pet = getPlatformEventType(eventType);
+        if (pet == null) {
+            System.err.println("XXXX could not get PET for " + clazz.getName());
+        }
+        return pet;
     }
 
     public static PlatformEventType getPlatformEventType(EventType type) {

@@ -5,31 +5,27 @@ import com.oracle.svm.core.annotate.Substitute;
 import com.oracle.svm.core.annotate.TargetClass;
 import com.oracle.svm.core.jdk.jfr.JfrAvailability;
 import jdk.jfr.internal.EventWriter;
+import jdk.jfr.internal.PlatformEventType;
 
-@TargetClass(className = "jdk.jfr.events.SocketWriteEvent", onlyWith = JfrAvailability.WithJfr.class)
+// unused
+//@TargetClass(className = "jdk.jfr.events.SocketWriteEvent", onlyWith = JfrAvailability.WithJfr.class)
 final class Target_jdk_jfr_events_SocketWriteEvent {
 
         // added by JDK instrumentation
 
-        @Alias
-        private long startTime;
+        @Alias private long startTime;
 
-        @Alias
-        private long duration;
+        @Alias private long duration;
 
         // event specific code
 
-        @Alias
-        public String host;
+        @Alias public String host;
 
-        @Alias
-        public String address;
+        @Alias public String address;
 
-        @Alias
-        public int port;
+        @Alias public int port;
 
-        @Alias
-        public long bytesWritten;
+        @Alias public long bytesWritten;
 
 
         @Substitute
@@ -54,7 +50,12 @@ final class Target_jdk_jfr_events_SocketWriteEvent {
             }
             if (shouldCommit()) {
                 EventWriter ew = EventWriter.getEventWriter();
-                ew.beginEvent(JdkInstrumentationUtil.SOCKET_WRITE_EVENT_TYPE);
+                PlatformEventType et = JdkInstrumentationUtil.SOCKET_WRITE_EVENT_TYPE;
+                if (et == null) {
+                    et = JdkInstrumentationUtil.getPlatformEventType(jdk.jfr.events.SocketWriteEvent.class);
+                }
+                System.err.println("XXX swe et = " + et);
+                ew.beginEvent(et);
                 ew.putLong(startTime);
                 ew.putLong(duration);
                 ew.putEventThread();

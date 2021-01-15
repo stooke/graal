@@ -290,6 +290,11 @@ final class Target_jdk_jfr_internal_EventWriter {
 
     @Substitute
     public void putStackTrace() {
+        if (this.eventType == null) {
+            System.err.println("XXXX null eventype in putStacktrace()");
+            putLong(0);
+            return;
+        }
         if (this.eventType.getStackTraceEnabled()) {
             putLong(jvm.getStackTraceId(this.eventType.getStackTraceOffset()));
         } else {
@@ -390,7 +395,12 @@ final class Target_jdk_jfr_internal_EventWriter {
             this.eventType = eventType;
             reserveEventSizeField();
             Target_jdk_jfr_internal_Type type = Target_jdk_jfr_internal_Type.class.cast(eventType);
-            putLong(type.getId());
+            if (type != null) {
+                putLong(type.getId());
+            } else {
+                System.err.println("XXXX null eventype in beginEvent() ");
+                putLong(0);
+            }
         } catch (Exception e) {
             e.printStackTrace();
             throw e;

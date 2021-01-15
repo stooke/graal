@@ -6,37 +6,29 @@ import com.oracle.svm.core.annotate.TargetClass;
 import com.oracle.svm.core.jdk.jfr.JfrAvailability;
 import jdk.jfr.internal.EventWriter;
 
+// unused - JDR version works
 //@TargetClass(className = "jdk.jfr.events.SocketReadEvent", onlyWith = JfrAvailability.WithJfr.class)
 final class Target_jdk_jfr_events_SocketReadEvent {
 
     // added by JDK instrumentation
 
-    @Alias
-    private long startTime;
+    @Alias private long startTime;
 
-    @Alias
-    private long duration;
+    @Alias private long duration;
 
     // event specific code
 
-    @Alias
-    public String host;
+    @Alias public String host;
 
-    @Alias
-    public String address;
+    @Alias public String address;
 
-    @Alias
-    public int port;
+    @Alias public int port;
 
-    @Alias
-    public long timeout;
+    @Alias public long timeout;
 
-    @Alias
-    public long bytesRead;
+    @Alias public long bytesRead;
 
-    @Alias
-    public boolean endOfStream;
-
+    @Alias public boolean endOfStream;
 
     @Substitute
     final public void begin() {

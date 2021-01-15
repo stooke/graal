@@ -12,7 +12,7 @@ import jdk.jfr.events.FileWriteEvent;
 import java.io.FileDescriptor;
 import java.io.IOException;
 
-@TargetClass(className = "java.io.FileOutputStream", onlyWith = JfrAvailability.WithJfr.class)
+//@TargetClass(className = "java.io.FileOutputStream", onlyWith = JfrAvailability.WithJfr.class)
 public final class Target_java_io_FileOutputStream {
 
     @Alias
