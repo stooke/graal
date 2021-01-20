@@ -33,8 +33,10 @@ import java.util.HashSet;
 import java.util.Set;
 
 import com.oracle.svm.core.jdk.RuntimeSupport;
+import com.oracle.svm.core.jdk.jfr.remote.JfrStaticConfigurations;
 import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.hosted.Feature;
+import org.graalvm.nativeimage.hosted.RuntimeClassInitialization;
 import org.graalvm.nativeimage.hosted.RuntimeReflection;
 
 import com.oracle.svm.core.annotate.AutomaticFeature;
@@ -55,6 +57,7 @@ public class JfrFeature implements Feature {
     public void beforeAnalysis(BeforeAnalysisAccess access) {
         if (JfrAvailability.withJfr) {
             // JFR-TODO: test command line options for startup timer, file output, etc.
+            RuntimeClassInitialization.initializeAtBuildTime(JfrStaticConfigurations.class);
             RuntimeSupport.getRuntimeSupport().addStartupHook(JfrAutoSessionManager::startupHook);
             RuntimeSupport.getRuntimeSupport().addShutdownHook(JfrAutoSessionManager::shutdownHook);
         }
