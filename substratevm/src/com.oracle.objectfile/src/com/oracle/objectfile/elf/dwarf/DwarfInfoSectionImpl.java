@@ -664,7 +664,7 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
 
     private int writeMethodDeclaration(DebugContext context, ClassEntry classEntry, Range range, byte[] buffer, int p) {
         int pos = p;
-        String methodKey = range.getFullMethodNameWithParamsAndReturnType();
+        String methodKey = range.getSymbolName();
         setMethodDeclarationIndex(classEntry, methodKey, pos);
         int modifiers = range.getModifiers();
         boolean isStatic = Modifier.isStatic(modifiers);
@@ -1128,7 +1128,7 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
          */
         log(context, "  [0x%08x]     external  true", pos);
         pos = writeFlag(DW_FLAG_true, buffer, pos);
-        String methodKey = range.getFullMethodNameWithParamsAndReturnType();
+        String methodKey = range.getSymbolName();
         int methodSpecOffset = getMethodDeclarationIndex(classEntry, methodKey);
         log(context, "  [0x%08x]     specification  0x%x (%s)", pos, methodSpecOffset, methodKey);
         pos = writeAttrRefAddr(methodSpecOffset, buffer, pos);
