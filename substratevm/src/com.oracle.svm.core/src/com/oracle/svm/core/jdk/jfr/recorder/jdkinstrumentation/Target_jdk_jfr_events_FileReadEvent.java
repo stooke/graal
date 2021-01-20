@@ -31,17 +31,20 @@ final class Target_jdk_jfr_events_FileReadEvent {
     public boolean endOfFile;
 
 
-    @Substitute
+    @Alias
     final public void begin() {
         startTime = JdkInstrumentationUtil.timestamp();
     }
 
-    @Substitute
+    @Alias
     final public void end() {
         duration = JdkInstrumentationUtil.duration(startTime);
     }
 
-    @Substitute
+    @Alias
+    final void reset() {}
+
+    @Alias
     final public void commit() {
         if (!isEnabled()) {
             return;

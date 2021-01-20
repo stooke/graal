@@ -26,17 +26,17 @@ public final class Target_jdk_jfr_events_FileForceEvent {
     @Alias
     public boolean metaData;
 
-    @Substitute
+    @Alias
     final public void begin() {
         startTime = JdkInstrumentationUtil.timestamp();
     }
 
-    @Substitute
+    @Alias
     final public void end() {
         duration = JdkInstrumentationUtil.duration(startTime);
     }
 
-    @Substitute
+    @Alias
     final public void commit() {
         if (!isEnabled()) {
             return;

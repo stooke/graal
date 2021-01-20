@@ -16,6 +16,7 @@ final class Target_java_io_FileInputStream {
 
     @Substitute
     public int read() throws IOException {
+       // Target_jdk_jfr_events_FileReadEvent event = Target_jdk_jfr_events_FileReadEvent.EVENT.get();
         FileReadEvent event = FileReadEvent.EVENT.get();
         if (!event.isEnabled()) {
             return read0();

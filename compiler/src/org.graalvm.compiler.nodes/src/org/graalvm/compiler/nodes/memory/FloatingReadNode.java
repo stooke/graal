@@ -95,6 +95,9 @@ public final class FloatingReadNode extends FloatingAccessNode implements LIRLow
         if (result != this) {
             return result;
         }
+        if (getAddress() == null) {
+            System.err.println("XXXX canonical getAddress is null");
+        }
         if (tool.canonicalizeReads() && getAddress().hasMoreThanOneUsage() && lastLocationAccess instanceof WriteNode) {
             WriteNode write = (WriteNode) lastLocationAccess;
             if (write.getAddress() == getAddress() && write.getAccessStamp(NodeView.DEFAULT).isCompatible(getAccessStamp(NodeView.DEFAULT))) {

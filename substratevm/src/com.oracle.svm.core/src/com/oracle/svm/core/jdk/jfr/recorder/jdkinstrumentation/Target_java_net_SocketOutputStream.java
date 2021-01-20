@@ -46,52 +46,54 @@ final class Target_java_net_SocketOutputStream {
 
     @Alias
     native void socketWrite0(FileDescriptor fd, byte[] b, int off, int len) throws SocketException;
-}
 
-final class SocketOutputStreamUtil {
+    static class SocketOutputStreamUtil {
 
-    static void socketWrite(Target_java_net_SocketOutputStream thiz, byte[] b, int off, int len) throws IOException {
-        if (len <= 0 || off < 0 || len > b.length - off) {
-            if (len == 0) {
-                return;
+        static void socketWrite(Target_java_net_SocketOutputStream thiz, byte[] b, int off, int len) throws IOException {
+            if (len <= 0 || off < 0 || len > b.length - off) {
+                if (len == 0) {
+                    return;
+                }
+                throw new ArrayIndexOutOfBoundsException("len == " + len
+                        + " off == " + off + " buffer length == " + b.length);
             }
-            throw new ArrayIndexOutOfBoundsException("len == " + len
-                    + " off == " + off + " buffer length == " + b.length);
-        }
-        FileDescriptor fd = thiz.impl.acquireFD();
-        try {
-            thiz.socketWrite0(fd, b, off, len);
-        } catch (SocketException se) {
-            if (thiz.impl.isClosedOrPending()) {
-                throw new SocketException("Socket closed");
-            } else {
-                throw se;
+            FileDescriptor fd = thiz.impl.acquireFD();
+            try {
+                thiz.socketWrite0(fd, b, off, len);
+            } catch (SocketException se) {
+                if (thiz.impl.isClosedOrPending()) {
+                    throw new SocketException("Socket closed");
+                } else {
+                    throw se;
+                }
+            } finally {
+                thiz.impl.releaseFD();
             }
-        } finally {
-            thiz.impl.releaseFD();
         }
+    }
+
+    @TargetClass(className = "java.net.AbstractPlainSocketImpl", onlyWith = JfrAvailability.WithJfr.class)
+    static final class Target_java_net_AbstractPlainSocketImpl {
+
+        @Alias int port;
+
+        @Alias InetAddress address;
+
+        @Alias
+        FileDescriptor acquireFD() { return null; }
+
+        @Alias
+        void releaseFD() {}
+
+        @Alias
+        boolean isClosedOrPending() { return false; }
+
+        @Alias
+        boolean isConnectionReset() {  return false; }
+
+        @Alias
+        void setConnectionReset() {}
     }
 }
 
-@TargetClass(className = "java.net.AbstractPlainSocketImpl", onlyWith = JfrAvailability.WithJfr.class)
-final class Target_java_net_AbstractPlainSocketImpl {
 
-    @Alias int port;
-
-    @Alias InetAddress address;
-
-    @Alias
-    FileDescriptor acquireFD() { return null; }
-
-    @Alias
-    void releaseFD() {}
-
-    @Alias
-    boolean isClosedOrPending() { return false; }
-
-    @Alias
-    boolean isConnectionReset() {  return false; }
-
-    @Alias
-    void setConnectionReset() {}
-}

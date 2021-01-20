@@ -398,7 +398,7 @@ final class Target_jdk_jfr_internal_EventWriter {
             if (type != null) {
                 putLong(type.getId());
             } else {
-                System.err.println("XXXX null eventype in beginEvent() ");
+                System.err.println("XXXX null eventype in beginEvent()");
                 putLong(0);
             }
         } catch (Exception e) {

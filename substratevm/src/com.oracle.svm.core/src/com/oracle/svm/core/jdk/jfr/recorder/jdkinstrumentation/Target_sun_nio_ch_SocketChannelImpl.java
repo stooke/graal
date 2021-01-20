@@ -4,6 +4,7 @@ import com.oracle.svm.core.annotate.Alias;
 import com.oracle.svm.core.annotate.Substitute;
 import com.oracle.svm.core.annotate.TargetClass;
 
+import com.oracle.svm.core.jdk.jfr.JfrAvailability;
 import jdk.jfr.events.SocketReadEvent;
 import jdk.jfr.events.SocketWriteEvent;
 import sun.nio.ch.IOStatus;
@@ -17,24 +18,24 @@ import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.ClosedChannelException;
 import java.util.Objects;
 import java.util.concurrent.locks.ReentrantLock;
-
-//@TargetClass(className = "sun.nio.ch.SocketChanelImpl", onlyWith = JfrAvailability.WithJfr.class)
+/***
+//@TargetClass(className = "sun.nio.ch.SocketChannelImpl", onlyWith = JfrAvailability.WithJfr.class)
 final class Target_sun_nio_ch_SocketChannelImpl {
 
     @Alias
     private final FileDescriptor fd = null;
 
     @Alias
-    private static NativeDispatcher nd = null;
+    private static Target_sun_nio_ch_NativeDispatcher nd = null;
 
     @Alias
     private InetSocketAddress remoteAddress;
 
     @Alias
-    private final ReentrantLock readLock = new ReentrantLock();
+    private ReentrantLock readLock;
 
     @Alias
-    private final ReentrantLock writeLock = new ReentrantLock();
+    private ReentrantLock writeLock;
 
     @Alias
     private volatile boolean isInputClosed;
@@ -45,44 +46,12 @@ final class Target_sun_nio_ch_SocketChannelImpl {
     @Alias
     private volatile boolean nonBlocking;
 
+    // JFR-TODO: isBlocking() is in a parent class; how to deal with this?
     @Alias
     public final boolean isBlocking() { return true; }
 
     @Alias
     public final boolean isOpen() { return true; }
-
-    public int read0(ByteBuffer buf) throws IOException {
-        Objects.requireNonNull(buf);
-
-        readLock.lock();
-        try {
-            boolean blocking = isBlocking();
-            int n = 0;
-            try {
-                beginRead(blocking);
-
-                // check if input is shutdown
-                if (isInputClosed)
-                    return IOStatus.EOF;
-/******************************************************************************************************************
-                if (blocking) {
-                    do {
-                        n = IOUtil.read(fd, buf, -1, nd);
-                    } while (n == IOStatus.INTERRUPTED && isOpen());
-                } else {
-                    n = IOUtil.read(fd, buf, -1, nd);
-                }
- */
-            } finally {
-                endRead(blocking, n > 0);
-                if (n <= 0 && isInputClosed)
-                    return IOStatus.EOF;
-            }
-            return IOStatus.normalize(n);
-        } finally {
-            readLock.unlock();
-        }
-    }
 
     @Alias
     private void beginRead(boolean blocking) throws ClosedChannelException {}
@@ -100,12 +69,12 @@ final class Target_sun_nio_ch_SocketChannelImpl {
     public int read(ByteBuffer dst) throws IOException {
         SocketReadEvent event = SocketReadEvent.EVENT.get();
         if (!event.isEnabled()) {
-            return read0(dst);
+            return Target_sun_nio_ch_SocketChannelImpl_util.read(this, dst);
         }
         int bytesRead = 0;
         try {
             event.begin();
-            bytesRead = read0(dst);
+            bytesRead = Target_sun_nio_ch_SocketChannelImpl_util.read(this, dst);
         } finally {
             event.end();
             if (event.shouldCommit())  {
@@ -133,13 +102,12 @@ final class Target_sun_nio_ch_SocketChannelImpl {
     public long read(ByteBuffer[] dsts, int offset, int length) throws IOException {
         SocketReadEvent event = SocketReadEvent.EVENT.get();
         if(!event.isEnabled()) {
-            return read(dsts, offset, length);
+            return Target_sun_nio_ch_SocketChannelImpl_util.read(this, dsts, offset, length);
         }
-
         long bytesRead = 0;
         try {
             event.begin();
-            bytesRead = read(dsts, offset, length);
+            bytesRead = Target_sun_nio_ch_SocketChannelImpl_util.read(this, dsts, offset, length);
         } finally {
             event.end();
             if (event.shouldCommit()) {
@@ -167,13 +135,12 @@ final class Target_sun_nio_ch_SocketChannelImpl {
     public int write(ByteBuffer buf) throws IOException {
         SocketWriteEvent event = SocketWriteEvent.EVENT.get();
         if (!event.isEnabled()) {
-            return write(buf);
+            return Target_sun_nio_ch_SocketChannelImpl_util.write(this, buf);
         }
-
         int bytesWritten = 0;
         try {
             event.begin();
-            bytesWritten = write(buf);
+            bytesWritten = Target_sun_nio_ch_SocketChannelImpl_util.write(this, buf);
         } finally {
             event.end();
             if (event.shouldCommit()) {
@@ -196,18 +163,17 @@ final class Target_sun_nio_ch_SocketChannelImpl {
     public long write(ByteBuffer[] srcs, int offset, int length) throws IOException {
         SocketWriteEvent event = SocketWriteEvent.EVENT.get();
         if (!event.isEnabled()) {
-            return write(srcs, offset, length);
+            return Target_sun_nio_ch_SocketChannelImpl_util.write(this, srcs, offset, length);
         }
         long bytesWritten = 0;
         try {
             event.begin();
-            bytesWritten = write(srcs, offset, length);
+            bytesWritten = Target_sun_nio_ch_SocketChannelImpl_util.write(this, srcs, offset, length);
         } finally {
             event.end();
             if (event.shouldCommit()) {
                 String hostString  = remoteAddress.getAddress().toString();
                 int delimiterIndex = hostString.lastIndexOf('/');
-
                 event.host         = hostString.substring(0, delimiterIndex);
                 event.address      = hostString.substring(delimiterIndex + 1);
                 event.port         = remoteAddress.getPort();
@@ -220,7 +186,74 @@ final class Target_sun_nio_ch_SocketChannelImpl {
         return bytesWritten;
     }
 
-    static class NativeDispatcher {
-        // really
+    @TargetClass(className = "sun.nio.ch.NativeDispatcher", onlyWith = JfrAvailability.WithJfr.class)
+    static final class Target_sun_nio_ch_NativeDispatcher {
+    }
+
+    @TargetClass(className = "sun.nio.ch.IOUtil", onlyWith = JfrAvailability.WithJfr.class)
+    static final class Target_sun_nio_ch_IOUtil {
+        @Alias
+        static int read(FileDescriptor fd, ByteBuffer b, int pos, Target_sun_nio_ch_NativeDispatcher nd) {
+            return 0;
+        }
+    }
+
+    static final class Target_sun_nio_ch_SocketChannelImpl_util {
+        static int read(Target_sun_nio_ch_SocketChannelImpl thiz, ByteBuffer buf) throws IOException {
+            Objects.requireNonNull(buf);
+
+            thiz.readLock.lock();
+            try {
+                boolean blocking = thiz.isBlocking();
+                int n = 0;
+                try {
+                    thiz.beginRead(blocking);
+
+                    // check if input is shutdown
+                    if (thiz.isInputClosed)
+                        return IOStatus.EOF;
+
+                    if (blocking) {
+                        do {
+                            n = Target_sun_nio_ch_IOUtil.read(thiz.fd, buf, -1, thiz.nd);
+                        } while (n == IOStatus.INTERRUPTED && thiz.isOpen());
+                    } else {
+                        n = Target_sun_nio_ch_IOUtil.read(thiz.fd, buf, -1, thiz.nd);
+                    }
+                } finally {
+                    thiz.endRead(blocking, n > 0);
+                    if (n <= 0 && thiz.isInputClosed)
+                        return IOStatus.EOF;
+                }
+                return IOStatus.normalize(n);
+            } finally {
+                thiz.readLock.unlock();
+            }
+        }
+
+        static long read(Target_sun_nio_ch_SocketChannelImpl thiz, ByteBuffer[] dsts, int offset, int length) throws IOException {
+            return 0;
+        }
+
+        static int write(Target_sun_nio_ch_SocketChannelImpl thiz, ByteBuffer buf) throws IOException {
+            return 0;
+        }
+
+        static long write(Target_sun_nio_ch_SocketChannelImpl thiz, ByteBuffer[] srcs, int offset, int length) throws IOException {
+            return 0;
+        }
+    }
+
+    //@TargetClass(className = "sun.nio.ch.IOStatus", onlyWith = JfrAvailability.WithJfr.class)
+    static final class Target_sun_nio_ch_IOStatus {
+
+        @Alias static int EOF;
+        @Alias static int INTERRUPTED;
+
+        @Alias static boolean check(int n) {
+            return false;
+        }
+        @Alias static int normalize(int n) { return n; }
     }
 }
+**/

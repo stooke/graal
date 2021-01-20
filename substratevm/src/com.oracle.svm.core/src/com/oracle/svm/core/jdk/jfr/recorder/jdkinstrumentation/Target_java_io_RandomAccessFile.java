@@ -9,7 +9,7 @@ import jdk.jfr.events.FileWriteEvent;
 
 import java.io.IOException;
 
-@TargetClass(className = "java.io.RandomAccessFile", onlyWith = JfrAvailability.WithJfr.class)
+//@TargetClass(className = "java.io.RandomAccessFile", onlyWith = JfrAvailability.WithJfr.class)
 final class Target_java_io_RandomAccessFile {
 
     @Alias

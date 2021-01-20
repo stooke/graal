@@ -51,7 +51,13 @@ final class Target_jdk_jfr_events_FileWriteEvent {
             ew.putEventThread();
             ew.putStackTrace();
             ew.putString(path, null);
-            ew.putLong(bytesWritten);
+            /* JFR-TODO: uncommenting this line and commenting th next leads to NPE (getAddress() returns null)
+            Caused by: java.lang.NullPointerException
+                at jdk.internal.vm.compiler/org.graalvm.compiler.nodes.memory.FloatingReadNode.canonical(FloatingReadNode.java:101)
+                at jdk.internal.vm.compiler/org.graalvm.compiler.phases.common.CanonicalizerPhase$Instance.tryCanonicalize(CanonicalizerPhase.java:407)
+             */
+            //ew.putLong(bytesWritten);
+            ew.putLong(0);
             ew.endEvent();
         }
     }

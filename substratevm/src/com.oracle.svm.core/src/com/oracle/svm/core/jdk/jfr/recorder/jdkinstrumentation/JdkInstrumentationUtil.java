@@ -52,20 +52,20 @@ public final class JdkInstrumentationUtil {
         return timestamp() - startTime;
     }
 
-    /* TODO - initialize automatically */
+    /* TODO - initialize automatically *
     static PlatformEventType FILE_READ_EVENT_TYPE = null;
     static PlatformEventType FILE_WRITE_EVENT_TYPE = null;
     static PlatformEventType FILE_FORCE_EVENT_TYPE = null;
     static PlatformEventType SOCKET_READ_EVENT_TYPE = null;
     static PlatformEventType SOCKET_WRITE_EVENT_TYPE = null;
-    /*
+    /*/
 
     static PlatformEventType FILE_READ_EVENT_TYPE = getPlatformEventType(jdk.jfr.events.FileReadEvent.class);
     static PlatformEventType FILE_WRITE_EVENT_TYPE = getPlatformEventType(jdk.jfr.events.FileWriteEvent.class);
     static PlatformEventType FILE_FORCE_EVENT_TYPE = getPlatformEventType(jdk.jfr.events.FileForceEvent.class);
     static PlatformEventType SOCKET_READ_EVENT_TYPE = getPlatformEventType(jdk.jfr.events.SocketReadEvent.class);
     static PlatformEventType SOCKET_WRITE_EVENT_TYPE = getPlatformEventType(jdk.jfr.events.SocketWriteEvent.class);
-*/
+/**/
     static boolean initialized = false;
 
     public static void initialize() {
@@ -73,7 +73,7 @@ public final class JdkInstrumentationUtil {
            Ideally, this could happen at build time */
         if ((!SubstrateUtil.HOSTED) && (!initialized)) {
             initialized = true;
-            System.err.println("XXXX inJIutil initialize()");
+            System.err.println("XXXX JdkInstrumentationUtil initialize()");
             new Exception("foo").printStackTrace();
             FILE_READ_EVENT_TYPE = getPlatformEventType(jdk.jfr.events.FileReadEvent.class);
             FILE_WRITE_EVENT_TYPE = getPlatformEventType(jdk.jfr.events.FileWriteEvent.class);

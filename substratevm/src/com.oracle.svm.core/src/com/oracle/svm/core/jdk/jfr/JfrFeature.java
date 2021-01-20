@@ -35,6 +35,7 @@ import java.util.Set;
 import com.oracle.svm.core.SubstrateUtil;
 import com.oracle.svm.core.jdk.RuntimeSupport;
 import com.oracle.svm.core.jdk.jfr.recorder.jdkinstrumentation.JdkInstrumentationUtil;
+import com.oracle.svm.core.jdk.jfr.remote.JfrStaticConfigurations;
 import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.hosted.Feature;
 import org.graalvm.nativeimage.hosted.RuntimeClassInitialization;
@@ -59,6 +60,7 @@ public class JfrFeature implements Feature {
         if (JfrAvailability.withJfr) {
             // JFR-TODO: test command line options for startup timer, file output, etc.
             RuntimeClassInitialization.initializeAtRunTime(JdkInstrumentationUtil.class);
+            RuntimeClassInitialization.initializeAtBuildTime(JfrStaticConfigurations.class);
             RuntimeSupport.getRuntimeSupport().addStartupHook(JfrAutoSessionManager::startupHook);
             RuntimeSupport.getRuntimeSupport().addShutdownHook(JfrAutoSessionManager::shutdownHook);
         }
