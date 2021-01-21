@@ -195,11 +195,11 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
             // check for replacement of the original method only
             ResolvedJavaMethod javaMethod = hostedMethod.getWrapped().getWrapped();
             if (javaMethod instanceof SubstitutionMethod) {
-                javaMethod = ((SubstitutionMethod) javaMethod).getOriginal();
+                return ((SubstitutionMethod) javaMethod).getOriginal().getDeclaringClass();
             } else if (javaMethod instanceof CustomSubstitutionMethod) {
-                javaMethod = ((CustomSubstitutionMethod) javaMethod).getOriginal();
+                return ((CustomSubstitutionMethod) javaMethod).getOriginal().getDeclaringClass();
             }
-            return javaMethod.getDeclaringClass();
+            return hostedType.getWrapped().getWrapped();
         }
         ResolvedJavaMethod javaMethod = hostedMethod.getWrapped().getWrapped();
         return javaMethod.getDeclaringClass();
@@ -217,9 +217,9 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
             // check for replacement of the original field only
             ResolvedJavaField javaField = hostedField.wrapped.wrapped;
             if (javaField instanceof SubstitutionField) {
-                javaField = ((SubstitutionField) javaField).getOriginal();
+                return ((SubstitutionField) javaField).getOriginal().getDeclaringClass();
             }
-            return javaField.getDeclaringClass();
+            return hostedType.getWrapped().getWrapped();
         }
         ResolvedJavaField javaField = hostedField.wrapped.wrapped;
         return javaField.getDeclaringClass();
@@ -658,11 +658,10 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
             public String name() {
                 String name = hostedMethod.format("%n");
                 if ("<init>".equals(name)) {
-                    ResolvedJavaMethod unwrapped = hostedMethod.getWrapped().getWrapped();
-                    if (unwrapped instanceof SubstitutionMethod) {
-                        unwrapped = ((SubstitutionMethod) unwrapped).getOriginal();
+                    name = getJavaType(hostedMethod, true).toJavaName();
+                    if (name.indexOf('.') >= 0) {
+                        name = name.substring(name.lastIndexOf('.') + 1);
                     }
-                    name = unwrapped.format("%h");
                     if (name.indexOf('$') >= 0) {
                         name = name.substring(name.lastIndexOf('$') + 1);
                     }
@@ -854,7 +853,10 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
             }
             String name = targetMethod.getName();
             if (name.equals("<init>")) {
-                name = targetMethod.format("%h");
+                name = getJavaType(hostedMethod, true).toJavaName();
+                if (name.indexOf('.') >= 0) {
+                    name = name.substring(name.lastIndexOf('.') + 1);
+                }
                 if (name.indexOf('$') >= 0) {
                     name = name.substring(name.lastIndexOf('$') + 1);
                 }
@@ -1012,9 +1014,19 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
             }
             String name = targetMethod.getName();
             if (name.equals("<init>")) {
-                name = targetMethod.format("%h");
-                if (name.indexOf('$') >= 0) {
-                    name = name.substring(name.lastIndexOf('$') + 1);
+                if (method instanceof HostedMethod) {
+                    name = getJavaType((HostedMethod) method, true).toJavaName();
+                    if (name.indexOf('.') >= 0) {
+                        name = name.substring(name.lastIndexOf('.') + 1);
+                    }
+                    if (name.indexOf('$') >= 0) {
+                        name = name.substring(name.lastIndexOf('$') + 1);
+                    }
+                } else {
+                    name = targetMethod.format("%h");
+                    if (name.indexOf('$') >= 0) {
+                        name = name.substring(name.lastIndexOf('$') + 1);
+                    }
                 }
             }
             return name;
