@@ -46,6 +46,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 
+import com.oracle.svm.core.jdk.jfr.JfrAvailability;
 import org.graalvm.compiler.core.common.SuppressFBWarnings;
 import org.graalvm.compiler.replacements.nodes.BinaryMathIntrinsicNode;
 import org.graalvm.compiler.replacements.nodes.BinaryMathIntrinsicNode.BinaryOperation;
@@ -168,7 +169,7 @@ final class Target_java_lang_String {
     }
 }
 
-@TargetClass(java.lang.Throwable.class)
+@TargetClass(value = java.lang.Throwable.class, onlyWith = JfrAvailability.WithoutJfr.class)
 @SuppressWarnings({"unused"})
 final class Target_java_lang_Throwable {
 

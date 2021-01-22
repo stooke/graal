@@ -12,4 +12,10 @@ public class JfrAvailability {
             return JavaVersionUtil.JAVA_SPEC >= 11 && withJfr;
         }
     }
+    public static class WithoutJfr implements BooleanSupplier {
+        @Override
+        public boolean getAsBoolean() {
+            return JavaVersionUtil.JAVA_SPEC < 11 || !withJfr;
+        }
+    }
 }
