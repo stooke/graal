@@ -176,6 +176,12 @@ line number info for inlined code, including inlined GraalVM methods.
 So, GDB may switch files even though you are still in the same
 compiled method.
 
+### Currently Missing Features
+
+  - reference by name to values boudn to parameter and local vars
+
+This feature is scheduled for inclusion in a later release.
+
 ### Special considerations for debugging Java from GDB
 
 GDB does not currently include support for debugging of Java programs.
