@@ -42,9 +42,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
-import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.HEAP_BEGIN_NAME;
-import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.TEXT_SECTION_NAME;
-
 /**
  * A class from which all DWARF debug sections inherit providing common behaviours.
  */
@@ -207,7 +204,7 @@ public abstract class DwarfSectionImpl extends BasicProgbitsSectionImpl {
         /*
          * Mark address so it is relocated relative to the start of the text segment.
          */
-        markRelocationSite(pos, ObjectFile.RelocationKind.DIRECT_8, TEXT_SECTION_NAME, false, Long.valueOf(l));
+        markRelocationSite(pos, ObjectFile.RelocationKind.DIRECT_8, DwarfDebugInfo.TEXT_SECTION_NAME, false, Long.valueOf(l));
         pos = putLong(0, buffer, pos);
         return pos;
     }
@@ -217,7 +214,7 @@ public abstract class DwarfSectionImpl extends BasicProgbitsSectionImpl {
         /*
          * Mark address so it is relocated relative to the start of the heap.
          */
-        markRelocationSite(pos, ObjectFile.RelocationKind.DIRECT_8, HEAP_BEGIN_NAME, false, Long.valueOf(l));
+        markRelocationSite(pos, ObjectFile.RelocationKind.DIRECT_8, DwarfDebugInfo.HEAP_BEGIN_NAME, false, Long.valueOf(l));
         pos = putLong(0, buffer, pos);
         return pos;
     }

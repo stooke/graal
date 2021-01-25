@@ -37,10 +37,6 @@ import org.graalvm.compiler.debug.DebugContext;
 import java.util.LinkedList;
 import java.util.Map;
 
-import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_ARANGES_SECTION_NAME;
-import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_FRAME_SECTION_NAME;
-import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.DW_VERSION_2;
-
 /**
  * Section generator for debug_aranges section.
  */
@@ -54,7 +50,7 @@ public class DwarfARangesSectionImpl extends DwarfSectionImpl {
 
     @Override
     public String getSectionName() {
-        return DW_ARANGES_SECTION_NAME;
+        return DwarfDebugInfo.DW_ARANGES_SECTION_NAME;
     }
 
     @Override
@@ -187,7 +183,7 @@ public class DwarfARangesSectionImpl extends DwarfSectionImpl {
             log(context, "  [0x%08x] %s CU %d length 0x%x", pos, classEntry.getFileName(), cuIndex, length);
             pos = putInt(length, buffer, pos);
             /* DWARF version is always 2. */
-            pos = putShort(DW_VERSION_2, buffer, pos);
+            pos = putShort(DwarfDebugInfo.DW_VERSION_2, buffer, pos);
             pos = putInt(cuIndex, buffer, pos);
             /* Address size is always 8. */
             pos = putByte((byte) 8, buffer, pos);
@@ -240,7 +236,7 @@ public class DwarfARangesSectionImpl extends DwarfSectionImpl {
                 log(context, "  [0x%08x] %s CU linkage stubs %d length 0x%x", pos, classEntry.getFileName(), cuIndex, length);
                 pos = putInt(length, buffer, pos);
                 /* DWARF version is always 2. */
-                pos = putShort(DW_VERSION_2, buffer, pos);
+                pos = putShort(DwarfDebugInfo.DW_VERSION_2, buffer, pos);
                 pos = putInt(cuIndex, buffer, pos);
                 /* Address size is always 8. */
                 pos = putByte((byte) 8, buffer, pos);
@@ -275,7 +271,7 @@ public class DwarfARangesSectionImpl extends DwarfSectionImpl {
     /*
      * The debug_aranges section depends on debug_frame section.
      */
-    private static final String TARGET_SECTION_NAME = DW_FRAME_SECTION_NAME;
+    private static final String TARGET_SECTION_NAME = DwarfDebugInfo.DW_FRAME_SECTION_NAME;
 
     @Override
     public String targetSectionName() {
