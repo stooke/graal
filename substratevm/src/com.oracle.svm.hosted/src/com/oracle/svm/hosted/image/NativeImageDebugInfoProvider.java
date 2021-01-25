@@ -37,6 +37,7 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import com.oracle.graal.pointsto.infrastructure.OriginalClassProvider;
+import com.oracle.graal.pointsto.infrastructure.WrappedJavaMethod;
 import com.oracle.graal.pointsto.meta.AnalysisMethod;
 import com.oracle.graal.pointsto.meta.AnalysisType;
 import com.oracle.objectfile.debuginfo.DebugInfoProvider;
@@ -1001,11 +1002,8 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
         @Override
         public String methodName() {
             ResolvedJavaMethod targetMethod = method;
-            if (targetMethod instanceof HostedMethod) {
-                targetMethod = ((HostedMethod) targetMethod).getWrapped();
-            }
-            if (targetMethod instanceof AnalysisMethod) {
-                targetMethod = ((AnalysisMethod) targetMethod).getWrapped();
+            while (targetMethod instanceof WrappedJavaMethod) {
+                targetMethod = ((WrappedJavaMethod) targetMethod).getWrapped();
             }
             if (targetMethod instanceof SubstitutionMethod) {
                 targetMethod = ((SubstitutionMethod) targetMethod).getOriginal();
