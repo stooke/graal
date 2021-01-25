@@ -196,8 +196,8 @@ with the signature `String(java.lang.String *)`.
 The C++ layout class inherits fields and methods from class (layout)
 type java.lang.Object using C++ public inheritance. The latter in turn
 inherits standard oop header fields from a special struct class named
-_objhdr which includes a single field caled `hub` whose type is
-`java.lang.Class *` i.e. it is a pointer to the obejct's class.
+_objhdr which includes a single field called `hub` whose type is
+`java.lang.Class *` i.e. it is a pointer to the object's class.
 
 The ptype command can be used to print details of a specific type. Note
 that the java type name must be specified in quotes because to escape the
@@ -303,7 +303,7 @@ operation on an arbitrary input argument
 
 ```
 command hubname
-  x/s (('java.lang.Class' *)((long)((('java.lang.Object' *)($arg0))->hub) & ~0x7L))->name->value->data
+  x/s ((_objhdr *)($arg0))->hub->name->value->data
 end
 
 (gdb) hubname $2
@@ -457,7 +457,7 @@ this field. Note also that the address operator can be used identify
 the location (address) of the field in the heap.
 
 ```
-(gdb) p '_java.math.BigInteger'::powerCache
+(gdb) p 'java.math.BigInteger'::powerCache
 $9 = (java.math.BigInteger[][] *) 0xa6fd98
 (gdb) p &'java.math.BigInteger'::powerCache
 $10 = (java.math.BigInteger[][] **) 0xa6fbd8
