@@ -427,15 +427,15 @@ public abstract class DwarfSectionImpl extends BasicProgbitsSectionImpl {
 
         for (LayoutDecision.Kind targetKind : targetKinds) {
             if (targetKind == LayoutDecision.Kind.SIZE) {
-                // make our size depend on the target size so we compute sizes in order
+                /* Make our size depend on the target size so we compute sizes in order. */
                 LayoutDecision targetDecision = decisions.get(targetSection).getDecision(targetKind);
                 deps.add(BuildDependency.createOrGet(ourSize, targetDecision));
             } else if (targetKind == LayoutDecision.Kind.CONTENT) {
-                // make our content depend on the target content so we compute contents in order
+                /* Make our content depend on the target content so we compute contents in order. */
                 LayoutDecision targetDecision = decisions.get(targetSection).getDecision(targetKind);
                 deps.add(BuildDependency.createOrGet(ourContent, targetDecision));
             } else {
-                // make our size depend on the relevant target's property
+                /* Make our size depend on the relevant target's property. */
                 LayoutDecision targetDecision = decisions.get(targetSection).getDecision(targetKind);
                 deps.add(BuildDependency.createOrGet(ourSize, targetDecision));
             }

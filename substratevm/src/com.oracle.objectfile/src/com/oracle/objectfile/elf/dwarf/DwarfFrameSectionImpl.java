@@ -118,7 +118,7 @@ public abstract class DwarfFrameSectionImpl extends DwarfSectionImpl {
          */
         int pos = p;
         if (buffer == null) {
-            pos += putInt(0, scratch, 0); // don't care about length
+            pos += putInt(0, scratch, 0);
             pos += putInt(DwarfDebugInfo.DW_CFA_CIE_id, scratch, 0);
             pos += putByte(DwarfDebugInfo.DW_CFA_CIE_version, scratch, 0);
             pos += putAsciiStringBytes("", scratch, 0);

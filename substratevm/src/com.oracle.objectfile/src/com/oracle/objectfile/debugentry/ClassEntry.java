@@ -155,14 +155,10 @@ public class ClassEntry extends StructureTypeEntry {
 
     public void indexSubRange(Range subrange) {
         Range primary = subrange.getPrimary();
-        /*
-         * the subrange should belong to a primary range
-         */
+        /* The subrange should belong to a primary range. */
         assert primary != null;
         PrimaryEntry primaryEntry = primaryIndex.get(primary);
-        /*
-         * we should already have seen the primary range
-         */
+        /* We should already have seen the primary range. */
         assert primaryEntry != null;
         assert primaryEntry.getClassEntry() == this;
         primaryEntry.addSubRange(subrange);
@@ -327,8 +323,10 @@ public class ClassEntry extends StructureTypeEntry {
                     int modifiers, boolean isDeoptTarget) {
         FileEntry fileEntryToUse = primaryFileEntry;
         if (fileEntryToUse == null) {
-            // search for a matching method to supply the file entry
-            // or failing that use the one from this class
+            /*
+             * Search for a matching method to supply the file entry or failing that use the one
+             * from this class.
+             */
             for (MethodEntry methodEntry : methods) {
                 if (methodEntry.match(methodName, paramSignature, returnTypeName)) {
                     // maybe the method's file entry
@@ -337,7 +335,7 @@ public class ClassEntry extends StructureTypeEntry {
                 }
             }
             if (fileEntryToUse == null) {
-                // last chance is the class's file entry
+                /* last chance is the class's file entry */
                 fileEntryToUse = this.fileEntry;
             }
         }

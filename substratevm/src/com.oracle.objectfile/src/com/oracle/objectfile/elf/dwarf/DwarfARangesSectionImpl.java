@@ -41,8 +41,9 @@ import java.util.Map;
  * Section generator for debug_aranges section.
  */
 public class DwarfARangesSectionImpl extends DwarfSectionImpl {
+    /* Headers have a fixed size but must align up to 2 * address size. */
     private static final int DW_AR_HEADER_SIZE = 12;
-    private static final int DW_AR_HEADER_PAD_SIZE = 4; // align up to 2 * address size
+    private static final int DW_AR_HEADER_PAD_SIZE = 4;
 
     public DwarfARangesSectionImpl(DwarfDebugInfo dwarfSections) {
         super(dwarfSections);

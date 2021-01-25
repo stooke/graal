@@ -148,27 +148,21 @@ public abstract class DebugInfoBase {
          * save mask for low order flag bits
          */
         oopFlagBitsMask = debugInfoProvider.oopFlagBitsMask();
-        // flag bits be bewteen 1 and 32 for us to emit as DW_OP_lit<n>
+        /* flag bits be bewteen 1 and 32 for us to emit as DW_OP_lit<n> */
         assert oopFlagBitsMask > 0 && oopFlagBitsMask < 32;
-        // mask must be contiguous from bit 0
+        /* mask must be contiguous from bit 0 */
         assert ((oopFlagBitsMask + 1) & oopFlagBitsMask) == 0;
 
-        /*
-         * save amount we need to shift references by when loading from an object field
-         */
+        /* Save amount we need to shift references by when loading from an object field. */
         oopShiftBitCount = debugInfoProvider.oopShiftBitCount();
 
-        /*
-         * save number of bytes in a reference field
-         */
+        /* Save number of bytes in a reference field. */
         oopReferenceByteCount = debugInfoProvider.oopReferenceByteCount();
 
-        /*
-         * Ensure we have a null string in the string section.
-         */
+        /* Ensure we have a null string in the string section. */
         stringTable.uniqueDebugString("");
 
-        // create all the types
+        /* Create all the types. */
         debugInfoProvider.typeInfoProvider().forEach(debugTypeInfo -> debugTypeInfo.debugContext((debugContext) -> {
             String typeName = TypeEntry.canonicalize(debugTypeInfo.typeName());
             typeName = stringTable.uniqueDebugString(typeName);
@@ -182,7 +176,7 @@ public abstract class DebugInfoBase {
             addTypeEntry(typeName, fileName, filePath, cachePath, byteSize, typeKind);
         }));
 
-        // now we can cross reference static and instance field details
+        /* Now we can cross reference static and instance field details. */
         debugInfoProvider.typeInfoProvider().forEach(debugTypeInfo -> debugTypeInfo.debugContext((debugContext) -> {
             String typeName = TypeEntry.canonicalize(debugTypeInfo.typeName());
             DebugTypeKind typeKind = debugTypeInfo.typeKind();
@@ -194,7 +188,7 @@ public abstract class DebugInfoBase {
 
         debugInfoProvider.codeInfoProvider().forEach(debugCodeInfo -> debugCodeInfo.debugContext((debugContext) -> {
             /*
-             * primary file name and full method name need to be written to the debug_str section
+             * Primary file name and full method name need to be written to the debug_str section.
              */
             String fileName = debugCodeInfo.fileName();
             Path filePath = debugCodeInfo.filePath();
@@ -210,7 +204,7 @@ public abstract class DebugInfoBase {
             boolean isDeoptTarget = debugCodeInfo.isDeoptTarget();
             int modifiers = debugCodeInfo.getModifiers();
 
-            // search for a method defining this primary range
+            /* Search for a method defining this primary range. */
             ClassEntry classEntry = ensureClassEntry(className);
             FileEntry fileEntry = ensureFileEntry(fileName, filePath, cachePath);
             Range primaryRange = classEntry.makePrimaryRange(methodName, symbolName, paramSignature, returnTypeName, stringTable, fileEntry, lo, hi, primaryLine, modifiers, isDeoptTarget);
@@ -243,7 +237,7 @@ public abstract class DebugInfoBase {
             String provenance = debugDataInfo.getProvenance();
             String typeName = debugDataInfo.getTypeName();
             String partitionName = debugDataInfo.getPartition();
-            // address is heap-register relative pointer
+            /* Address is heap-register relative pointer. */
             long address = debugDataInfo.getAddress();
             long size = debugDataInfo.getSize();
             debugContext.log(DebugContext.INFO_LEVEL, "Data: address 0x%x size 0x%x type %s partition %s provenance %s ", address, size, typeName, partitionName, provenance);
@@ -318,9 +312,7 @@ public abstract class DebugInfoBase {
     }
 
     private ClassEntry ensureClassEntry(String className) {
-        /*
-         * See if we already have an entry.
-         */
+        /* See if we already have an entry. */
         ClassEntry classEntry = primaryClassesIndex.get(className);
         if (classEntry == null) {
             TypeEntry typeEntry = typesIndex.get(className);
@@ -344,14 +336,12 @@ public abstract class DebugInfoBase {
         FileEntry fileEntry = filesIndex.get(fileAsPath);
         if (fileEntry == null) {
             DirEntry dirEntry = ensureDirEntry(filePath);
-            // ensure file and cachepath are added to the debug_str section
+            /* Ensure file and cachepath are added to the debug_str section. */
             uniqueDebugString(fileName);
             uniqueDebugString(cachePath.toString());
             fileEntry = new FileEntry(fileName, dirEntry, cachePath);
             files.add(fileEntry);
-            /*
-             * Index the file entry by file path.
-             */
+            /* Index the file entry by file path. */
             filesIndex.put(fileAsPath, fileEntry);
         } else {
             assert (filePath == null ||
@@ -370,7 +360,7 @@ public abstract class DebugInfoBase {
         } else {
             fileAsPath = filePath.resolve(fileName);
         }
-        // Reuse any existing entry
+        /* Reuse any existing entry. */
         FileEntry fileEntry = findFile(fileAsPath);
         if (fileEntry == null) {
             fileEntry = addFileEntry(fileName, filePath, cachePath);
@@ -384,7 +374,7 @@ public abstract class DebugInfoBase {
         }
         DirEntry dirEntry = dirsIndex.get(filePath);
         if (dirEntry == null) {
-            // ensure dir path is entered into the debug_str section
+            /* Ensure dir path is entered into the debug_str section. */
             uniqueDebugString(filePath.toString());
             dirEntry = new DirEntry(filePath);
             dirsIndex.put(filePath, dirEntry);

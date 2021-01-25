@@ -64,12 +64,12 @@ public class DwarfDebugInfo extends DebugInfoBase {
      * Define all the abbrev section codes we need for our DIEs.
      */
     @SuppressWarnings("unused") public static final int DW_ABBREV_CODE_null = 0;
-    // level 0 DIEs
+    /* Level 0 DIEs. */
     public static final int DW_ABBREV_CODE_builtin_unit = 1;
     public static final int DW_ABBREV_CODE_class_unit1 = 2;
     public static final int DW_ABBREV_CODE_class_unit2 = 3;
     public static final int DW_ABBREV_CODE_array_unit = 4;
-    // level 1 DIEs
+    /* Level 1 DIEs. */
     public static final int DW_ABBREV_CODE_primitive_type = 5;
     public static final int DW_ABBREV_CODE_void_type = 6;
     public static final int DW_ABBREV_CODE_object_header = 7;
@@ -81,7 +81,7 @@ public class DwarfDebugInfo extends DebugInfoBase {
     public static final int DW_ABBREV_CODE_array_pointer = 13;
     public static final int DW_ABBREV_CODE_interface_layout = 14;
     public static final int DW_ABBREV_CODE_interface_pointer = 15;
-    // level 2 DIEs
+    /* Level 2 DIEs. */
     public static final int DW_ABBREV_CODE_method_declaration1 = 16;
     public static final int DW_ABBREV_CODE_method_declaration2 = 17;
     public static final int DW_ABBREV_CODE_field_declaration1 = 18;
@@ -92,7 +92,7 @@ public class DwarfDebugInfo extends DebugInfoBase {
     public static final int DW_ABBREV_CODE_array_data_type = 23;
     public static final int DW_ABBREV_CODE_super_reference = 24;
     public static final int DW_ABBREV_CODE_interface_implementor = 25;
-    // level 3 DIEs
+    /* Level 3 DIEs. */
     public static final int DW_ABBREV_CODE_method_parameter_declaration1 = 26;
     public static final int DW_ABBREV_CODE_method_parameter_declaration2 = 27;
     public static final int DW_ABBREV_CODE_method_parameter_declaration3 = 28;
@@ -130,9 +130,9 @@ public class DwarfDebugInfo extends DebugInfoBase {
     public static final int DW_AT_accessibility = 0x32;
     public static final int DW_AT_artificial = 0x34;
     public static final int DW_AT_data_member_location = 0x38;
-    @SuppressWarnings("unused") // public static final int DW_AT_decl_column = 0x39;
+    @SuppressWarnings("unused") public static final int DW_AT_decl_column = 0x39;
     public static final int DW_AT_decl_file = 0x3a;
-    @SuppressWarnings("unused") // public static final int DW_AT_decl_line = 0x3b;
+    @SuppressWarnings("unused") public static final int DW_AT_decl_line = 0x3b;
     public static final int DW_AT_declaration = 0x3c;
     public static final int DW_AT_encoding = 0x3e;
     public static final int DW_AT_external = 0x3f;
@@ -242,10 +242,10 @@ public class DwarfDebugInfo extends DebugInfoBase {
     public static final byte DW_OP_breg0 = 0x70;
     public static final byte DW_OP_push_object_address = (byte) 0x97;
 
-    // register constants for AArch64
+    /* Register constants for AArch64. */
     public static final byte rheapbase_aarch64 = (byte) 27;
     public static final byte rthread_aarch64 = (byte) 28;
-    // register constants for x86
+    /* Register constants for x86. */
     public static final byte rheapbase_x86 = (byte) 14;
     public static final byte rthread_x86 = (byte) 15;
 
@@ -540,7 +540,7 @@ public class DwarfDebugInfo extends DebugInfoBase {
         DwarfClassProperties classProperties;
         classProperties = lookupClassProperties(classEntry);
         assert classProperties.getTypeEntry() == classEntry;
-        // line index may be fetched without being set
+        /* line index may be fetched without being set */
         assert classProperties.lineIndex >= -1;
         return classProperties.lineIndex;
     }
