@@ -145,7 +145,7 @@ def test():
     can_print_data = major > 9
 
     if not can_print_data:
-        print("warning: cannot test printing of objects!")
+        print("Warning: cannot test printing of objects!")
 
     # disable prompting to continue output
     execute("set pagination off")
@@ -214,6 +214,18 @@ def test():
         exec_string = execute("x/s (('java.lang.String[]' *)$rdi)->hub->name->value->data")
         checker = Checker("print String[] hub name",
                           r"%s:%s\"\[Ljava.lang.String;%s\""%(address_pattern, spaces_pattern, wildcard_pattern))
+        checker.check(exec_string, skip_fails=False)
+
+        # ensure we can reference static fields
+        exec_string = execute("print 'java.math.BigDecimal'::BIG_TEN_POWERS_TABLE")
+        checker = Checker("print static field value",
+                          r"%s = \(java.math.BigInteger\[\] \*\) %s"%(wildcard_pattern, address_pattern))
+        checker.check(exec_string, skip_fails=False)
+
+        # ensure we can dereference static fields
+        exec_string = execute("print 'java.math.BigDecimal'::BIG_TEN_POWERS_TABLE->data[3]->mag->data[0]")
+        checker = Checker("print static field value contents",
+                          r"%s = 1000\$"%(wildcard_pattern))
         checker.check(exec_string, skip_fails=False)
 
     # look up PrintStream.println methods
