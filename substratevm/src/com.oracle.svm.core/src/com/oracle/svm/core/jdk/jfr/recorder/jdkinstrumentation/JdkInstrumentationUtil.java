@@ -10,23 +10,22 @@ import jdk.jfr.Event;
 import jdk.jfr.EventType;
 import jdk.jfr.internal.PlatformEventType;
 
-
 /*
 NOTE: TODO:
 - ensure this class doesn't exist unless JFR is enabled
-
-- fix timestamp()
 
 - get rid of need to add these to command line (prevents a misleading error
   because the compiler can't find some classes, probably SharedSecrets
   (should use substitutions to fix this)
     -J--add-exports -Jjdk.jfr/jdk.jfr.internal=ALL-UNNAMED
 
-- get rid of the need to add this to the command line:
+- see JfrFeature for code that initializes this at run time.
  --initialize-at-run-time=com.oracle.svm.core.jdk.jfr.recorder.jdkinstrumentation.JdkInstrumentationUtil
  by initializing the globals when required
  */
 public final class JdkInstrumentationUtil {
+
+    static long initialTimestamp = System.nanoTime();
 
     static boolean eventIsEnabled(Class<?> clazz) {
         // JFR-TODO check JFR configuration profile
@@ -40,9 +39,7 @@ public final class JdkInstrumentationUtil {
     }
 
     static long timestamp() {
-        //return JVM.counterTime();
-        // TODO: this implementation (nanoTime() will provide a correct duration but an incorrect start time
-        return System.nanoTime();
+        return System.nanoTime() - initialTimestamp;
     }
 
     static long duration(long startTime) {
