@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.oracle.svm.core.jdk.jfr.recorder.jdkinstrumentation.Target_java_io_FileOutputStream;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.compiler.debug.MethodFilter;
 import org.graalvm.compiler.graph.Node.NodeIntrinsic;
@@ -171,13 +172,13 @@ public class SubstrateUtil {
         @Alias @RecomputeFieldValue(kind = Kind.FromAlias, isFinal = true)//
         private static boolean HOSTED = false;
     }
-
+/* TODO: reenable
     @TargetClass(java.io.FileOutputStream.class)
     static final class Target_java_io_FileOutputStream {
         @Alias//
         FileDescriptor fd;
     }
-
+*/
     @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
     public static FileDescriptor getFileDescriptor(FileOutputStream out) {
         return SubstrateUtil.cast(out, Target_java_io_FileOutputStream.class).fd;

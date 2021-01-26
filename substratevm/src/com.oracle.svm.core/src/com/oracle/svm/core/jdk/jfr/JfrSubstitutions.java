@@ -290,6 +290,7 @@ final class Target_jdk_jfr_internal_EventWriter {
 
     @Substitute
     public void putStackTrace() {
+        assert(this.eventType != null);
         if (this.eventType.getStackTraceEnabled()) {
             putLong(jvm.getStackTraceId(this.eventType.getStackTraceOffset()));
         } else {
