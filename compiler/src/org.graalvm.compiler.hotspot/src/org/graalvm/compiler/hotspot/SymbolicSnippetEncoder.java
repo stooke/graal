@@ -872,7 +872,7 @@ public class SymbolicSnippetEncoder {
                     }
                     type = getSnippetType(type);
                     assert type != null : type;
-                    cached = new ObjectStamp(type, objectStamp.isExactType(), objectStamp.nonNull(), objectStamp.alwaysNull());
+                    cached = new ObjectStamp(type, objectStamp.isExactType(), objectStamp.nonNull(), objectStamp.alwaysNull(), objectStamp.isAlwaysArray());
                 } else {
                     cached = stamp.makeSymbolic();
                 }
@@ -1041,7 +1041,7 @@ public class SymbolicSnippetEncoder {
         @Override
         protected void finalizeGraph(StructuredGraph graph) {
             if (substitutedMethod != null) {
-                for (MethodCallTargetNode target : graph.getNodes().filter(MethodCallTargetNode.class)) {
+                for (MethodCallTargetNode target : graph.getNodes(MethodCallTargetNode.TYPE)) {
                     if (substitutedMethod.equals(target.targetMethod())) {
                         // Replace call to original method with a placeholder
                         PartialIntrinsicCallTargetNode partial = graph.add(

@@ -54,6 +54,8 @@ public final class ConfigurationFiles {
     public static final String RESOURCES_NAME = "resource" + SUFFIX;
     public static final String JNI_NAME = "jni" + SUFFIX;
     public static final String REFLECTION_NAME = "reflect" + SUFFIX;
+    public static final String SERIALIZATION_NAME = "serialization" + SUFFIX;
+    public static final String SERIALIZATION_DENY_NAME = "serialization-deny" + SUFFIX;
 
     public static final class Options {
         @Option(help = "Directories directly containing configuration files for dynamic features at runtime.", type = OptionType.User)//
@@ -71,6 +73,16 @@ public final class ConfigurationFiles {
         public static final HostedOptionKey<String[]> DynamicProxyConfigurationFiles = new HostedOptionKey<>(null);
         @Option(help = "Resources describing program elements to be made available for reflection (see ProxyConfigurationFiles).", type = OptionType.User)//
         public static final HostedOptionKey<String[]> DynamicProxyConfigurationResources = new HostedOptionKey<>(null);
+
+        @Option(help = "file:doc-files/SerializationConfigurationFilesHelp.txt", type = OptionType.User)//
+        public static final HostedOptionKey<String[]> SerializationConfigurationFiles = new HostedOptionKey<>(null);
+        @Option(help = "Resources describing program elements to be made available for serialization (see SerializationConfigurationFiles).", type = OptionType.User)//
+        public static final HostedOptionKey<String[]> SerializationConfigurationResources = new HostedOptionKey<>(null);
+
+        @Option(help = "file:doc-files/SerializationConfigurationFilesHelp.txt", type = OptionType.User)//
+        public static final HostedOptionKey<String[]> SerializationDenyConfigurationFiles = new HostedOptionKey<>(null);
+        @Option(help = "Resources describing program elements that must not be made available for serialization.", type = OptionType.User)//
+        public static final HostedOptionKey<String[]> SerializationDenyConfigurationResources = new HostedOptionKey<>(null);
 
         @Option(help = "Files describing Java resources to be included in the image.", type = OptionType.User)//
         public static final HostedOptionKey<String[]> ResourceConfigurationFiles = new HostedOptionKey<>(new String[0]);

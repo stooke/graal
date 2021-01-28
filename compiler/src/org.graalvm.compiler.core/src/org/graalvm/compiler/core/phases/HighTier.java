@@ -43,8 +43,10 @@ import org.graalvm.compiler.options.Option;
 import org.graalvm.compiler.options.OptionKey;
 import org.graalvm.compiler.options.OptionType;
 import org.graalvm.compiler.options.OptionValues;
+import org.graalvm.compiler.phases.common.BoxNodeCanonicalizationPhase;
 import org.graalvm.compiler.phases.common.CanonicalizerPhase;
 import org.graalvm.compiler.phases.common.DeadCodeEliminationPhase;
+import org.graalvm.compiler.phases.common.DisableOverflownCountedLoopsPhase;
 import org.graalvm.compiler.phases.common.IncrementalCanonicalizerPhase;
 import org.graalvm.compiler.phases.common.IterativeConditionalEliminationPhase;
 import org.graalvm.compiler.phases.common.LoweringPhase;
@@ -77,6 +79,8 @@ public class HighTier extends BaseTier<HighTierContext> {
             appendPhase(new InliningPhase(new GreedyInliningPolicy(null), canonicalizer));
             appendPhase(new DeadCodeEliminationPhase(Optional));
         }
+
+        appendPhase(new DisableOverflownCountedLoopsPhase());
 
         if (NodeCounterPhase.Options.NodeCounters.getValue(options)) {
             appendPhase(new NodeCounterPhase(NodeCounterPhase.Stage.EARLY));
@@ -113,6 +117,7 @@ public class HighTier extends BaseTier<HighTierContext> {
             appendPhase(new NodeCounterPhase(NodeCounterPhase.Stage.LATE));
         }
 
+        appendPhase(new IncrementalCanonicalizerPhase<>(canonicalizer, new BoxNodeCanonicalizationPhase()));
         appendPhase(new LoweringPhase(canonicalizer, LoweringTool.StandardLoweringStage.HIGH_TIER, true));
     }
 

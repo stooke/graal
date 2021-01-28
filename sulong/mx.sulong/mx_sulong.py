@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, 2020, Oracle and/or its affiliates.
+# Copyright (c) 2016, 2021, Oracle and/or its affiliates.
 #
 # All rights reserved.
 #
@@ -47,6 +47,7 @@ import mx_sulong_benchmarks
 import mx_buildtools
 import mx_sulong_fuzz #pylint: disable=unused-import
 import mx_sulong_llvm_config
+import mx_unittest
 
 from mx_gate import Task, add_gate_runner, add_gate_argument
 
@@ -158,6 +159,20 @@ def _sulong_gate_sulongsuite_unittest(title, tasks, args, tags=None, testClasses
     _sulong_gate_unittest(title, test_suite, tasks, args, tags=tags, testClasses=testClasses)
 
 
+def _unittest_config_participant(config):
+    (vmArgs, mainClass, mainClassArgs) = config
+    vmArgs += get_test_distribution_path_properties(_suite)
+    return (vmArgs, mainClass, mainClassArgs)
+
+
+def get_test_distribution_path_properties(suite):
+    return ['-Dsulongtest.path.{}={}'.format(d.name, d.get_output()) for d in suite.dists if
+            d.is_test_distribution() and not d.isClasspathDependency()]
+
+
+mx_unittest.add_config_participant(_unittest_config_participant)
+
+
 class SulongGateEnv(object):
     """"Sets a marker environment variable."""
     def __enter__(self):
@@ -200,7 +215,6 @@ def _sulong_gate_runner(args, tasks):
     _sulong_gate_testsuite('Args', 'other', tasks, args, tags=['args', 'sulongMisc', 'sulongCoverage'], testClasses=['com.oracle.truffle.llvm.tests.MainArgsTest'])
     _sulong_gate_testsuite('Callback', 'other', tasks, args, tags=['callback', 'sulongMisc', 'sulongCoverage'], testClasses=['com.oracle.truffle.llvm.tests.CallbackTest'])
     _sulong_gate_testsuite('Varargs', 'other', tasks, args, tags=['vaargs', 'sulongMisc', 'sulongCoverage'], testClasses=['com.oracle.truffle.llvm.tests.VAArgsTest'])
-    _sulong_gate_sulongsuite_unittest('VAList', tasks, args, testClasses='VAListTest', tags=['vaargs', 'sulongMisc', 'sulongCoverage'])
     with Task('TestToolchain', tasks, tags=['toolchain', 'sulongMisc', 'sulongCoverage']) as t:
         if t:
             with SulongGateEnv():
@@ -256,6 +270,7 @@ def runLLVMUnittests(unittest_runner):
 
     test_harness_dist = mx.distribution('SULONG_TEST')
     java_run_props = [x for x in mx.get_runtime_jvm_args(test_harness_dist) if x.startswith('-D')]
+    java_run_props += get_test_distribution_path_properties(_suite)
 
     test_suite = 'SULONG_TEST_SUITES'
     mx_testsuites.compileTestSuite(test_suite, extra_build_args=[])
@@ -721,7 +736,7 @@ def llvm_extra_tool(args=None, out=None, **kwargs):
 
 def getClasspathOptions(extra_dists=None):
     """gets the classpath of the Sulong distributions"""
-    return mx.get_runtime_jvm_args(['SULONG', 'SULONG_LAUNCHER', 'TRUFFLE_NFI'] + (extra_dists or []))
+    return mx.get_runtime_jvm_args(['SULONG_CORE', 'SULONG_NATIVE', 'SULONG_LAUNCHER', 'TRUFFLE_NFI'] + (extra_dists or []))
 
 def ensureLLVMBinariesExist():
     """downloads the LLVM binaries if they have not been downloaded yet"""
@@ -1095,7 +1110,7 @@ class CMakeBuildTask(mx.NativeBuildTask):
         return os.path.join(self.subject.dir, 'mx.cmake.rebuild.guard')
 
 
-class CMakeProject(mx.NativeProject):  # pylint: disable=too-many-ancestors
+class AbstractSulongNativeProject(mx.NativeProject):  # pylint: disable=too-many-ancestors
     def __init__(self, suite, name, deps, workingSets, subDir, results=None, output=None, **args):
         projectDir = args.pop('dir', None)
         if projectDir:
@@ -1108,10 +1123,14 @@ class CMakeProject(mx.NativeProject):  # pylint: disable=too-many-ancestors
         if not srcDir:
             mx.abort("Exactly one 'sourceDir' is required")
         srcDir = mx_subst.path_substitutions.substitute(srcDir)
+        super(AbstractSulongNativeProject, self).__init__(suite, name, subDir, [srcDir], deps, workingSets, results, output, d, **args)
+
+
+class CMakeProject(AbstractSulongNativeProject):  # pylint: disable=too-many-ancestors
+    def __init__(self, suite, name, deps, workingSets, subDir, results=None, output=None, **args):
+        super(CMakeProject, self).__init__(suite, name, deps, workingSets, subDir, results=results, output=output, **args)
         cmake_config = args.pop('cmakeConfig', {})
         self.cmake_config = lambda: ['-D{}={}'.format(k, mx_subst.path_substitutions.substitute(v).replace('{{}}', '$')) for k, v in sorted(cmake_config.items())]
-
-        super(CMakeProject, self).__init__(suite, name, subDir, [srcDir], deps, workingSets, results, output, d, **args)
         self.dir = self.getOutput()
 
     def getBuildTask(self, args):
@@ -1132,24 +1151,36 @@ class DocumentationBuildTask(mx.AbstractNativeBuildTask):
         pass
 
 
-class DocumentationProject(mx.NativeProject):  # pylint: disable=too-many-ancestors
+class DocumentationProject(AbstractSulongNativeProject):  # pylint: disable=too-many-ancestors
     def __init__(self, suite, name, deps, workingSets, subDir, results=None, output=None, **args):
-        projectDir = args.pop('dir', None)
-        if projectDir:
-            d = join(suite.dir, projectDir)
-        elif subDir is None:
-            d = join(suite.dir, name)
-        else:
-            d = join(suite.dir, subDir, name)
-        srcDir = args.pop('sourceDir', d)
-        if not srcDir:
-            mx.abort("Exactly one 'sourceDir' is required")
-        srcDir = mx_subst.path_substitutions.substitute(srcDir)
-        super(DocumentationProject, self).__init__(suite, name, subDir, [srcDir], deps, workingSets, results, output, d, **args)
-        self.dir = d
+        super(DocumentationProject, self).__init__(suite, name, deps, workingSets, subDir, results, output, **args)
+        self.dir = self.source_dirs()[0]
 
     def getBuildTask(self, args):
         return DocumentationBuildTask(args, self)
+
+
+class HeaderBuildTask(mx.NativeBuildTask):
+    def __str__(self):
+        return 'Building {} with Header Build Task'.format(self.subject.name)
+
+    def build(self):
+        self._newestOutput = None
+
+    def needsBuild(self, newestInput):
+        return (False, "up to date according to GNU Make")
+
+    def clean(self, forBuild=False):
+        pass
+
+
+class HeaderProject(AbstractSulongNativeProject):  # pylint: disable=too-many-ancestors
+    def __init__(self, suite, name, deps, workingSets, subDir, results=None, output=None, **args):
+        super(HeaderProject, self).__init__(suite, name, deps, workingSets, subDir, results, output, **args)
+        self.dir = self.source_dirs()[0]
+
+    def getBuildTask(self, args):
+        return HeaderBuildTask(args, self)
 
 
 _suite.toolchain = ToolchainConfig('native', 'SULONG_TOOLCHAIN_LAUNCHERS', 'SULONG_BOOTSTRAP_TOOLCHAIN',
@@ -1166,17 +1197,46 @@ _suite.toolchain = ToolchainConfig('native', 'SULONG_TOOLCHAIN_LAUNCHERS', 'SULO
 
 mx_sdk_vm.register_graalvm_component(mx_sdk_vm.GraalVmLanguage(
     suite=_suite,
-    name='Sulong',
-    short_name='slg',
+    name='LLVM Runtime Core',
+    short_name='llrc',
     dir_name='llvm',
     license_files=[],
     third_party_license_files=[],
-    dependencies=['Truffle', 'Truffle NFI'],
-    truffle_jars=['sulong:SULONG', 'sulong:SULONG_API'],
+    dependencies=['Truffle'],
+    truffle_jars=['sulong:SULONG_CORE', 'sulong:SULONG_API'],
     support_distributions=[
-        'sulong:SULONG_HOME',
+        'sulong:SULONG_CORE_HOME',
         'sulong:SULONG_GRAALVM_DOCS',
     ],
+    installable=False,
+))
+
+mx_sdk_vm.register_graalvm_component(mx_sdk_vm.GraalVmLanguage(
+    suite=_suite,
+    name='LLVM Runtime Native',
+    short_name='llrn',
+    dir_name='llvm',
+    license_files=[],
+    third_party_license_files=[],
+    dependencies=['LLVM Runtime Core'],
+    truffle_jars=['sulong:SULONG_NATIVE'],
+    support_distributions=[
+        'sulong:SULONG_NATIVE_HOME',
+    ],
+    launcher_configs=_suite.toolchain.get_launcher_configs(),
+    installable=False,
+))
+
+mx_sdk_vm.register_graalvm_component(mx_sdk_vm.GraalVmLanguage(
+    suite=_suite,
+    name='LLVM Runtime Launcher',
+    short_name='llrl',
+    dir_name='llvm',
+    license_files=[],
+    third_party_license_files=[],
+    dependencies=[],
+    truffle_jars=[],
+    support_distributions=[],
     launcher_configs=[
         mx_sdk_vm.LanguageLauncherConfig(
             destination='bin/<exe:lli>',
@@ -1185,10 +1245,31 @@ mx_sdk_vm.register_graalvm_component(mx_sdk_vm.GraalVmLanguage(
             build_args=[],
             language='llvm',
         ),
-    ] + _suite.toolchain.get_launcher_configs(),
+    ],
     installable=False,
 ))
 
+mx_sdk_vm.register_graalvm_component(mx_sdk_vm.GraalVmLanguage(
+    suite=_suite,
+    name='LLVM Multi-Context Runtime Launcher',
+    short_name='llmulrl',
+    dir_name='llvm',
+    license_files=[],
+    third_party_license_files=[],
+    dependencies=[],
+    truffle_jars=[],
+    support_distributions=[],
+    launcher_configs=[
+        mx_sdk_vm.LanguageLauncherConfig(
+            destination='bin/<exe:llimul>',
+            jar_distributions=['sulong:SULONG_LAUNCHER'],
+            main_class='com.oracle.truffle.llvm.launcher.LLVMMultiContextLauncher',
+            build_args=[],
+            language='llvm',
+        ),
+    ],
+    installable=False,
+))
 
 COPYRIGHT_HEADER_BSD = """\
 /*

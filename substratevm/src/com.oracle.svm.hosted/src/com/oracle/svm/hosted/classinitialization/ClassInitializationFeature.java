@@ -226,7 +226,7 @@ public class ClassInitializationFeature implements GraalFeature {
         classInitializationSupport.checkDelayedInitialization();
 
         for (AnalysisType type : access.getUniverse().getTypes()) {
-            if (type.isReachable() || type.isInstantiated()) {
+            if (type.isReachable()) {
                 DynamicHub hub = access.getHostVM().dynamicHub(type);
                 if (hub.getClassInitializationInfo() == null) {
                     buildClassInitializationInfo(access, type, hub);
@@ -322,7 +322,9 @@ public class ClassInitializationFeature implements GraalFeature {
                                  */
                                 if (!classInitializationSupport.shouldInitializeAtRuntime(c)) {
                                     provenSafe.add(type);
-                                    ((SVMHost) universe.hostVM()).dynamicHub(type).setClassInitializationInfo(ClassInitializationInfo.INITIALIZED_INFO_SINGLETON);
+                                    ClassInitializationInfo initializationInfo = type.getClassInitializer() == null ? ClassInitializationInfo.NO_INITIALIZER_INFO_SINGLETON
+                                                    : ClassInitializationInfo.INITIALIZED_INFO_SINGLETON;
+                                    ((SVMHost) universe.hostVM()).dynamicHub(type).setClassInitializationInfo(initializationInfo);
                                 }
                             }
                         });
@@ -344,7 +346,7 @@ public class ClassInitializationFeature implements GraalFeature {
             info = buildRuntimeInitializationInfo(access, type);
         } else {
             assert type.isInitialized();
-            info = ClassInitializationInfo.INITIALIZED_INFO_SINGLETON;
+            info = type.getClassInitializer() == null ? ClassInitializationInfo.NO_INITIALIZER_INFO_SINGLETON : ClassInitializationInfo.INITIALIZED_INFO_SINGLETON;
         }
         hub.setClassInitializationInfo(info, type.hasDefaultMethods(), type.declaresDefaultMethods());
     }
@@ -360,7 +362,7 @@ public class ClassInitializationFeature implements GraalFeature {
 
         } catch (VerifyError e) {
             /* Synthesize a VerifyError to be thrown at run time. */
-            AnalysisMethod throwVerifyError = access.getMetaAccess().lookupJavaMethod(ExceptionSynthesizer.throwVerifyErrorMethod);
+            AnalysisMethod throwVerifyError = access.getMetaAccess().lookupJavaMethod(ExceptionSynthesizer.throwExceptionMethod(VerifyError.class));
             access.registerAsCompiled(throwVerifyError);
             return new ClassInitializationInfo(MethodPointer.factory(throwVerifyError));
         } catch (Throwable t) {

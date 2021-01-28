@@ -44,6 +44,7 @@ import org.graalvm.compiler.options.Option;
 import org.graalvm.nativeimage.ImageSingletons;
 
 import com.oracle.graal.pointsto.infrastructure.OriginalClassProvider;
+import com.oracle.svm.core.TypeResult;
 import com.oracle.svm.core.annotate.Delete;
 import com.oracle.svm.core.option.HostedOptionKey;
 import com.oracle.svm.hosted.ExceptionSynthesizer;
@@ -62,7 +63,10 @@ import jdk.vm.ci.meta.ResolvedJavaType;
 
 public class ReflectionPlugins {
 
-    static class ReflectionPluginRegistry extends IntrinsificationPluginRegistry {
+    public static class ReflectionPluginRegistry extends IntrinsificationPluginRegistry {
+        public static AutoCloseable startThreadLocalRegistry() {
+            return ImageSingletons.lookup(ReflectionPluginRegistry.class).startThreadLocalReflectionRegistry();
+        }
     }
 
     static class Options {
@@ -92,14 +96,14 @@ public class ReflectionPlugins {
         r.register1("forName", String.class, new InvocationPlugin() {
             @Override
             public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod, Receiver receiver, ValueNode name) {
-                return processForName(b, hostVM, targetMethod, name, imageClassLoader, snippetReflection, analysis, hosted);
+                return processForName(b, hostVM, targetMethod, name, ConstantNode.forBoolean(true), imageClassLoader, snippetReflection, analysis, hosted);
             }
         });
 
         r.register3("forName", String.class, boolean.class, ClassLoader.class, new InvocationPlugin() {
             @Override
             public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod, Receiver receiver, ValueNode name, ValueNode initialize, ValueNode classLoader) {
-                return processForName(b, hostVM, targetMethod, name, imageClassLoader, snippetReflection, analysis, hosted);
+                return processForName(b, hostVM, targetMethod, name, initialize, imageClassLoader, snippetReflection, analysis, hosted);
             }
         });
 
@@ -146,18 +150,16 @@ public class ReflectionPlugins {
         });
     }
 
-    private static boolean processForName(GraphBuilderContext b, SVMHost host, ResolvedJavaMethod targetMethod, ValueNode name,
+    private static boolean processForName(GraphBuilderContext b, SVMHost host, ResolvedJavaMethod targetMethod, ValueNode name, ValueNode initialize,
                     ImageClassLoader imageClassLoader, SnippetReflectionProvider snippetReflection, boolean analysis, boolean hosted) {
-        if (name.isConstant()) {
+        if (name.isConstant() && initialize.isConstant()) {
             String className = snippetReflection.asObject(String.class, name.asJavaConstant());
-            Class<?> clazz = imageClassLoader.findClassByName(className, false);
-            if (clazz == null) {
-                Method intrinsic = getIntrinsic(analysis, hosted, b, ExceptionSynthesizer.throwClassNotFoundExceptionMethod);
-                if (intrinsic == null) {
-                    return false;
-                }
-                throwClassNotFoundException(b, targetMethod, className);
+            TypeResult<Class<?>> typeResult = imageClassLoader.findClass(className);
+            if (!typeResult.isPresent()) {
+                Throwable e = typeResult.getException();
+                return throwException(b, targetMethod, analysis, hosted, className, e.getClass(), e.getMessage());
             } else {
+                Class<?> clazz = typeResult.get();
                 Class<?> intrinsic = getIntrinsic(analysis, hosted, b, clazz);
                 if (intrinsic == null) {
                     return false;
@@ -165,11 +167,12 @@ public class ReflectionPlugins {
                 ResolvedJavaType type = b.getMetaAccess().lookupJavaType(clazz);
                 JavaConstant hub = b.getConstantReflection().asJavaClass(type);
                 pushConstant(b, targetMethod, hub, className);
-                if (host.getClassInitializationSupport().shouldInitializeAtRuntime(clazz)) {
+                boolean doInitialize = initialize.asJavaConstant().asInt() != 0;
+                if (doInitialize && host.getClassInitializationSupport().shouldInitializeAtRuntime(clazz)) {
                     SubstrateClassInitializationPlugin.emitEnsureClassInitialized(b, hub);
                 }
+                return true;
             }
-            return true;
         }
         return false;
     }
@@ -183,29 +186,10 @@ public class ReflectionPlugins {
             String target = clazz.getTypeName() + "." + fieldName;
             try {
                 Field field = declared ? clazz.getDeclaredField(fieldName) : clazz.getField(fieldName);
-                Field intrinsic = getIntrinsic(analysis, hosted, b, field);
-                if (intrinsic == null) {
-                    return false;
-                }
-                pushConstant(b, targetMethod, snippetReflection.forObject(intrinsic), target);
-            } catch (NoSuchFieldException e) {
-                Method intrinsic = getIntrinsic(analysis, hosted, b, ExceptionSynthesizer.throwNoSuchFieldExceptionMethod);
-                if (intrinsic == null) {
-                    return false;
-                }
-                throwNoSuchFieldException(b, targetMethod, target);
-            } catch (NoClassDefFoundError e) {
-                /*
-                 * If the declaring class of the field references missing classes a
-                 * `NoClassDefFoundError` can be thrown. We intrinsify `it here.
-                 */
-                Method intrinsic = getIntrinsic(analysis, hosted, b, ExceptionSynthesizer.throwNoClassDefFoundErrorMethod);
-                if (intrinsic == null) {
-                    return false;
-                }
-                throwNoClassDefFoundError(b, targetMethod, e.getMessage());
+                return pushConstant(b, targetMethod, snippetReflection, analysis, hosted, field, target);
+            } catch (NoSuchFieldException | LinkageError e) {
+                return throwException(b, targetMethod, analysis, hosted, target, e.getClass(), e.getMessage());
             }
-            return true;
         }
         return false;
     }
@@ -223,30 +207,10 @@ public class ReflectionPlugins {
                 String target = clazz.getTypeName() + "." + methodName + "(" + Stream.of(paramTypes).map(Class::getTypeName).collect(Collectors.joining(", ")) + ")";
                 try {
                     Method method = declared ? clazz.getDeclaredMethod(methodName, paramTypes) : clazz.getMethod(methodName, paramTypes);
-                    Method intrinsic = getIntrinsic(analysis, hosted, b, method);
-                    if (intrinsic == null) {
-                        return false;
-                    }
-                    pushConstant(b, targetMethod, snippetReflection.forObject(intrinsic), target);
-                } catch (NoSuchMethodException e) {
-                    Method intrinsic = getIntrinsic(analysis, hosted, b, ExceptionSynthesizer.throwNoSuchMethodExceptionMethod);
-                    if (intrinsic == null) {
-                        return false;
-                    }
-                    throwNoSuchMethodException(b, targetMethod, target);
-                } catch (NoClassDefFoundError e) {
-                    /*
-                     * If the declaring class of the method references missing classes a
-                     * `NoClassDefFoundError` can be thrown. We intrinsify `it here.
-                     */
-                    Method intrinsic = getIntrinsic(analysis, hosted, b, ExceptionSynthesizer.throwNoClassDefFoundErrorMethod);
-                    if (intrinsic == null) {
-                        return false;
-                    }
-                    throwNoClassDefFoundError(b, targetMethod, e.getMessage());
+                    return pushConstant(b, targetMethod, snippetReflection, analysis, hosted, method, target);
+                } catch (NoSuchMethodException | LinkageError e) {
+                    return throwException(b, targetMethod, analysis, hosted, target, e.getClass(), e.getMessage());
                 }
-
-                return true;
             }
         }
         return false;
@@ -265,30 +229,10 @@ public class ReflectionPlugins {
                 String target = clazz.getTypeName() + ".<init>(" + Stream.of(paramTypes).map(Class::getTypeName).collect(Collectors.joining(", ")) + ")";
                 try {
                     Constructor<?> constructor = declared ? clazz.getDeclaredConstructor(paramTypes) : clazz.getConstructor(paramTypes);
-                    Constructor<?> intrinsic = getIntrinsic(analysis, hosted, b, constructor);
-                    if (intrinsic == null) {
-                        return false;
-                    }
-                    pushConstant(b, targetMethod, snippetReflection.forObject(intrinsic), target);
-                } catch (NoSuchMethodException e) {
-                    Method intrinsic = getIntrinsic(analysis, hosted, b, ExceptionSynthesizer.throwNoSuchMethodExceptionMethod);
-                    if (intrinsic == null) {
-                        return false;
-                    }
-                    throwNoSuchMethodException(b, targetMethod, target);
-                } catch (NoClassDefFoundError e) {
-                    /*
-                     * If the declaring class of the constructor references missing classes a
-                     * `NoClassDefFoundError` can be thrown. We intrinsify `it here.
-                     */
-                    Method intrinsic = getIntrinsic(analysis, hosted, b, ExceptionSynthesizer.throwNoClassDefFoundErrorMethod);
-                    if (intrinsic == null) {
-                        return false;
-                    }
-                    throwNoClassDefFoundError(b, targetMethod, e.getMessage());
+                    return pushConstant(b, targetMethod, snippetReflection, analysis, hosted, constructor, target);
+                } catch (NoSuchMethodException | LinkageError e) {
+                    return throwException(b, targetMethod, analysis, hosted, target, e.getClass(), e.getMessage());
                 }
-
-                return true;
             }
         }
         return false;
@@ -321,6 +265,12 @@ public class ReflectionPlugins {
             /* We are analyzing the static initializers and should always intrinsify. */
             return element;
         }
+        /*
+         * We don't intrinsify if bci is not unique.
+         */
+        if (context.bciCanBeDuplicated()) {
+            return null;
+        }
         if (analysis) {
             if (isDeleted(element, context.getMetaAccess())) {
                 /*
@@ -332,11 +282,10 @@ public class ReflectionPlugins {
             }
 
             /* We are during analysis, we should intrinsify and cache the intrinsified object. */
-            ImageSingletons.lookup(ReflectionPluginRegistry.class).add(context.getMethod(), context.bci(), element);
-            return element;
+            ImageSingletons.lookup(ReflectionPluginRegistry.class).add(context.getCallingContext(), element);
         }
         /* We are during compilation, we only intrinsify if intrinsified during analysis. */
-        return ImageSingletons.lookup(ReflectionPluginRegistry.class).get(context.getMethod(), context.bci());
+        return ImageSingletons.lookup(ReflectionPluginRegistry.class).get(context.getCallingContext());
     }
 
     private static <T> boolean isDeleted(T element, MetaAccessProvider metaAccess) {
@@ -364,37 +313,38 @@ public class ReflectionPlugins {
         return false;
     }
 
+    private static <T> boolean pushConstant(GraphBuilderContext b, ResolvedJavaMethod targetMethod, SnippetReflectionProvider snippetReflection,
+                    boolean analysis, boolean hosted, T element, String targetElement) {
+        T intrinsic = getIntrinsic(analysis, hosted, b, element);
+        if (intrinsic == null) {
+            return false;
+        }
+        pushConstant(b, targetMethod, snippetReflection.forObject(intrinsic), targetElement);
+        return true;
+    }
+
     private static void pushConstant(GraphBuilderContext b, ResolvedJavaMethod reflectionMethod, JavaConstant constant, String targetElement) {
         b.addPush(JavaKind.Object, ConstantNode.forConstant(constant, b.getMetaAccess(), b.getGraph()));
         traceConstant(b.getMethod(), reflectionMethod, targetElement);
     }
 
-    private static void throwClassNotFoundException(GraphBuilderContext b, ResolvedJavaMethod reflectionMethod, String targetClass) {
-        String message = targetClass + ". This exception was synthesized during native image building from a call to " + reflectionMethod.format("%H.%n(%p)") +
-                        " with a constant class name argument.";
-        ExceptionSynthesizer.throwException(b, message, ExceptionSynthesizer.throwClassNotFoundExceptionMethod);
-        traceException(b.getMethod(), reflectionMethod, targetClass, ExceptionSynthesizer.throwClassNotFoundExceptionMethod);
+    private static boolean throwException(GraphBuilderContext b, ResolvedJavaMethod reflectionMethod, boolean analysis, boolean hosted, String targetElement,
+                    Class<? extends Throwable> exceptionClass, String originalMessage) {
+        /* Get the exception throwing method that has a message parameter. */
+        Method exceptionMethod = ExceptionSynthesizer.throwExceptionMethod(exceptionClass, String.class);
+        Method intrinsic = getIntrinsic(analysis, hosted, b, exceptionMethod);
+        if (intrinsic == null) {
+            return false;
+        }
+        throwException(b, reflectionMethod, targetElement, exceptionMethod, originalMessage);
+        return true;
     }
 
-    private static void throwNoClassDefFoundError(GraphBuilderContext b, ResolvedJavaMethod reflectionMethod, String targetClass) {
-        String message = targetClass + ". This exception was synthesized during native image building from a call to " + reflectionMethod.format("%H.%n(%p)") +
+    private static void throwException(GraphBuilderContext b, ResolvedJavaMethod reflectionMethod, String targetElement, Method exceptionMethod, String originalMessage) {
+        String message = originalMessage + ". This exception was synthesized during native image building from a call to " + reflectionMethod.format("%H.%n(%p)") +
                         " with constant arguments.";
-        ExceptionSynthesizer.throwException(b, message, ExceptionSynthesizer.throwNoClassDefFoundErrorMethod);
-        traceException(b.getMethod(), reflectionMethod, targetClass, ExceptionSynthesizer.throwNoClassDefFoundErrorMethod);
-    }
-
-    private static void throwNoSuchFieldException(GraphBuilderContext b, ResolvedJavaMethod reflectionMethod, String targetField) {
-        String message = targetField + ". This exception was synthesized during native image building from a call to " + reflectionMethod.format("%H.%n(%p)") +
-                        " with a constant field name argument.";
-        ExceptionSynthesizer.throwException(b, message, ExceptionSynthesizer.throwNoSuchFieldExceptionMethod);
-        traceException(b.getMethod(), reflectionMethod, targetField, ExceptionSynthesizer.throwNoSuchFieldExceptionMethod);
-    }
-
-    private static void throwNoSuchMethodException(GraphBuilderContext b, ResolvedJavaMethod reflectionMethod, String targetMethod) {
-        String message = targetMethod + ". This exception was synthesized during native image building from a call to " + reflectionMethod.format("%H.%n(%p)") +
-                        " with constant method name and parameter types arguments.";
-        ExceptionSynthesizer.throwException(b, message, ExceptionSynthesizer.throwNoSuchMethodExceptionMethod);
-        traceException(b.getMethod(), reflectionMethod, targetMethod, ExceptionSynthesizer.throwNoSuchMethodExceptionMethod);
+        ExceptionSynthesizer.throwException(b, exceptionMethod, message);
+        traceException(b.getMethod(), reflectionMethod, targetElement, exceptionMethod);
     }
 
     private static void traceConstant(ResolvedJavaMethod contextMethod, ResolvedJavaMethod reflectionMethod, String targetElement) {
