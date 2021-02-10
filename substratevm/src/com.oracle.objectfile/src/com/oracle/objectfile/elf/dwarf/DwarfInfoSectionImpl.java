@@ -61,12 +61,7 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
     public static final String OBJECT_HEADER_STRUCT_NAME = "_objhdr";
 
     /**
-     * The name of a special DWARF struct type used to model an array header.
-     */
-    public static final String ARRAY_HEADER_STRUCT_NAME = "_arrhdr";
-
-    /**
-     * an info header section always contains a fixed number of bytes.
+     * An info header section always contains a fixed number of bytes.
      */
     private static final int DW_DIE_HEADER_SIZE = 11;
 
@@ -248,6 +243,11 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         log(context, "  [0x%08x] primitive type %s", pos, primitiveTypeEntry.getTypeName());
         /* Record the location of this type entry. */
         setTypeIndex(primitiveTypeEntry, pos);
+        /*
+         * primitive fields never need an indirection so use the same index for places where we
+         * might want an indirect type
+         */
+        setIndirectTypeIndex(primitiveTypeEntry, pos);
         int abbrevCode = DwarfDebugInfo.DW_ABBREV_CODE_primitive_type;
         log(context, "  [0x%08x] <1> Abbrev Number %d", pos, abbrevCode);
         pos = writeAbbrevCode(abbrevCode, buffer, pos);
@@ -271,6 +271,11 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         log(context, "  [0x%08x] primitive type void", pos);
         /* Record the location of this type entry. */
         setTypeIndex(primitiveTypeEntry, pos);
+        /*
+         * Type void never needs an indirection so use the same index for places where we might want
+         * an indirect type.
+         */
+        setIndirectTypeIndex(primitiveTypeEntry, pos);
         int abbrevCode = DwarfDebugInfo.DW_ABBREV_CODE_void_type;
         log(context, "  [0x%08x] <1> Abbrev Number %d", pos, abbrevCode);
         pos = writeAbbrevCode(abbrevCode, buffer, pos);
@@ -286,6 +291,11 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         log(context, "  [0x%08x] header type %s", pos, name);
         /* Record the location of this type entry. */
         setTypeIndex(headerTypeEntry, pos);
+        /*
+         * Header records don't need an indirection so use the same index for places where we might
+         * want an indirect type.
+         */
+        setIndirectTypeIndex(headerTypeEntry, pos);
         int abbrevCode = DwarfDebugInfo.DW_ABBREV_CODE_object_header;
         log(context, "  [0x%08x] <1> Abbrev Number %d", pos, abbrevCode);
         pos = writeAbbrevCode(abbrevCode, buffer, pos);
@@ -293,9 +303,6 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         pos = writeAttrStrp(name, buffer, pos);
         log(context, "  [0x%08x]     byte_size  0x%x", pos, size);
         pos = writeAttrData1(size, buffer, pos);
-        /* Write a data location expression to mask and/or rebase oop pointers. */
-        log(context, "  [0x%08x]     data_location", pos);
-        pos = writeOopRelocationExpression(buffer, pos);
         pos = writeHeaderFields(context, headerTypeEntry, buffer, pos);
         /*
          * Write a terminating null attribute.
@@ -314,7 +321,8 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         String fieldName = fieldEntry.fieldName();
         TypeEntry valueType = fieldEntry.getValueType();
         String valueTypeName = valueType.getTypeName();
-        int valueTypeIdx = getTypeIndex(valueTypeName);
+        /* use the indirect type for the field so pointers get translated */
+        int valueTypeIdx = getIndirectTypeIndex(valueTypeName);
         log(context, "  [0x%08x] header field", pos);
         int abbrevCode = DwarfDebugInfo.DW_ABBREV_CODE_header_field;
         log(context, "  [0x%08x] <2> Abbrev Number %d", pos, abbrevCode);
@@ -480,9 +488,17 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
 
     private int writeClassLayout(DebugContext context, ClassEntry classEntry, byte[] buffer, int p) {
         int pos = p;
-        setLayoutIndex(classEntry, pos);
+        int layoutIndex = pos;
+        setLayoutIndex(classEntry, layoutIndex);
         log(context, "  [0x%08x] class layout", pos);
-        int abbrevCode = DwarfDebugInfo.DW_ABBREV_CODE_class_layout;
+        int abbrevCode = DwarfDebugInfo.DW_ABBREV_CODE_class_layout1;
+        /*
+         * when we don't have a separate indirect type then hub layouts need an extra data_location
+         * attribute
+         */
+        if (!dwarfSections.useHeapBase() && dwarfSections.isHubClassEntry(classEntry)) {
+            abbrevCode = DwarfDebugInfo.DW_ABBREV_CODE_class_layout2;
+        }
         log(context, "  [0x%08x] <1> Abbrev Number %d", pos, abbrevCode);
         pos = writeAbbrevCode(abbrevCode, buffer, pos);
         String name = classEntry.getTypeName();
@@ -491,12 +507,14 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         int size = classEntry.getSize();
         log(context, "  [0x%08x]     byte_size 0x%x", pos, size);
         pos = writeAttrData2((short) size, buffer, pos);
-        int fileIdx = classEntry.localFilesIdx(classEntry.getFileEntry());
+        int fileIdx = classEntry.localFilesIdx();
         log(context, "  [0x%08x]     file  0x%x (%s)", pos, fileIdx, classEntry.getFileName());
         pos = writeAttrData2((short) fileIdx, buffer, pos);
-        /* Write a data location expression to mask and/or rebase oop pointers. */
-        log(context, "  [0x%08x]     data_location", pos);
-        pos = writeOopRelocationExpression(buffer, pos);
+        if (abbrevCode == DwarfDebugInfo.DW_ABBREV_CODE_class_layout2) {
+            /* Write a data location expression to mask and/or rebase oop pointers. */
+            log(context, "  [0x%08x]     data_location", pos);
+            pos = writeIndirectOopConversionExpression(true, buffer, pos);
+        }
         int superTypeOffset;
         String superName;
         ClassEntry superClassEntry = classEntry.getSuperClass();
@@ -516,7 +534,36 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         /*
          * Write a terminating null attribute.
          */
-        return writeAttrNull(buffer, pos);
+        pos = writeAttrNull(buffer, pos);
+
+        if (dwarfSections.useHeapBase()) {
+            /*
+             * Write a wrapper type with a data_location attribute that can act as a target for an
+             * indirect pointer.
+             */
+            setIndirectLayoutIndex(classEntry, pos);
+            log(context, "  [0x%08x] indirect class layout", pos);
+            abbrevCode = DwarfDebugInfo.DW_ABBREV_CODE_indirect_layout;
+            log(context, "  [0x%08x] <1> Abbrev Number %d", pos, abbrevCode);
+            pos = writeAbbrevCode(abbrevCode, buffer, pos);
+            String indirectName = uniqueDebugString(DwarfDebugInfo.INDIRECT_PREFIX + classEntry.getTypeName());
+            log(context, "  [0x%08x]     name  0x%x (%s)", pos, debugStringIndex(indirectName), name);
+            pos = writeAttrStrp(indirectName, buffer, pos);
+            log(context, "  [0x%08x]     byte_size 0x%x", pos, size);
+            pos = writeAttrData2((short) size, buffer, pos);
+            /* Write a data location expression to mask and/or rebase oop pointers. */
+            log(context, "  [0x%08x]     data_location", pos);
+            pos = writeIndirectOopConversionExpression(dwarfSections.isHubClassEntry(classEntry), buffer, pos);
+            superTypeOffset = layoutIndex;
+            /* Now write the child field. */
+            pos = writeSuperReference(context, superTypeOffset, superName, buffer, pos);
+            /*
+             * Write a terminating null attribute.
+             */
+            pos = writeAttrNull(buffer, pos);
+        }
+
+        return pos;
     }
 
     private int writeSuperReference(DebugContext context, int superTypeOffset, String superName, byte[] buffer, int p) {
@@ -546,10 +593,10 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         return fieldEntry.getOffset() >= 0;
     }
 
-    private int writeField(DebugContext context, ClassEntry classEntry, FieldEntry fieldEntry, byte[] buffer, int p) {
+    private int writeField(DebugContext context, StructureTypeEntry entry, FieldEntry fieldEntry, byte[] buffer, int p) {
         int pos = p;
         int modifiers = fieldEntry.getModifiers();
-        boolean hasFile = classEntry.getFileName().length() > 0;
+        boolean hasFile = fieldEntry.getFileName().length() > 0;
         log(context, "  [0x%08x] field definition", pos);
         int abbrevCode;
         boolean isStatic = Modifier.isStatic(modifiers);
@@ -566,7 +613,7 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
                 abbrevCode = DwarfDebugInfo.DW_ABBREV_CODE_field_declaration4;
             }
             /* Record the position of the declaration to use when we write the definition. */
-            setFieldDeclarationIndex(classEntry, fieldEntry.fieldName(), pos);
+            setFieldDeclarationIndex(entry, fieldEntry.fieldName(), pos);
         }
         log(context, "  [0x%08x] <2> Abbrev Number %d", pos, abbrevCode);
         pos = writeAbbrevCode(abbrevCode, buffer, pos);
@@ -576,14 +623,16 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         pos = writeAttrStrp(name, buffer, pos);
         /* We may not have a file and line for a field. */
         if (hasFile) {
-            int fileIdx = classEntry.localFilesIdx(classEntry.getFileEntry());
-            log(context, "  [0x%08x]     filename  0x%x (%s)", pos, fileIdx, classEntry.getFileName());
+            assert entry instanceof ClassEntry;
+            int fileIdx = ((ClassEntry) entry).localFilesIdx(fieldEntry.getFileEntry());
+            assert fileIdx > 0;
+            log(context, "  [0x%08x]     filename  0x%x (%s)", pos, fileIdx, fieldEntry.getFileName());
             pos = writeAttrData2((short) fileIdx, buffer, pos);
             /* At present we definitely don't have line numbers. */
         }
         String valueTypeName = fieldEntry.getValueType().getTypeName();
-        /* Static fields never store compressed values instance fields may do. */
-        int typeIdx = getTypeIndex(valueTypeName);
+        /* use the indirect type for the field so pointers get translated if needed */
+        int typeIdx = getIndirectTypeIndex(valueTypeName);
         log(context, "  [0x%08x]     type  0x%x (%s)", pos, typeIdx, valueTypeName);
         pos = writeAttrRefAddr(typeIdx, buffer, pos);
         if (!isStatic) {
@@ -633,7 +682,7 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         String name = uniqueDebugString(range.getMethodName());
         log(context, "  [0x%08x]     name 0x%x (%s)", pos, debugStringIndex(name), name);
         pos = writeAttrStrp(name, buffer, pos);
-        int fileIdx = classEntry.localFilesIdx(range.getFileEntry());
+        int fileIdx = classEntry.localFilesIdx();
         log(context, "  [0x%08x]     file 0x%x (%s)", pos, fileIdx, range.getFileEntry().getFullName());
         pos = writeAttrData2((short) fileIdx, buffer, pos);
         String returnTypeName = range.getMethodReturnTypeName();
@@ -727,11 +776,8 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         String name = interfaceClassEntry.getTypeName();
         log(context, "  [0x%08x]     name  0x%x (%s)", pos, debugStringIndex(name), name);
         pos = writeAttrStrp(name, buffer, pos);
-        /* Write a data location expression to mask and/or rebase oop pointers. */
-        log(context, "  [0x%08x]     data_location", pos);
-        pos = writeOopRelocationExpression(buffer, pos);
         /*
-         * now write references to all class layouts that implement this interface
+         * Now write references to all class layouts that implement this interface.
          */
         pos = writeInterfaceImplementors(context, interfaceClassEntry, buffer, pos);
         pos = writeMethodDeclarations(context, interfaceClassEntry, buffer, pos);
@@ -739,7 +785,36 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         /*
          * Write a terminating null attribute.
          */
-        return writeAttrNull(buffer, pos);
+        pos = writeAttrNull(buffer, pos);
+
+        if (dwarfSections.useHeapBase()) {
+            /*
+             * Write a wrapper type with a data_location attribute that can act as a target for an
+             * indirect pointer.
+             */
+            setIndirectLayoutIndex(interfaceClassEntry, pos);
+            log(context, "  [0x%08x] indirect class layout", pos);
+            abbrevCode = DwarfDebugInfo.DW_ABBREV_CODE_indirect_layout;
+            log(context, "  [0x%08x] <1> Abbrev Number %d", pos, abbrevCode);
+            pos = writeAbbrevCode(abbrevCode, buffer, pos);
+            String indirectName = uniqueDebugString(DwarfDebugInfo.INDIRECT_PREFIX + interfaceClassEntry.getTypeName());
+            log(context, "  [0x%08x]     name  0x%x (%s)", pos, debugStringIndex(indirectName), name);
+            pos = writeAttrStrp(indirectName, buffer, pos);
+            int size = interfaceClassEntry.getSize();
+            log(context, "  [0x%08x]     byte_size 0x%x", pos, size);
+            pos = writeAttrData2((short) size, buffer, pos);
+            /* Write a data location expression to mask and/or rebase oop pointers. */
+            log(context, "  [0x%08x]     data_location", pos);
+            pos = writeIndirectOopConversionExpression(false, buffer, pos);
+            /* Now write the child field. */
+            pos = writeSuperReference(context, layoutOffset, name, buffer, pos);
+            /*
+             * Write a terminating null attribute.
+             */
+            pos = writeAttrNull(buffer, pos);
+        }
+
+        return pos;
     }
 
     private int writeInterfaceImplementors(DebugContext context, InterfaceClassEntry interfaceClassEntry, byte[] buffer, int p) {
@@ -770,17 +845,34 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         int pos = p;
 
         /* Define a pointer type referring to the underlying layout. */
-        setTypeIndex(classEntry, pos);
+        int typeIdx = pos;
+        setTypeIndex(classEntry, typeIdx);
         log(context, "  [0x%08x] class pointer type", pos);
         int abbrevCode = DwarfDebugInfo.DW_ABBREV_CODE_class_pointer;
         log(context, "  [0x%08x] <1> Abbrev Number %d", pos, abbrevCode);
         pos = writeAbbrevCode(abbrevCode, buffer, pos);
-        int byteSize = dwarfSections.oopReferenceByteCount();
+        int byteSize = dwarfSections.oopReferenceSize();
         log(context, "  [0x%08x]     byte_size 0x%x", pos, byteSize);
         pos = writeAttrData1((byte) byteSize, buffer, pos);
         int layoutOffset = getLayoutIndex(classEntry);
         log(context, "  [0x%08x]     type 0x%x", pos, layoutOffset);
         pos = writeAttrRefAddr(layoutOffset, buffer, pos);
+
+        if (dwarfSections.useHeapBase()) {
+            /* Define an indirect pointer type referring to the indirect layout. */
+            setIndirectTypeIndex(classEntry, pos);
+            log(context, "  [0x%08x] class indirect pointer type", pos);
+            abbrevCode = DwarfDebugInfo.DW_ABBREV_CODE_indirect_pointer;
+            log(context, "  [0x%08x] <1> Abbrev Number %d", pos, abbrevCode);
+            pos = writeAbbrevCode(abbrevCode, buffer, pos);
+            log(context, "  [0x%08x]     byte_size 0x%x", pos, byteSize);
+            pos = writeAttrData1((byte) byteSize, buffer, pos);
+            layoutOffset = getIndirectLayoutIndex(classEntry);
+            log(context, "  [0x%08x]     type 0x%x", pos, layoutOffset);
+            pos = writeAttrRefAddr(layoutOffset, buffer, pos);
+        } else {
+            setIndirectTypeIndex(classEntry, typeIdx);
+        }
 
         return pos;
     }
@@ -789,17 +881,34 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         int pos = p;
 
         /* Define a pointer type referring to the underlying layout. */
-        setTypeIndex(interfaceClassEntry, pos);
+        int typeIdx = pos;
+        setTypeIndex(interfaceClassEntry, typeIdx);
         log(context, "  [0x%08x] interface pointer type", pos);
         int abbrevCode = DwarfDebugInfo.DW_ABBREV_CODE_interface_pointer;
         log(context, "  [0x%08x] <1> Abbrev Number %d", pos, abbrevCode);
         pos = writeAbbrevCode(abbrevCode, buffer, pos);
-        int byteSize = dwarfSections.oopReferenceByteCount();
+        int byteSize = dwarfSections.oopReferenceSize();
         log(context, "  [0x%08x]     byte_size 0x%x", pos, byteSize);
         pos = writeAttrData1((byte) byteSize, buffer, pos);
         int layoutOffset = getLayoutIndex(interfaceClassEntry);
         log(context, "  [0x%08x]     type 0x%x", pos, layoutOffset);
         pos = writeAttrRefAddr(layoutOffset, buffer, pos);
+
+        if (dwarfSections.useHeapBase()) {
+            /* Define an indirect pointer type referring to the indirect layout. */
+            setIndirectTypeIndex(interfaceClassEntry, pos);
+            log(context, "  [0x%08x] interface indirect pointer type", pos);
+            abbrevCode = DwarfDebugInfo.DW_ABBREV_CODE_indirect_pointer;
+            log(context, "  [0x%08x] <1> Abbrev Number %d", pos, abbrevCode);
+            pos = writeAbbrevCode(abbrevCode, buffer, pos);
+            log(context, "  [0x%08x]     byte_size 0x%x", pos, byteSize);
+            pos = writeAttrData1((byte) byteSize, buffer, pos);
+            layoutOffset = getIndirectLayoutIndex(interfaceClassEntry);
+            log(context, "  [0x%08x]     type 0x%x", pos, layoutOffset);
+            pos = writeAttrRefAddr(layoutOffset, buffer, pos);
+        } else {
+            setIndirectTypeIndex(interfaceClassEntry, typeIdx);
+        }
 
         return pos;
     }
@@ -907,9 +1016,15 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         log(context, "  [0x%08x]     name 0x%x (%s)", pos, debugStringIndex(name), name);
         pos = writeAttrStrp(name, buffer, pos);
         /* Write the array layout and array reference DIEs. */
-        int layouIdx = pos;
-        pos = writeArrayLayout(context, arrayTypeEntry, buffer, pos);
-        pos = writeArrayType(context, arrayTypeEntry, layouIdx, buffer, pos);
+        TypeEntry elementType = arrayTypeEntry.getElementType();
+        int size = arrayTypeEntry.getSize();
+        int layoutIdx = pos;
+        pos = writeArrayLayout(context, arrayTypeEntry, elementType, size, buffer, pos);
+        int indirectLayoutIdx = pos;
+        if (dwarfSections.useHeapBase()) {
+            pos = writeIndirectArrayLayout(context, arrayTypeEntry, size, layoutIdx, buffer, pos);
+        }
+        pos = writeArrayTypes(context, arrayTypeEntry, layoutIdx, indirectLayoutIdx, buffer, pos);
         /*
          * Write a terminating null attribute.
          */
@@ -921,16 +1036,8 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         return pos;
     }
 
-    private int writeArrayLayout(DebugContext context, ArrayTypeEntry arrayTypeEntry, byte[] buffer, int p) {
+    private int writeArrayLayout(DebugContext context, ArrayTypeEntry arrayTypeEntry, TypeEntry elementType, int size, byte[] buffer, int p) {
         int pos = p;
-        TypeEntry elementType = arrayTypeEntry.getElementType();
-        StructureTypeEntry headerType;
-        if (elementType.isPrimitive()) {
-            PrimitiveTypeEntry primitiveTypeEntry = (PrimitiveTypeEntry) elementType;
-            headerType = (StructureTypeEntry) lookupType(ARRAY_HEADER_STRUCT_NAME + primitiveTypeEntry.getTypeChar());
-        } else {
-            headerType = (StructureTypeEntry) lookupType(ARRAY_HEADER_STRUCT_NAME + "A");
-        }
         log(context, "  [0x%08x] array layout", pos);
         int abbrevCode = DwarfDebugInfo.DW_ABBREV_CODE_array_layout;
         log(context, "  [0x%08x] <1> Abbrev Number %d", pos, abbrevCode);
@@ -938,21 +1045,52 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         String name = arrayTypeEntry.getTypeName();
         log(context, "  [0x%08x]     name 0x%x (%s)", pos, debugStringIndex(name), name);
         pos = writeAttrStrp(name, buffer, pos);
-        int size = headerType.getSize();
         log(context, "  [0x%08x]     byte_size  0x%x", pos, size);
         pos = writeAttrData2((short) size, buffer, pos);
-        /* Write a data location expression to mask and/or rebase oop pointers. */
-        log(context, "  [0x%08x]     data_location", pos);
-        pos = writeOopRelocationExpression(buffer, pos);
 
         /* Now the child DIEs. */
 
         /* write a type definition for the element array field. */
         int arrayDataTypeIdx = pos;
         pos = writeArrayDataType(context, elementType, buffer, pos);
+        pos = writeFields(context, arrayTypeEntry, buffer, pos);
         /* Write a zero length element array field. */
         pos = writeArrayElementField(context, size, arrayDataTypeIdx, buffer, pos);
-        pos = writeArraySuperReference(context, arrayTypeEntry, buffer, pos);
+        pos = writeArraySuperReference(context, buffer, pos);
+        /*
+         * Write a terminating null attribute.
+         */
+        return writeAttrNull(buffer, pos);
+    }
+
+    private int writeFields(DebugContext context, ArrayTypeEntry arrayTypeEntry, byte[] buffer, int p) {
+        return arrayTypeEntry.fields().filter(DwarfInfoSectionImpl::isManifestedField).reduce(p,
+                        (pos, fieldEntry) -> writeField(context, arrayTypeEntry, fieldEntry, buffer, pos),
+                        (oldPos, newPos) -> newPos);
+    }
+
+    private int writeIndirectArrayLayout(DebugContext context, ArrayTypeEntry arrayTypeEntry, int size, int layoutOffset, byte[] buffer, int p) {
+        int pos = p;
+
+        /*
+         * write a wrapper type with a data_location attribute that can act as a target for an
+         * indirect pointer
+         */
+        log(context, "  [0x%08x] indirect class layout", pos);
+        int abbrevCode = DwarfDebugInfo.DW_ABBREV_CODE_indirect_layout;
+        log(context, "  [0x%08x] <1> Abbrev Number %d", pos, abbrevCode);
+        pos = writeAbbrevCode(abbrevCode, buffer, pos);
+        String name = arrayTypeEntry.getTypeName();
+        String indirectName = uniqueDebugString(DwarfDebugInfo.INDIRECT_PREFIX + name);
+        log(context, "  [0x%08x]     name  0x%x (%s)", pos, debugStringIndex(indirectName), name);
+        pos = writeAttrStrp(indirectName, buffer, pos);
+        log(context, "  [0x%08x]     byte_size 0x%x", pos, size);
+        pos = writeAttrData2((short) size, buffer, pos);
+        /* Write a data location expression to mask and/or rebase oop pointers. */
+        log(context, "  [0x%08x]     data_location", pos);
+        pos = writeIndirectOopConversionExpression(false, buffer, pos);
+        /* Now write the child field. */
+        pos = writeSuperReference(context, layoutOffset, name, buffer, pos);
         /*
          * Write a terminating null attribute.
          */
@@ -969,7 +1107,8 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         log(context, "  [0x%08x]     byte_size 0x%x", pos, size);
         pos = writeAttrData1((byte) size, buffer, pos);
         String elementTypeName = elementType.getTypeName();
-        int elementTypeIdx = getTypeIndex(elementTypeName);
+        /* use the indirect type for the element type so pointers get translated */
+        int elementTypeIdx = getIndirectTypeIndex(elementTypeName);
         log(context, "  [0x%08x]     type idx 0x%x (%s)", pos, elementTypeIdx, elementTypeName);
         pos = writeAttrRefAddr(elementTypeIdx, buffer, pos);
         return pos;
@@ -995,46 +1134,47 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
 
     }
 
-    private int writeArraySuperReference(DebugContext context, ArrayTypeEntry arrayTypeEntry, byte[] buffer, int p) {
+    private int writeArraySuperReference(DebugContext context, byte[] buffer, int p) {
         int pos = p;
-        String headerName;
-        TypeEntry elementType = arrayTypeEntry.getElementType();
-        if (elementType.isPrimitive()) {
-            headerName = ARRAY_HEADER_STRUCT_NAME + ((PrimitiveTypeEntry) elementType).getTypeChar();
-        } else {
-            headerName = ARRAY_HEADER_STRUCT_NAME + "A";
-        }
-        int headerTypeOffset = getTypeIndex(headerName);
-        log(context, "  [0x%08x] super reference", pos);
-        int abbrevCode = DwarfDebugInfo.DW_ABBREV_CODE_super_reference;
-        log(context, "  [0x%08x] <2> Abbrev Number %d", pos, abbrevCode);
-        pos = writeAbbrevCode(abbrevCode, buffer, pos);
-        log(context, "  [0x%08x]     type 0x%x (%s)", pos, headerTypeOffset, headerName);
-        pos = writeAttrRefAddr(headerTypeOffset, buffer, pos);
-        /* Parent layout is embedded at start of object. */
-        log(context, "  [0x%08x]     data_member_location (super) 0x%x", pos, 0);
-        pos = writeAttrData1((byte) 0, buffer, pos);
-        log(context, "  [0x%08x]     modifiers public", pos);
-        int modifiers = Modifier.PUBLIC;
-        pos = writeAttrAccessibility(modifiers, buffer, pos);
-        return pos;
+        /* Arrays all inherit from java.lang.Object */
+        String superName = "java.lang.Object";
+        TypeEntry objectType = lookupType(superName);
+        assert objectType instanceof ClassEntry;
+        int superOffset = getLayoutIndex((ClassEntry) objectType);
+        return writeSuperReference(context, superOffset, superName, buffer, pos);
     }
 
-    private int writeArrayType(DebugContext context, ArrayTypeEntry arrayTypeEntry, int layoutOffset, byte[] buffer, int p) {
+    private int writeArrayTypes(DebugContext context, ArrayTypeEntry arrayTypeEntry, int layoutOffset, int indirectLayoutOffset, byte[] buffer, int p) {
         int pos = p;
         String name = uniqueDebugString(arrayTypeEntry.getTypeName());
 
+        int typeIdx = pos;
         setTypeIndex(arrayTypeEntry, pos);
         /* Define a pointer type referring to the underlying layout. */
         log(context, "  [0x%08x] array pointer type", pos);
         int abbrevCode = DwarfDebugInfo.DW_ABBREV_CODE_array_pointer;
         log(context, "  [0x%08x] <1> Abbrev Number %d", pos, abbrevCode);
         pos = writeAbbrevCode(abbrevCode, buffer, pos);
-        int byteSize = dwarfSections.oopReferenceByteCount();
+        int byteSize = dwarfSections.oopReferenceSize();
         log(context, "  [0x%08x]     byte_size  0x%x", pos, byteSize);
         pos = writeAttrData1((byte) byteSize, buffer, pos);
         log(context, "  [0x%08x]     type (pointer) 0x%x (%s)", pos, layoutOffset, name);
         pos = writeAttrRefAddr(layoutOffset, buffer, pos);
+
+        if (dwarfSections.useHeapBase()) {
+            setIndirectTypeIndex(arrayTypeEntry, pos);
+            /* Define an indirect pointer type referring to the underlying indirect layout. */
+            log(context, "  [0x%08x] array indirect pointer type", pos);
+            abbrevCode = DwarfDebugInfo.DW_ABBREV_CODE_indirect_pointer;
+            log(context, "  [0x%08x] <1> Abbrev Number %d", pos, abbrevCode);
+            pos = writeAbbrevCode(abbrevCode, buffer, pos);
+            log(context, "  [0x%08x]     byte_size  0x%x", pos, byteSize);
+            pos = writeAttrData1((byte) byteSize, buffer, pos);
+            log(context, "  [0x%08x]     type (pointer) 0x%x (%s)", pos, indirectLayoutOffset, name);
+            pos = writeAttrRefAddr(indirectLayoutOffset, buffer, pos);
+        } else {
+            setIndirectTypeIndex(arrayTypeEntry, typeIdx);
+        }
 
         return pos;
     }
@@ -1201,78 +1341,150 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         return writeAttrData1(access, buffer, p);
     }
 
-    public int writeOopRelocationExpression(byte[] buffer, int p) {
+    public int writeIndirectOopConversionExpression(boolean isHub, byte[] buffer, int p) {
         int pos = p;
-        if (dwarfSections.useHeapBase()) {
-            /*-
-             * oop is 32 bit signed offset, possibly shifted by CompressEncoding.getShift()
-             *
-             *  .... push object address (1 byte) ...... [offset]
-             *  .... duplicate object base ............. [offset, offset]
-             *  .... breq end .......................... [offset]
-             * .... __optional_begin__ (if shift != 0)
-             * .... push compress_shift ............... [offset, shift]
-             * .... lsh ............................... [new_offset]
-             * .... __optional_end__
-             * .... push rheap + 0 .................... [rheap]
-             * .... ADD ............................... [oop]
-             * end: ................................... [offset=0 | oop]
-             */
+        /*
+         * For an explanation of the conversion rules @see com.oracle.svm.core.heap.ReferenceAccess
+         *
+         * n.b.
+         *
+         * The setting for option -H:+/-SpawnIsolates is determined by useHeapBase == true/false.
+         *
+         * The setting for option -H:+/-UseCompressedReferences is determined by oopShiftCount ==
+         * zero/non-zero
+         */
 
-            /* Write a location rebasing the offset relative to the heapbase register. */
-            byte regOp = (byte) (DwarfDebugInfo.DW_OP_breg0 + dwarfSections.getHeapbaseRegister());
-            /*
-             * We have to size the DWARF expression by writing it to the scratch buffer so we can
-             * write its size as a ULEB before the expression itself.
+        boolean useHeapBase = dwarfSections.useHeapBase();
+        int oopCompressShift = dwarfSections.oopCompressShift();
+        int oopTagsShift = dwarfSections.oopTagsShift();
+        int oopAlignShift = dwarfSections.oopAlignShift();
+        /* we may be able to use a mask or a right shift then a left shift or just a left shift */
+        int mask = 0;
+        int rightShift = 0;
+        int leftShift = 0;
+        int exprSize = 0;
+
+        /*
+         * First we compute the size of the locexpr and decide how to do any required bit-twiddling
+         */
+        if (!useHeapBase) {
+            /* We must be compressing for a hub otherwise this call would not be needed. */
+            assert isHub == true;
+            mask = dwarfSections.oopTagsMask();
+            assert mask != 0;
+            /*-
+             * We don't need to care about zero oops just mask off the tag bits.
+             *
+             * required expression is
+             *
+             *  .... push object address .. (1 byte) ..... [tagged oop]
+             *  .... push mask ............ (1 byte) ..... [tagged oop, mask]
+             *  .... NOT .................. (1 byte) ..... [tagged oop, ~mask]
+             *  .... AND .................. (1 byte) ..... [raw oop]
              */
-            int shiftBitCount = dwarfSections.oopShiftBitCount();
-            short skipBytes = (short) (shiftBitCount == 0 ? 3 : 5);
-            int size = 7 + skipBytes;
-            if (buffer == null) {
-                /* add ULEB size to the expression size. */
-                return pos + putULEB(size, scratch, 0) + size;
+            exprSize += 4;
+        } else {
+            /*-
+             * required expression will be one of these paths
+             *
+             *  .... push object address .. (1 byte) ..... [offset]
+             *  .... duplicate object base  (1 byte) ..... [offset, offset]
+             *  .... push 0 ............... (1 byte) ..... [offset, offset, 0]
+             *  .... eq ................... (1 byte) ..... [offset]
+             *  .... brtrue end ........... (3 bytes) .... [offset == oop == 0 if taken]
+             *  IF mask != 0
+             *  .... push mask ............ (1 byte) ..... [offset, mask]
+             *  .... NOT .................. (1 byte) ..... [offset, ~mask]
+             *  .... AND .................. (1 byte) ..... [offset]
+             *  ELSE
+             *    IF rightShift != 0
+             *  .... push rightShift ...... (1 byte) ..... [offset, right shift]
+             *  .... LSHR ................. (1 byte) ..... [offset]
+             *    END IF
+             *    IF leftShift != 0
+             *  .... push leftShift ....... (1 byte) ..... [offset, left shift]
+             *  .... LSHL ................. (1 byte) ..... [offset]
+             *    END IF
+             *  END IF
+             *  .... push rheap+0 ......... (2 bytes) .... [offset, rheap]
+             *  .... ADD .................. (1 byte) ..... [oop]
+             * end: ...................................... [oop]
+             *
+             */
+            /* Count all bytes in common path */
+            exprSize += 10;
+            if (isHub) {
+                if (oopCompressShift == 0) {
+                    /* We need to use oopAlignment for the shift. */
+                    oopCompressShift = oopAlignShift;
+                }
+                if (oopCompressShift == oopTagsShift) {
+                    /* We can use a mask to remove the bits. */
+                    mask = dwarfSections.oopTagsMask();
+                    exprSize += 3;
+                } else {
+                    /* We need two shifts to remove the bits. */
+                    rightShift = oopTagsShift;
+                    leftShift = oopCompressShift;
+                    exprSize += 4;
+                }
             } else {
-                /* write the size and expression into the output buffer. */
-                pos = putULEB(size, buffer, pos);
+                /* No flags to deal with, so we need either an uncompress or nothing. */
+                if (oopCompressShift != 0) {
+                    leftShift = oopCompressShift;
+                    exprSize += 2;
+                }
+            }
+        }
+        if (buffer == null) {
+            /* We need to write size as a ULEB then leave space for size instructions. */
+            return pos + putULEB(exprSize, scratch, 0) + exprSize;
+
+        } else {
+            /* Write size followed by the expression and check the size comes out correct. */
+            pos = putULEB(exprSize, buffer, pos);
+            int exprStart = pos;
+            if (!useHeapBase) {
                 pos = putByte(DwarfDebugInfo.DW_OP_push_object_address, buffer, pos);
+                pos = putByte((byte) (DwarfDebugInfo.DW_OP_lit0 + mask), buffer, pos);
+                pos = putByte(DwarfDebugInfo.DW_OP_not, buffer, pos);
+                pos = putByte(DwarfDebugInfo.DW_OP_and, buffer, pos);
+            } else {
+                pos = putByte(DwarfDebugInfo.DW_OP_push_object_address, buffer, pos);
+                /* skip to end if oop is null */
                 pos = putByte(DwarfDebugInfo.DW_OP_dup, buffer, pos);
                 pos = putByte(DwarfDebugInfo.DW_OP_lit0, buffer, pos);
                 pos = putByte(DwarfDebugInfo.DW_OP_eq, buffer, pos);
+                int skipStart = pos + 3; /* offset excludes BR op + 2 operand bytes */
+                short offsetToEnd = (short) (exprSize - (skipStart - exprStart));
                 pos = putByte(DwarfDebugInfo.DW_OP_bra, buffer, pos);
-                pos = putShort(skipBytes, buffer, pos);
-                if (shiftBitCount > 0) {
-                    putByte((byte) (DwarfDebugInfo.DW_OP_lit0 + shiftBitCount), buffer, pos);
-                    putByte(DwarfDebugInfo.DW_OP_shl, buffer, pos);
+                pos = putShort(offsetToEnd, buffer, pos);
+                /* insert mask or shifts as necessary */
+                if (mask != 0) {
+                    pos = putByte((byte) (DwarfDebugInfo.DW_OP_lit0 + mask), buffer, pos);
+                    pos = putByte(DwarfDebugInfo.DW_OP_not, buffer, pos);
+                    pos = putByte(DwarfDebugInfo.DW_OP_and, buffer, pos);
+                } else {
+                    if (rightShift != 0) {
+                        pos = putByte((byte) (DwarfDebugInfo.DW_OP_lit0 + rightShift), buffer, pos);
+                        pos = putByte(DwarfDebugInfo.DW_OP_shr, buffer, pos);
+                    }
+                    if (leftShift != 0) {
+                        pos = putByte((byte) (DwarfDebugInfo.DW_OP_lit0 + leftShift), buffer, pos);
+                        pos = putByte(DwarfDebugInfo.DW_OP_shl, buffer, pos);
+                    }
                 }
+                /* add the resulting offset to the heapbase register */
+                byte regOp = (byte) (DwarfDebugInfo.DW_OP_breg0 + dwarfSections.getHeapbaseRegister());
                 pos = putByte(regOp, buffer, pos);
                 pos = putSLEB(0, buffer, pos); /* 1 byte. */
-                return putByte(DwarfDebugInfo.DW_OP_plus, buffer, pos);
+                pos = putByte(DwarfDebugInfo.DW_OP_plus, buffer, pos);
+                assert pos == skipStart + offsetToEnd;
             }
-        } else {
-            /*-
-             * oop is 64 bit pointer modulo low flag bits
-             *  guaranteed: mask == 2^N - 1 where N <= 5
-             *
-             *  .... push object address .. [tagged_oop]
-             * .... push flag bits mask .. [tagged_oop, flag_bits_mask]
-             * .... NOT .................. [tagged_oop, oop_bits_mask]
-             * .... AND .................. [oop]
-             */
-
-            /* Write a relocatable address relative to the heap section start. */
-            int size = 4;
-            /* Write the size and expression into the output buffer. */
-            if (buffer == null) {
-                return pos + putULEB(size, scratch, 0) + size;
-            } else {
-                pos = putULEB(size, buffer, pos);
-                pos = putByte(DwarfDebugInfo.DW_OP_push_object_address, buffer, pos);
-                pos = putByte((byte) (DwarfDebugInfo.DW_OP_lit0 + dwarfSections.oopFlagBitsMask()), buffer, pos);
-                pos = putByte(DwarfDebugInfo.DW_OP_not, buffer, pos);
-                pos = putByte(DwarfDebugInfo.DW_OP_and, buffer, pos);
-            }
-            return pos;
+            /* make sure we added up correctly */
+            assert pos == exprStart + exprSize;
         }
+        return pos;
     }
 
     /**

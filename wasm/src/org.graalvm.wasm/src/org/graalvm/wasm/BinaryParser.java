@@ -240,7 +240,73 @@ public class BinaryParser extends BinaryStreamParser {
         Assert.assertUnsignedIntLessOrEqual(offset, sectionEndOffset, Failure.UNEXPECTED_END);
         Assert.assertUnsignedIntLessOrEqual(sectionEndOffset, data.length, Failure.UNEXPECTED_END);
         module.allocateCustomSection(name, offset, sectionEndOffset - offset);
-        offset = sectionEndOffset;
+        if ("name".equals(name)) {
+            readNameSection();
+        } else {
+            offset = sectionEndOffset;
+        }
+    }
+
+    /**
+     * @see <a href=
+     *      "https://webassembly.github.io/spec/core/appendix/custom.html#binary-namesubsection"><code>namedata</code>
+     *      binary specification</a>
+     */
+    private void readNameSection() {
+        if (!isEOF() && peek1() == 0) {
+            readModuleName();
+        }
+        if (!isEOF() && peek1() == 1) {
+            readFunctionNames();
+        }
+        if (!isEOF() && peek1() == 2) {
+            readLocalNames();
+        }
+    }
+
+    /**
+     * @see <a href=
+     *      "https://webassembly.github.io/spec/core/appendix/custom.html#binary-modulenamesec"><code>modulenamesubsec</code>
+     *      binary specification</a>
+     */
+    private void readModuleName() {
+        final int subsectionId = read1();
+        assert subsectionId == 2;
+        final int size = readLength();
+        // We don't currently use debug module name.
+        offset += size;
+    }
+
+    /**
+     * @see <a href=
+     *      "https://webassembly.github.io/spec/core/appendix/custom.html#binary-funcnamesec"><code>funcnamesubsec</code>
+     *      binary specification</a>
+     */
+    private void readFunctionNames() {
+        final int subsectionId = read1();
+        assert subsectionId == 1;
+        final int size = readLength();
+        final int startOffset = offset;
+        final int length = readLength();
+        for (int i = 0; i < length; ++i) {
+            final int functionIndex = readFunctionIndex();
+            final String functionName = readName();
+            module.function(functionIndex).setDebugName(functionName);
+        }
+        assertIntEqual(offset - startOffset, size, Failure.SECTION_SIZE_MISMATCH);
+    }
+
+    /**
+     * @see <a href=
+     *      "https://webassembly.github.io/spec/core/appendix/custom.html#local-names"><code>localnamesubsec</code>
+     *      binary specification</a>
+     */
+    private void readLocalNames() {
+        final int subsectionId = read1();
+        assert subsectionId == 2;
+        final int size = readLength();
+        // We don't currently use debug local names.
+        offset += size;
     }
 
     private void readTypeSection() {
@@ -259,7 +325,7 @@ public class BinaryParser extends BinaryStreamParser {
     }
 
     private void readImportSection() {
-        assertIntEqual(module.symbolTable().maxGlobalIndex(), -1,
+        assertIntEqual(module.symbolTable().numGlobals(), 0,
                         "The global index should be -1 when the import section is first read.", Failure.UNSPECIFIED_INVALID);
         int numImports = readLength();
 
@@ -289,7 +355,7 @@ public class BinaryParser extends BinaryStreamParser {
                 case ImportIdentifier.GLOBAL: {
                     byte type = readValueType();
                     byte mutability = readMutability();
-                    int index = module.symbolTable().maxGlobalIndex() + 1;
+                    int index = module.symbolTable().numGlobals();
                     module.symbolTable().importGlobal(moduleName, memberName, index, type, mutability);
                     break;
                 }
@@ -437,7 +503,9 @@ public class BinaryParser extends BinaryStreamParser {
 
     private WasmBlockNode readBlock(WasmInstance instance, WasmCodeEntry codeEntry, ExecutionState state) {
         byte blockTypeId = readBlockType();
-        return readBlockBody(instance, codeEntry, state, blockTypeId, false);
+        final WasmBlockNode block = readBlockBody(instance, codeEntry, state, blockTypeId, false);
+        Assert.assertIntLessOrEqual(block.returnLength(), 1, "A block cannot return more than one value", Failure.INVALID_RESULT_ARITY);
+        return block;
     }
 
     private LoopNode readLoop(WasmInstance instance, WasmCodeEntry codeEntry, ExecutionState state) {
@@ -456,6 +524,7 @@ public class BinaryParser extends BinaryStreamParser {
                         startBranchTableOffset, startProfileCount);
 
         state.startBlock(currentBlock, isLoopBody);
+        state.setReachable(true);
 
         int opcode;
         do {
@@ -495,22 +564,6 @@ public class BinaryParser extends BinaryStreamParser {
                 case Instructions.ELSE:
                     // We handle the else instruction in the same way as the end instruction.
                 case Instructions.END:
-                    // If the end instruction is reachable, then we check that the correct number of
-                    // operands are stored on the stack. Otherwise then the stack size must be
-                    // adjusted to match the stack size at the continuation point.
-                    if (state.isReachable()) {
-                        final int actualReturnLength = state.stackSize() - state.getStackSize(0);
-                        assertIntEqual(actualReturnLength, currentBlock.returnLength(), "Wrong number of values on the stack on the end of the block", Failure.TYPE_MISMATCH);
-                        if (currentBlock.returnLength() == 1) {
-                            state.popChecked(currentBlock.returnTypeId());
-                            state.push(currentBlock.returnTypeId());
-                        }
-                    } else {
-                        state.unwindStack(state.getStackSize(0));
-                        if (currentBlock.returnLength() == 1) {
-                            state.push(currentBlock.returnTypeId());
-                        }
-                    }
                     break;
                 case Instructions.BR: {
                     final int unwindLevel = readTargetOffset();
@@ -578,7 +631,7 @@ public class BinaryParser extends BinaryStreamParser {
                     break;
                 }
                 case Instructions.CALL: {
-                    final int functionIndex = readFunctionIndex();
+                    final int functionIndex = readDeclaredFunctionIndex();
 
                     // Pop arguments
                     final WasmFunction function = module.symbolTable().function(functionIndex);
@@ -607,6 +660,8 @@ public class BinaryParser extends BinaryStreamParser {
                     break;
                 }
                 case Instructions.CALL_INDIRECT: {
+                    assertTrue(module.symbolTable().tableExists(), Failure.UNKNOWN_TABLE);
+
                     int expectedFunctionTypeIndex = readTypeIndex();
 
                     // Pop the function index to call
@@ -1027,18 +1082,8 @@ public class BinaryParser extends BinaryStreamParser {
     }
 
     private LoopNode readLoop(WasmInstance instance, WasmCodeEntry codeEntry, ExecutionState state, byte returnTypeId) {
-        final int initialStackPointer = state.stackSize();
-
         WasmBlockNode loopBlock = readBlockBody(instance, codeEntry, state, returnTypeId, true);
-
-        // TODO: Hack to correctly set the stack pointer for abstract interpretation.
-        // If a block has branch instructions that target "shallower" blocks which return no value,
-        // then it can leave no values in the stack, which is invalid for our abstract
-        // interpretation.
-        // Correct the stack pointer to the value it would have in case there were no branch
-        // instructions.
-        state.unwindStack(returnTypeId != WasmType.VOID_TYPE ? initialStackPointer + 1 : initialStackPointer);
-
+        Assert.assertIntEqual(loopBlock.inputLength(), 0, "A loop should not have parameters", Failure.LOOP_INPUT);
         return Truffle.getRuntime().createLoopNode(loopBlock);
     }
 
@@ -1051,11 +1096,7 @@ public class BinaryParser extends BinaryStreamParser {
         int startOffset = offset();
         WasmBlockNode trueBranchBlock = readBlockBody(instance, codeEntry, state, blockTypeId, false);
 
-        // If a block has branch instructions that target "shallower" blocks which return no value,
-        // then it can leave no values in the stack, which is invalid for our abstract
-        // interpretation.
-        // Correct the stack pointer to the value it would have in case there were no branch
-        // instructions.
+        // Discard values returned by the then branch if any.
         state.unwindStack(stackSizeAfterCondition);
 
         // Read false branch, if it exists.
@@ -1173,7 +1214,7 @@ public class BinaryParser extends BinaryStreamParser {
     private void readGlobalSection() {
         final int numGlobals = readLength();
         module.limits().checkGlobalCount(numGlobals);
-        final int startingGlobalIndex = module.symbolTable().maxGlobalIndex() + 1;
+        final int startingGlobalIndex = module.symbolTable().numGlobals();
         for (int globalIndex = startingGlobalIndex; globalIndex != startingGlobalIndex + numGlobals; globalIndex++) {
             final byte type = readValueType();
             // 0x00 means const, 0x01 means var
@@ -1356,7 +1397,9 @@ public class BinaryParser extends BinaryStreamParser {
     }
 
     private int readTypeIndex() {
-        return readUnsignedInt32();
+        final int result = readUnsignedInt32();
+        assertUnsignedIntLess(result, module.symbolTable().typeCount(), Failure.UNKNOWN_TYPE);
+        return result;
     }
 
     private int readFunctionIndex() {
@@ -1384,7 +1427,7 @@ public class BinaryParser extends BinaryStreamParser {
 
     private int readGlobalIndex() {
         final int index = readUnsignedInt32();
-        assertUnsignedIntLessOrEqual(index, module.symbolTable().maxGlobalIndex(), Failure.UNKNOWN_GLOBAL);
+        assertUnsignedIntLess(index, module.symbolTable().numGlobals(), Failure.UNKNOWN_GLOBAL);
         return index;
     }
 

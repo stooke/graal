@@ -86,15 +86,14 @@ import jdk.vm.ci.meta.Signature;
  * to be passed to an ObjectFile when generation of debug info is enabled.
  */
 class NativeImageDebugInfoProvider implements DebugInfoProvider {
-    private static final JavaKind[] ARRAY_KINDS = {JavaKind.Boolean, JavaKind.Byte, JavaKind.Char, JavaKind.Short, JavaKind.Int, JavaKind.Float, JavaKind.Long, JavaKind.Double, JavaKind.Object};
-
     private final DebugContext debugContext;
     private final NativeImageCodeCache codeCache;
     @SuppressWarnings("unused") private final NativeImageHeap heap;
     boolean useHeapBase;
-    int heapShift;
-    int flagBitsMask;
-    int referenceByteCount;
+    int compressShift;
+    int tagsMask;
+    int referenceSize;
+    int referenceAlignment;
     int primitiveStartOffset;
     int referenceStartOffset;
 
@@ -106,17 +105,17 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
         ObjectHeader objectHeader = Heap.getHeap().getObjectHeader();
         ObjectInfo primitiveFields = heap.getObjectInfo(StaticFieldsSupport.getStaticPrimitiveFields());
         ObjectInfo objectFields = heap.getObjectInfo(StaticFieldsSupport.getStaticObjectFields());
-        this.flagBitsMask = objectHeader.getReservedBitsMask();
+        this.tagsMask = objectHeader.getReservedBitsMask();
         if (SubstrateOptions.SpawnIsolates.getValue()) {
             CompressEncoding compressEncoding = ImageSingletons.lookup(CompressEncoding.class);
             this.useHeapBase = compressEncoding.hasBase();
-            this.heapShift = (compressEncoding.hasShift() ? compressEncoding.getShift() : 0);
-            this.referenceByteCount = OBJECTLAYOUT.getReferenceSize();
+            this.compressShift = (compressEncoding.hasShift() ? compressEncoding.getShift() : 0);
         } else {
             this.useHeapBase = false;
-            this.heapShift = 0;
-            this.referenceByteCount = 8;
+            this.compressShift = 0;
         }
+        this.referenceSize = getObjectLayout().getReferenceSize();
+        this.referenceAlignment = getObjectLayout().getAlignment();
         /* Offsets need to be adjusted relative to the heap base plus partition-specific offset. */
         primitiveStartOffset = (int) primitiveFields.getOffset();
         referenceStartOffset = (int) objectFields.getOffset();
@@ -128,18 +127,23 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
     }
 
     @Override
-    public int oopShiftBitCount() {
-        return heapShift;
+    public int oopCompressShift() {
+        return compressShift;
     }
 
     @Override
-    public int oopReferenceByteCount() {
-        return referenceByteCount;
+    public int oopReferenceSize() {
+        return referenceSize;
     }
 
     @Override
-    public int oopFlagBitsMask() {
-        return flagBitsMask;
+    public int oopAlignment() {
+        return referenceAlignment;
+    }
+
+    @Override
+    public int oopTagsMask() {
+        return tagsMask;
     }
 
     @Override
@@ -159,7 +163,9 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
         return heap.getObjects().stream().filter(this::acceptObjectInfo).map(this::createDebugDataInfo);
     }
 
-    static ObjectLayout OBJECTLAYOUT = ConfigurationValues.getObjectLayout();
+    static ObjectLayout getObjectLayout() {
+        return ConfigurationValues.getObjectLayout();
+    }
 
     /*
      * HostedType wraps an AnalysisType and both HostedType and AnalysisType punt calls to
@@ -341,10 +347,10 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
                 return ((HostedInstanceClass) hostedType).getInstanceSize();
             } else if (hostedType instanceof HostedArrayClass) {
                 /* Use the size of header common to all arrays of this type. */
-                return OBJECTLAYOUT.getArrayBaseOffset(hostedType.getComponentType().getStorageKind());
+                return getObjectLayout().getArrayBaseOffset(hostedType.getComponentType().getStorageKind());
             } else if (hostedType instanceof HostedInterface) {
                 /* Use the size of the header common to all implementors. */
-                return OBJECTLAYOUT.getFirstFieldOffset();
+                return getObjectLayout().getFirstFieldOffset();
             } else {
                 /* Use the number of bytes needed needed to store the value. */
                 assert hostedType instanceof HostedPrimitiveType;
@@ -414,82 +420,79 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
         public Stream<DebugFieldInfo> fieldInfoProvider() {
             return fieldInfos.stream();
         }
+    }
 
-        private class NativeImageDebugHeaderFieldInfo implements DebugFieldInfo {
-            private final String name;
-            private final String ownerType;
-            private final String valueType;
-            private final int offset;
-            private final int size;
-            private final int modifiers;
+    private class NativeImageDebugHeaderFieldInfo implements DebugFieldInfo {
+        private final String name;
+        private final String ownerType;
+        private final String valueType;
+        private final int offset;
+        private final int size;
+        private final int modifiers;
 
-            NativeImageDebugHeaderFieldInfo(String name, String ownerType, String valueType, int offset, int size) {
-                this.name = name;
-                this.ownerType = ownerType;
-                this.valueType = valueType;
-                this.offset = offset;
-                this.size = size;
-                this.modifiers = Modifier.PUBLIC;
-            }
+        NativeImageDebugHeaderFieldInfo(String name, String ownerType, String valueType, int offset, int size) {
+            this.name = name;
+            this.ownerType = ownerType;
+            this.valueType = valueType;
+            this.offset = offset;
+            this.size = size;
+            this.modifiers = Modifier.PUBLIC;
+        }
 
-            @Override
-            public String name() {
-                return name;
-            }
+        @Override
+        public String name() {
+            return name;
+        }
 
-            @Override
-            public String ownerType() {
-                return ownerType;
-            }
+        @Override
+        public String ownerType() {
+            return ownerType;
+        }
 
-            @Override
-            public String valueType() {
-                return valueType;
-            }
+        @Override
+        public String valueType() {
+            return valueType;
+        }
 
-            @Override
-            public int offset() {
-                return offset;
-            }
+        @Override
+        public int offset() {
+            return offset;
+        }
 
-            @Override
-            public int size() {
-                return size;
-            }
+        @Override
+        public int size() {
+            return size;
+        }
 
-            @Override
-            public int modifiers() {
-                return modifiers;
-            }
+        @Override
+        public int modifiers() {
+            return modifiers;
+        }
 
-            @Override
-            public String fileName() {
-                return "";
-            }
+        @Override
+        public String fileName() {
+            return "";
+        }
 
-            @Override
-            public Path filePath() {
-                return null;
-            }
+        @Override
+        public Path filePath() {
+            return null;
+        }
 
-            @Override
-            public Path cachePath() {
-                return null;
-            }
+        @Override
+        public Path cachePath() {
+            return null;
         }
     }
 
     private Stream<DebugTypeInfo> computeHeaderTypeInfo() {
         List<DebugTypeInfo> infos = new LinkedList<>();
-        int hubOffset = OBJECTLAYOUT.getHubOffset();
-        int referenceSize = OBJECTLAYOUT.getReferenceSize();
+        int hubOffset = getObjectLayout().getHubOffset();
         int hubFieldSize = referenceSize;
         String hubTypeName = "java.lang.Class";
-        int arrayLengthOffset = OBJECTLAYOUT.getArrayLengthOffset();
-        int arrayLengthSize = OBJECTLAYOUT.sizeInBytes(JavaKind.Int);
-        int idHashOffset = OBJECTLAYOUT.getIdentityHashCodeOffset();
-        int idHashSize = OBJECTLAYOUT.sizeInBytes(JavaKind.Int);
-        int objHeaderSize = OBJECTLAYOUT.getFirstFieldOffset();
+        int idHashOffset = getObjectLayout().getIdentityHashCodeOffset();
+        int idHashSize = getObjectLayout().sizeInBytes(JavaKind.Int);
+        int objHeaderSize = getObjectLayout().getMinimumInstanceObjectSize();
 
         /* We need array headers for all Java kinds */
 
@@ -500,18 +503,6 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
         }
         infos.add(objHeader);
 
-        /* Create a header for each array type. */
-        for (JavaKind arrayKind : ARRAY_KINDS) {
-            String name = "_arrhdr" + arrayKind.getTypeChar();
-            int headerSize = OBJECTLAYOUT.getArrayBaseOffset(arrayKind);
-            NativeImageHeaderTypeInfo arrHeader = new NativeImageHeaderTypeInfo(name, headerSize);
-            arrHeader.addField("hub", hubTypeName, hubOffset, hubFieldSize);
-            if (idHashOffset > 0) {
-                arrHeader.addField("idHash", "int", idHashOffset, idHashSize);
-            }
-            arrHeader.addField("len", "int", arrayLengthOffset, arrayLengthSize);
-            infos.add(arrHeader);
-        }
         return infos.stream();
     }
 
@@ -539,7 +530,7 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
 
         @Override
         public int headerSize() {
-            return OBJECTLAYOUT.getFirstFieldOffset();
+            return getObjectLayout().getFirstFieldOffset();
         }
 
         @Override
@@ -632,7 +623,7 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
 
             @Override
             public int size() {
-                return OBJECTLAYOUT.sizeInBytes(field.getType().getStorageKind());
+                return getObjectLayout().sizeInBytes(field.getType().getStorageKind());
             }
 
             @Override
@@ -724,10 +715,24 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
 
     private class NativeImageDebugArrayTypeInfo extends NativeImageDebugTypeInfo implements DebugArrayTypeInfo {
         HostedArrayClass arrayClass;
+        List<DebugFieldInfo> fieldInfos;
 
         NativeImageDebugArrayTypeInfo(HostedArrayClass arrayClass) {
             super(arrayClass);
             this.arrayClass = arrayClass;
+            this.fieldInfos = new LinkedList<>();
+            JavaKind arrayKind = arrayClass.getBaseType().getJavaKind();
+            int headerSize = getObjectLayout().getArrayBaseOffset(arrayKind);
+            int arrayLengthOffset = getObjectLayout().getArrayLengthOffset();
+            int arrayLengthSize = getObjectLayout().sizeInBytes(JavaKind.Int);
+            assert arrayLengthOffset + arrayLengthSize <= headerSize;
+
+            addField("len", "int", arrayLengthOffset, arrayLengthSize);
+        }
+
+        void addField(String name, String valueType, int offset, @SuppressWarnings("hiding") int size) {
+            NativeImageDebugHeaderFieldInfo fieldinfo = new NativeImageDebugHeaderFieldInfo(name, typeName(), valueType, offset, size);
+            fieldInfos.add(fieldinfo);
         }
 
         @Override
@@ -736,19 +741,24 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
         }
 
         @Override
-        public int headerSize() {
-            return OBJECTLAYOUT.getArrayBaseOffset(arrayClass.getComponentType().getStorageKind());
+        public int baseSize() {
+            return getObjectLayout().getArrayBaseOffset(arrayClass.getComponentType().getStorageKind());
         }
 
         @Override
         public int lengthOffset() {
-            return OBJECTLAYOUT.getArrayLengthOffset();
+            return getObjectLayout().getArrayLengthOffset();
         }
 
         @Override
         public String elementType() {
             HostedType elementType = arrayClass.getComponentType();
             return toJavaName(elementType);
+        }
+
+        @Override
+        public Stream<DebugFieldInfo> fieldInfoProvider() {
+            return fieldInfos.stream();
         }
     }
 

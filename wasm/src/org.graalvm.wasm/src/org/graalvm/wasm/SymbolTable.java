@@ -65,8 +65,9 @@ import java.util.Map;
 
 import static java.lang.Integer.compareUnsigned;
 import static org.graalvm.wasm.Assert.assertTrue;
+import static org.graalvm.wasm.Assert.assertUnsignedIntLess;
+import static org.graalvm.wasm.WasmMath.maxUnsigned;
 import static org.graalvm.wasm.WasmMath.minUnsigned;
-import static org.graalvm.wasm.WasmMath.unsignedIntToLong;
 
 /**
  * Contains the symbol information of a module.
@@ -78,7 +79,7 @@ public abstract class SymbolTable {
     private static final int INITIAL_FUNCTION_TYPES_SIZE = 128;
     private static final int GLOBAL_MUTABLE_BIT = 0x0100;
     private static final int GLOBAL_EXPORT_BIT = 0x0200;
-    private static final int UNINITIALIZED_GLOBAL_ADDRESS = -1;
+    static final int UNINITIALIZED_GLOBAL_ADDRESS = Integer.MIN_VALUE;
     private static final int NO_EQUIVALENCE_CLASS = 0;
     static final int FIRST_EQUIVALENCE_CLASS = NO_EQUIVALENCE_CLASS + 1;
 
@@ -113,6 +114,9 @@ public abstract class SymbolTable {
             }
             FunctionType that = (FunctionType) object;
             if (this.returnType != that.returnType) {
+                return false;
+            }
+            if (this.paramTypes.length != that.paramTypes.length) {
                 return false;
             }
             for (int i = 0; i < paramTypes.length; i++) {
@@ -267,9 +271,9 @@ public abstract class SymbolTable {
     @CompilationFinal private final LinkedHashMap<String, Integer> exportedGlobals;
 
     /**
-     * The greatest index of a global in the module.
+     * Number of globals in the module.
      */
-    @CompilationFinal private int maxGlobalIndex;
+    @CompilationFinal private int numGlobals;
 
     /**
      * The descriptor of the table of this module.
@@ -330,7 +334,7 @@ public abstract class SymbolTable {
         this.globalTypes = new short[INITIAL_GLOBALS_SIZE];
         this.importedGlobals = new LinkedHashMap<>();
         this.exportedGlobals = new LinkedHashMap<>();
-        this.maxGlobalIndex = -1;
+        this.numGlobals = 0;
         this.table = null;
         this.importedTableDescriptor = null;
         this.exportedTableNames = new ArrayList<>();
@@ -354,10 +358,7 @@ public abstract class SymbolTable {
     }
 
     public void checkFunctionIndex(int funcIndex) {
-        if (funcIndex < 0 || funcIndex >= numFunctions) {
-            throw WasmException.create(Failure.UNKNOWN_FUNCTION, String.format("Function index out of bounds: %d should be < %d.", unsignedIntToLong(funcIndex), numFunctions));
-        }
-
+        assertUnsignedIntLess(funcIndex, numFunctions, Failure.UNKNOWN_FUNCTION);
     }
 
     private static int[] reallocate(int[] array, int currentSize, int newLength) {
@@ -466,9 +467,7 @@ public abstract class SymbolTable {
     private WasmFunction allocateFunction(int typeIndex, ImportDescriptor importDescriptor) {
         checkNotParsed();
         ensureFunctionsCapacity(numFunctions);
-        if (typeIndex < 0 || typeIndex >= typeCount) {
-            throw WasmException.create(Failure.UNKNOWN_TYPE, String.format("Function type out of bounds: %d should be < %d.", unsignedIntToLong(typeIndex), typeCount));
-        }
+        assertUnsignedIntLess(typeIndex, typeCount(), Failure.UNKNOWN_TYPE);
         final WasmFunction function = new WasmFunction(this, numFunctions, typeIndex, importDescriptor);
         functions[numFunctions] = function;
         numFunctions++;
@@ -652,7 +651,7 @@ public abstract class SymbolTable {
         assert (valueType & 0xff) == valueType;
         checkNotParsed();
         ensureGlobalsCapacity(index);
-        maxGlobalIndex = Math.max(maxGlobalIndex, index);
+        numGlobals = maxUnsigned(index + 1, numGlobals);
         final int mutabilityBit;
         if (mutability == GlobalModifier.CONSTANT) {
             mutabilityBit = 0;
@@ -712,8 +711,8 @@ public abstract class SymbolTable {
         return reverseMap;
     }
 
-    public int maxGlobalIndex() {
-        return maxGlobalIndex;
+    public int numGlobals() {
+        return numGlobals;
     }
 
     @SuppressWarnings("unused")

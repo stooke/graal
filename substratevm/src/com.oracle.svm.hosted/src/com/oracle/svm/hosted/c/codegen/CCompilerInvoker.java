@@ -38,6 +38,7 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Scanner;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.graalvm.compiler.serviceprovider.JavaVersionUtil;
 import org.graalvm.nativeimage.ImageSingletons;
@@ -50,7 +51,6 @@ import com.oracle.svm.core.c.libc.LibCBase;
 import com.oracle.svm.core.option.SubstrateOptionsParser;
 import com.oracle.svm.core.util.InterruptImageBuilding;
 import com.oracle.svm.core.util.UserError;
-import com.oracle.svm.core.util.VMError;
 import com.oracle.svm.hosted.c.util.FileUtils;
 
 import jdk.vm.ci.aarch64.AArch64;
@@ -66,9 +66,6 @@ public abstract class CCompilerInvoker {
         this.tempDirectory = tempDirectory;
         try {
             this.compilerInfo = getCCompilerInfo();
-            if (this.compilerInfo == null) {
-                UserError.abort("Unable to detect supported %s native software development toolchain.", OS.getCurrent().name());
-            }
         } catch (UserError.UserException err) {
             throw addSkipCheckingInfo(err);
         }
@@ -175,16 +172,11 @@ public abstract class CCompilerInvoker {
 
         @Override
         protected void verify() {
-            if (JavaVersionUtil.JAVA_SPEC >= 11) {
-                if (compilerInfo.versionMajor < 19) {
-                    UserError.abort("Java %d native-image building on Windows requires Visual Studio 2015 version 14.0 or later (C/C++ Optimizing Compiler Version 19.* or later)",
-                                    JavaVersionUtil.JAVA_SPEC);
-                }
-            } else {
-                VMError.guarantee(JavaVersionUtil.JAVA_SPEC == 8, "Native-image building is only supported for Java 8 and Java 11 or later");
-                if (compilerInfo.versionMajor != 16 || compilerInfo.versionMinor0 != 0) {
-                    UserError.abort("Java 8 native-image building on Windows requires Microsoft Windows SDK 7.1");
-                }
+            // See details on _MSC_VER at https://en.wikipedia.org/wiki/Microsoft_Visual_C%2B%2B
+            // The constraint of `_MSC_VER >= 1912` reflects the version used for building OpenJDK8.
+            if (compilerInfo.versionMajor < 19 || compilerInfo.versionMinor0 < 12) {
+                UserError.abort("Java %d native-image building on Windows requires Visual Studio 2017 version 15.5 or later (C/C++ Optimizing Compiler Version 19.12 or later).%nCompiler info detected: %s",
+                                JavaVersionUtil.JAVA_SPEC, compilerInfo);
             }
             if (guessArchitecture(compilerInfo.targetArch) != AMD64.class) {
                 UserError.abort("Native-image building on Windows currently only supports target architecture: %s (%s unsupported)",
@@ -355,7 +347,6 @@ public abstract class CCompilerInvoker {
             return new CompilerInfo(compilerPath, null, getClass().getSimpleName(), null, 0, 0, 0, null);
         }
         List<String> compilerCommand = createCompilerCommand(compilerPath, getVersionInfoOptions(), null);
-        CompilerInfo result = null;
         Process compilerProcess = null;
         try {
             ProcessBuilder processBuilder = FileUtils.prepareCommand(compilerCommand, tempDirectory);
@@ -365,24 +356,32 @@ public abstract class CCompilerInvoker {
             FileUtils.traceCommand(processBuilder);
 
             compilerProcess = processBuilder.start();
+            List<String> lines;
+            CompilerInfo result;
             try (InputStream inputStream = compilerProcess.getInputStream()) {
-                List<String> lines = FileUtils.readAllLines(inputStream);
+                lines = FileUtils.readAllLines(inputStream);
 
                 FileUtils.traceCommandOutput(lines);
 
                 result = createCompilerInfo(compilerPath, new Scanner(String.join(System.lineSeparator(), lines)));
             }
             compilerProcess.waitFor();
+            if (result == null) {
+                String errorMessage = "Unable to detect supported %s native software development toolchain.%n" +
+                                "Querying with command '%s' prints:%n%s";
+                throw UserError.abort(errorMessage, OS.getCurrent().name(), SubstrateUtil.getShellCommandString(compilerCommand, false),
+                                lines.stream().map(str -> "  " + str).collect(Collectors.joining(System.lineSeparator())));
+            }
+            return result;
         } catch (InterruptedException ex) {
             throw new InterruptImageBuilding("Interrupted during checking native-compiler " + compilerPath);
         } catch (IOException e) {
-            UserError.abort(e, "Collecting native-compiler info with '%s' failed", SubstrateUtil.getShellCommandString(compilerCommand, false));
+            throw UserError.abort(e, "Collecting native-compiler info with '%s' failed", SubstrateUtil.getShellCommandString(compilerCommand, false));
         } finally {
             if (compilerProcess != null) {
                 compilerProcess.destroy();
             }
         }
-        return result;
     }
 
     protected List<String> getVersionInfoOptions() {
@@ -527,7 +526,7 @@ public abstract class CCompilerInvoker {
     private List<String> createCompilerCommand(Path compilerPath, List<String> options, Path target, Path... input) {
         List<String> command = new ArrayList<>();
         command.add(compilerPath.toString());
-        command.addAll(Arrays.asList(SubstrateOptions.CCompilerOption.getValue()));
+        command.addAll(SubstrateOptions.CCompilerOption.getValue().values());
         command.addAll(options);
 
         if (target != null) {

@@ -39,6 +39,7 @@ from argparse import ArgumentParser
 
 import mx
 import mx_gate
+import mx_sdk_vm_impl
 import mx_subst
 import mx_sdk_vm
 import re
@@ -295,21 +296,21 @@ def clangformat(args=None):
     parser.add_argument('--with-projects', action='store_true', help='check native projects. Defaults to true unless a path is specified.')
     parser.add_argument('paths', metavar='path', nargs='*', help='check given paths')
     args = parser.parse_args(args)
-    paths = args.paths
+    paths = [(p, "<cmd-line-argument>") for p in args.paths]
 
     if not paths or args.with_projects:
-        paths += [p.dir for p in mx.projects(limit_to_primary=True) if p.isNativeProject() and getattr(p, "clangFormat", True)]
+        paths += [(p.dir, p.name) for p in mx.projects(limit_to_primary=True) if p.isNativeProject() and getattr(p, "clangFormat", True)]
 
     error = False
-    for f in paths:
-        if not checkCFiles(f):
+    for f, reason in paths:
+        if not checkCFiles(f, reason):
             error = True
     if error:
         mx.log_error("found formatting errors!")
         exit(-1)
 
 
-def checkCFiles(target):
+def checkCFiles(target, reason):
     error = False
     files_to_check = []
     if os.path.isfile(target):
@@ -320,9 +321,9 @@ def checkCFiles(target):
                 if f.endswith('.c') or f.endswith('.cpp') or f.endswith('.h') or f.endswith('.hpp'):
                     files_to_check.append(join(path, f))
     if not files_to_check:
-        mx.logv("clang-format: no files found {}".format(target))
+        mx.logv("clang-format: no files found {} ({})".format(target, reason))
         return True
-    mx.logv("clang-format: checking {} ({} files)".format(target, len(files_to_check)))
+    mx.logv("clang-format: checking {} ({}, {} files)".format(target, reason, len(files_to_check)))
     for f in files_to_check:
         if not checkCFile(f):
             error = True
@@ -732,7 +733,13 @@ def llvm_extra_tool(args=None, out=None, **kwargs):
     program = args[0]
     dep = mx.dependency(_LLVM_EXTRA_TOOL_DIST, fatalIfMissing=True)
     llvm_program = os.path.join(dep.get_output(), 'bin', program)
-    mx.run([llvm_program] + args[1:], out=out, **kwargs)
+    try:
+        mx.run([llvm_program] + args[1:], out=out, nonZeroIsFatal=False, **kwargs)
+    except BaseException as e:
+        msg = "{}\n".format(e)
+        msg += "This might be solved by running: mx build --dependencies={}".format(_LLVM_EXTRA_TOOL_DIST)
+        mx.abort(msg)
+
 
 def getClasspathOptions(extra_dists=None):
     """gets the classpath of the Sulong distributions"""
@@ -767,6 +774,22 @@ def runLLVM(args=None, out=None, err=None, timeout=None, nonZeroIsFatal=True, ge
     if "tools" in (s.name for s in mx.suites()):
         dists.append('CHROMEINSPECTOR')
     return mx.run_java(getCommonOptions(False) + vmArgs + get_classpath_options(dists) + ["com.oracle.truffle.llvm.launcher.LLVMLauncher"] + sulongArgs, timeout=timeout, nonZeroIsFatal=nonZeroIsFatal, out=out, err=err)
+
+
+def _java_to_graalvm_arg(arg):
+    prefix = '-X'
+    if arg.startswith(prefix):
+        return '--vm.' + arg[1:]
+    return arg
+
+
+@mx.command(_suite.name, "lli")
+def lli(args=None, out=None):
+    """run lli via the current GraalVM"""
+    debug_args = mx.java_debug_args()
+    if debug_args and not mx.is_debug_disabled():
+        args = [_java_to_graalvm_arg(d) for d in debug_args] + args
+    mx.run([os.path.join(mx_sdk_vm_impl.graalvm_home(fatalIfMissing=True), 'bin', 'lli')] + args, out=out)
 
 
 def extract_bitcode(args=None, out=None):
@@ -869,6 +892,10 @@ def create_toolchain_root_provider(name, dist):
     return provider
 
 
+def _exe_sub(program):
+    return mx_subst.path_substitutions.substitute("<exe:{}>".format(program))
+
+
 class ToolchainConfig(object):
     # Please keep this list in sync with Toolchain.java (method documentation) and ToolchainImpl.java (lookup switch block).
     _llvm_tool_map = ["ar", "nm", "objcopy", "objdump", "ranlib", "readelf", "readobj", "strip"]
@@ -886,8 +913,8 @@ class ToolchainConfig(object):
         self.tools = tools
         self.suite = suite
         self.mx_command = self.name + '-toolchain'
-        self.tool_map = {tool: [alias.format(name=name) for alias in aliases] for tool, aliases in ToolchainConfig._tool_map.items()}
-        self.exe_map = {exe: tool for tool, aliases in self.tool_map.items() for exe in aliases}
+        self.tool_map = {tool: [_exe_sub(alias.format(name=name)) for alias in aliases] for tool, aliases in ToolchainConfig._tool_map.items()}
+        self.exe_map = {_exe_sub(exe): tool for tool, aliases in self.tool_map.items() for exe in aliases}
         # register mx command
         mx.update_commands(_suite, {
             self.mx_command: [self._toolchain_helper, 'launch {} toolchain commands'.format(self.name)],
@@ -962,15 +989,24 @@ class BootstrapToolchainLauncherProject(mx.Project):  # pylint: disable=too-many
     def launchers(self):
         for tool in self.suite.toolchain._supported_tools():
             for exe in self.suite.toolchain._tool_to_aliases(tool):
+                if mx.is_windows() and exe.endswith('.exe'):
+                    exe = exe[:-4] + ".cmd"
                 result = join(self.get_output_root(), exe)
-                yield result, tool, join('bin', exe)
+                yield result, tool, exe
 
     def getArchivableResults(self, use_relpath=True, single=False):
-        for result, _, prefixed in self.launchers():
-            yield result, prefixed
+        for result, _, exe in self.launchers():
+            yield result, join('bin', exe)
 
     def getBuildTask(self, args):
         return BootstrapToolchainLauncherBuildTask(self, args, 1)
+
+    def isPlatformDependent(self):
+        return True
+
+
+def _quote_windows(arg):
+    return '"{}"'.format(arg)
 
 
 class BootstrapToolchainLauncherBuildTask(mx.BuildTask):
@@ -985,35 +1021,43 @@ class BootstrapToolchainLauncherBuildTask(mx.BuildTask):
         if sup[0]:
             return sup
 
-        for result, tool, _ in self.subject.launchers():
+        for result, tool, exe in self.subject.launchers():
             if not exists(result):
                 return True, result + ' does not exist'
             with open(result, "r") as f:
                 on_disk = f.read()
-            if on_disk != self.contents(tool):
+            if on_disk != self.contents(tool, exe):
                 return True, 'command line changed for ' + basename(result)
 
         return False, 'up to date'
 
     def build(self):
         mx.ensure_dir_exists(self.subject.get_output_root())
-        for result, tool, _ in self.subject.launchers():
+        for result, tool, exe in self.subject.launchers():
             with open(result, "w") as f:
-                f.write(self.contents(tool))
+                f.write(self.contents(tool, exe))
             os.chmod(result, 0o755)
 
     def clean(self, forBuild=False):
         if exists(self.subject.get_output_root()):
             mx.rmtree(self.subject.get_output_root())
 
-    def contents(self, tool):
+    def contents(self, tool, exe):
+        # platform support
+        all_params = '"%*"' if mx.is_windows() else '"$@"'
+        _quote = _quote_windows if mx.is_windows() else pipes.quote
+        # build command line
         java = mx.get_jdk().java
         classpath_deps = [dep for dep in self.subject.buildDependencies if isinstance(dep, mx.ClasspathDependency)]
-        jvm_args = [pipes.quote(arg) for arg in mx.get_runtime_jvm_args(classpath_deps)]
-        extra_props = ['-Dorg.graalvm.launcher.executablename="$0"']
+        extra_props = ['-Dorg.graalvm.launcher.executablename="{}"'.format(exe)]
         main_class = self.subject.suite.toolchain._tool_to_main(tool)
-        command = [java] + jvm_args + extra_props + [main_class, '"$@"']
-        return "#!/usr/bin/env bash\n" + "exec " + " ".join(command) + "\n"
+        jvm_args = [_quote(arg) for arg in mx.get_runtime_jvm_args(classpath_deps)]
+        command = [java] + jvm_args + extra_props + [main_class, all_params]
+        # create script
+        if mx.is_windows():
+            return "@echo off\n" + " ".join(command) + "\n"
+        else:
+            return "#!/usr/bin/env bash\n" + "exec " + " ".join(command) + "\n"
 
 
 class CMakeBuildTask(mx.NativeBuildTask):
@@ -1114,11 +1158,12 @@ class AbstractSulongNativeProject(mx.NativeProject):  # pylint: disable=too-many
     def __init__(self, suite, name, deps, workingSets, subDir, results=None, output=None, **args):
         projectDir = args.pop('dir', None)
         if projectDir:
-            d = join(suite.dir, projectDir)
+            d_rel = projectDir
         elif subDir is None:
-            d = join(suite.dir, name)
+            d_rel = name
         else:
-            d = join(suite.dir, subDir, name)
+            d_rel = os.path.join(subDir, name)
+        d = os.path.join(suite.dir, d_rel.replace('/', os.sep))
         srcDir = args.pop('sourceDir', d)
         if not srcDir:
             mx.abort("Exactly one 'sourceDir' is required")
@@ -1182,6 +1227,8 @@ class HeaderProject(AbstractSulongNativeProject):  # pylint: disable=too-many-an
     def getBuildTask(self, args):
         return HeaderBuildTask(args, self)
 
+    def isPlatformDependent(self):
+        return False
 
 _suite.toolchain = ToolchainConfig('native', 'SULONG_TOOLCHAIN_LAUNCHERS', 'SULONG_BOOTSTRAP_TOOLCHAIN',
                                    # unfortunately, we cannot define those in the suite.py because graalvm component
@@ -1211,21 +1258,22 @@ mx_sdk_vm.register_graalvm_component(mx_sdk_vm.GraalVmLanguage(
     installable=False,
 ))
 
-mx_sdk_vm.register_graalvm_component(mx_sdk_vm.GraalVmLanguage(
-    suite=_suite,
-    name='LLVM Runtime Native',
-    short_name='llrn',
-    dir_name='llvm',
-    license_files=[],
-    third_party_license_files=[],
-    dependencies=['LLVM Runtime Core'],
-    truffle_jars=['sulong:SULONG_NATIVE'],
-    support_distributions=[
-        'sulong:SULONG_NATIVE_HOME',
-    ],
-    launcher_configs=_suite.toolchain.get_launcher_configs(),
-    installable=False,
-))
+if not mx.is_windows():
+    mx_sdk_vm.register_graalvm_component(mx_sdk_vm.GraalVmLanguage(
+        suite=_suite,
+        name='LLVM Runtime Native',
+        short_name='llrn',
+        dir_name='llvm',
+        license_files=[],
+        third_party_license_files=[],
+        dependencies=['Truffle NFI', 'LLVM Runtime Core'],
+        truffle_jars=['sulong:SULONG_NATIVE'],
+        support_distributions=[
+            'sulong:SULONG_NATIVE_HOME',
+        ],
+        launcher_configs=_suite.toolchain.get_launcher_configs(),
+        installable=False,
+    ))
 
 mx_sdk_vm.register_graalvm_component(mx_sdk_vm.GraalVmLanguage(
     suite=_suite,
@@ -1438,7 +1486,7 @@ def llirtestgen(args=None, out=None):
     return mx.run_java(mx.get_runtime_jvm_args(["LLIR_TEST_GEN"]) + ["com.oracle.truffle.llvm.tests.llirtestgen.LLIRTestGen"] + args, out=out)
 
 mx.update_commands(_suite, {
-    'lli' : [runLLVM, ''],
+    'lli-legacy' : [runLLVM, 'run lli via the legacy mx java launcher (instead of via the current GraalVM)'],
     'test-llvm-image' : [_test_llvm_image, 'test a pre-built LLVM image'],
     'create-asm-parser' : [create_asm_parser, 'create the inline assembly parser using antlr'],
     'create-debugexpr-parser' : [create_debugexpr_parser, 'create the debug expression parser using antlr'],

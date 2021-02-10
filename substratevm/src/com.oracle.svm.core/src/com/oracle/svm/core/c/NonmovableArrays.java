@@ -74,6 +74,8 @@ import com.oracle.svm.core.util.VMError;
  * via {@link #getHostedArray} and they must be cast back via {@link #fromImageHeap} at runtime.
  */
 public final class NonmovableArrays {
+
+    @Platforms(Platform.HOSTED_ONLY.class) //
     private static final HostedNonmovableArray<?> HOSTED_NULL_VALUE = new HostedNonmovableObjectArray<>(null);
 
     private static final UninterruptibleUtils.AtomicLong runtimeArraysInExistence = new UninterruptibleUtils.AtomicLong(0);
@@ -158,7 +160,7 @@ public final class NonmovableArrays {
         }
         assert srcPos >= 0 && destPos >= 0 && length >= 0 && srcPos + length <= lengthOf(src) && destPos + length <= lengthOf(dest);
         assert readHub(src) == readHub(dest) : "copying is only allowed with same component types";
-        MemoryUtil.copyConjointMemoryAtomic(addressOf(src, srcPos), addressOf(dest, destPos), WordFactory.unsigned(length << readElementShift(dest)));
+        MemoryUtil.copy(addressOf(src, srcPos), addressOf(dest, destPos), WordFactory.unsigned(length << readElementShift(dest)));
     }
 
     /** Provides an array for which {@link NonmovableArray#isNull()} returns {@code true}. */
@@ -283,7 +285,7 @@ public final class NonmovableArrays {
         assert srcPos >= 0 && destPos >= 0 && length >= 0 && srcPos + length <= lengthOf(src) && destPos + length <= ArrayLengthNode.arrayLength(dest);
         Pointer destAddressAtPos = Word.objectToUntrackedPointer(dest).add(LayoutEncoding.getArrayElementOffset(destHub.getLayoutEncoding(), destPos));
         if (LayoutEncoding.isPrimitiveArray(destHub.getLayoutEncoding())) {
-            MemoryUtil.copyConjointMemoryAtomic(addressOf(src, srcPos), destAddressAtPos, WordFactory.unsigned(length << readElementShift(src)));
+            MemoryUtil.copy(addressOf(src, srcPos), destAddressAtPos, WordFactory.unsigned(length << readElementShift(src)));
         } else { // needs barriers
             Object[] destArr = (Object[]) dest;
             for (int i = 0; i < length; i++) {

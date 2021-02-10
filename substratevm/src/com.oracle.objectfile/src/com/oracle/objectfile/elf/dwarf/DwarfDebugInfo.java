@@ -32,6 +32,7 @@ import java.util.HashMap;
 import com.oracle.objectfile.debugentry.ClassEntry;
 import com.oracle.objectfile.debugentry.DebugInfoBase;
 
+import com.oracle.objectfile.debugentry.StructureTypeEntry;
 import com.oracle.objectfile.debugentry.TypeEntry;
 import com.oracle.objectfile.elf.ELFMachine;
 
@@ -73,29 +74,32 @@ public class DwarfDebugInfo extends DebugInfoBase {
     public static final int DW_ABBREV_CODE_primitive_type = 5;
     public static final int DW_ABBREV_CODE_void_type = 6;
     public static final int DW_ABBREV_CODE_object_header = 7;
-    public static final int DW_ABBREV_CODE_class_layout = 8;
-    public static final int DW_ABBREV_CODE_class_pointer = 9;
-    public static final int DW_ABBREV_CODE_method_location = 10;
-    public static final int DW_ABBREV_CODE_static_field_location = 11;
-    public static final int DW_ABBREV_CODE_array_layout = 12;
-    public static final int DW_ABBREV_CODE_array_pointer = 13;
-    public static final int DW_ABBREV_CODE_interface_layout = 14;
-    public static final int DW_ABBREV_CODE_interface_pointer = 15;
+    public static final int DW_ABBREV_CODE_class_layout1 = 8;
+    public static final int DW_ABBREV_CODE_class_layout2 = 9;
+    public static final int DW_ABBREV_CODE_class_pointer = 10;
+    public static final int DW_ABBREV_CODE_method_location = 11;
+    public static final int DW_ABBREV_CODE_static_field_location = 12;
+    public static final int DW_ABBREV_CODE_array_layout = 13;
+    public static final int DW_ABBREV_CODE_array_pointer = 14;
+    public static final int DW_ABBREV_CODE_interface_layout = 15;
+    public static final int DW_ABBREV_CODE_interface_pointer = 16;
+    public static final int DW_ABBREV_CODE_indirect_layout = 17;
+    public static final int DW_ABBREV_CODE_indirect_pointer = 18;
     /* Level 2 DIEs. */
-    public static final int DW_ABBREV_CODE_method_declaration1 = 16;
-    public static final int DW_ABBREV_CODE_method_declaration2 = 17;
-    public static final int DW_ABBREV_CODE_field_declaration1 = 18;
-    public static final int DW_ABBREV_CODE_field_declaration2 = 19;
-    public static final int DW_ABBREV_CODE_field_declaration3 = 20;
-    public static final int DW_ABBREV_CODE_field_declaration4 = 21;
-    public static final int DW_ABBREV_CODE_header_field = 22;
-    public static final int DW_ABBREV_CODE_array_data_type = 23;
-    public static final int DW_ABBREV_CODE_super_reference = 24;
-    public static final int DW_ABBREV_CODE_interface_implementor = 25;
+    public static final int DW_ABBREV_CODE_method_declaration1 = 19;
+    public static final int DW_ABBREV_CODE_method_declaration2 = 20;
+    public static final int DW_ABBREV_CODE_field_declaration1 = 21;
+    public static final int DW_ABBREV_CODE_field_declaration2 = 22;
+    public static final int DW_ABBREV_CODE_field_declaration3 = 23;
+    public static final int DW_ABBREV_CODE_field_declaration4 = 24;
+    public static final int DW_ABBREV_CODE_header_field = 25;
+    public static final int DW_ABBREV_CODE_array_data_type = 26;
+    public static final int DW_ABBREV_CODE_super_reference = 27;
+    public static final int DW_ABBREV_CODE_interface_implementor = 28;
     /* Level 3 DIEs. */
-    public static final int DW_ABBREV_CODE_method_parameter_declaration1 = 26;
-    public static final int DW_ABBREV_CODE_method_parameter_declaration2 = 27;
-    public static final int DW_ABBREV_CODE_method_parameter_declaration3 = 28;
+    public static final int DW_ABBREV_CODE_method_parameter_declaration1 = 29;
+    public static final int DW_ABBREV_CODE_method_parameter_declaration2 = 30;
+    public static final int DW_ABBREV_CODE_method_parameter_declaration3 = 31;
     /*
      * Define all the Dwarf tags we need for our DIEs.
      */
@@ -234,8 +238,9 @@ public class DwarfDebugInfo extends DebugInfoBase {
     public static final byte DW_OP_dup = 0x12;
     public static final byte DW_OP_and = 0x1a;
     public static final byte DW_OP_not = 0x20;
-    public static final byte DW_OP_shl = 0x20;
     public static final byte DW_OP_plus = 0x22;
+    public static final byte DW_OP_shl = 0x24;
+    public static final byte DW_OP_shr = 0x25;
     public static final byte DW_OP_bra = 0x28;
     public static final byte DW_OP_eq = 0x29;
     public static final byte DW_OP_lit0 = 0x30;
@@ -248,6 +253,17 @@ public class DwarfDebugInfo extends DebugInfoBase {
     /* Register constants for x86. */
     public static final byte rheapbase_x86 = (byte) 14;
     public static final byte rthread_x86 = (byte) 15;
+
+    /*
+     * A prefix used to label indirect types used to ensure gdb performs oop reference --> raw
+     * address translation
+     */
+    public static final String INDIRECT_PREFIX = "_z_.";
+    /*
+     * The name of the type for header field hub which needs special case processing to remove tag
+     * bits
+     */
+    public static final String HUB_TYPE_NAME = "java.lang.Class";
 
     private DwarfStrSectionImpl dwarfStrSection;
     private DwarfAbbrevSectionImpl dwarfAbbrevSection;
@@ -330,9 +346,21 @@ public class DwarfDebugInfo extends DebugInfoBase {
      */
     static class DwarfTypeProperties {
         /**
-         * index in debug_info section of type declaration for this class.
+         * Index in debug_info section of type declaration for this class.
          */
         private int typeInfoIndex;
+        /**
+         * Index in debug_info section of indirect type declaration for this class.
+         *
+         * this is normally just the same as the index of the normal type declaration, however, when
+         * oops are stored in static and instance fields as offsets from the heapbase register gdb
+         * needs to be told how to convert these oops to raw addresses and this requires attaching a
+         * data_location address translation expression to an indirect type that wraps the object
+         * layout type. so, with that encoding this field will identify the wrapper type whenever
+         * the original type is an object, interface or array layout. primitive types and header
+         * types do not need translating.
+         */
+        private int indirectTypeInfoIndex;
         /**
          * The type entry with which these properties are associated.
          */
@@ -346,6 +374,14 @@ public class DwarfDebugInfo extends DebugInfoBase {
             this.typeInfoIndex = typeInfoIndex;
         }
 
+        public int getIndirectTypeInfoIndex() {
+            return indirectTypeInfoIndex;
+        }
+
+        public void setIndirectTypeInfoIndex(int typeInfoIndex) {
+            this.indirectTypeInfoIndex = typeInfoIndex;
+        }
+
         public TypeEntry getTypeEntry() {
             return typeEntry;
         }
@@ -353,6 +389,7 @@ public class DwarfDebugInfo extends DebugInfoBase {
         DwarfTypeProperties(TypeEntry typeEntry) {
             this.typeEntry = typeEntry;
             this.typeInfoIndex = -1;
+            this.indirectTypeInfoIndex = -1;
         }
 
     }
@@ -375,6 +412,10 @@ public class DwarfDebugInfo extends DebugInfoBase {
          */
         private int layoutIndex;
         /**
+         * Index of the class entry's indirect layout DIE in the debug_info section.
+         */
+        private int indirectLayoutIndex;
+        /**
          * Index into debug_line section for associated compilation unit.
          */
         private int lineIndex;
@@ -395,11 +436,12 @@ public class DwarfDebugInfo extends DebugInfoBase {
          */
         private HashMap<String, Integer> methodDeclarationIndex;
 
-        DwarfClassProperties(ClassEntry classEntry) {
-            super(classEntry);
+        DwarfClassProperties(StructureTypeEntry entry) {
+            super(entry);
             this.cuIndex = -1;
             this.deoptCUIndex = -1;
             this.layoutIndex = -1;
+            this.indirectLayoutIndex = -1;
             this.lineIndex = -1;
             this.linePrologueSize = -1;
             this.lineSectionSize = -1;
@@ -418,10 +460,10 @@ public class DwarfDebugInfo extends DebugInfoBase {
         return typeProperties;
     }
 
-    private DwarfClassProperties addClassProperties(ClassEntry classEntry) {
-        String typeName = classEntry.getTypeName();
+    private DwarfClassProperties addClassProperties(StructureTypeEntry entry) {
+        String typeName = entry.getTypeName();
         assert propertiesIndex.get(typeName) == null;
-        DwarfClassProperties classProperties = new DwarfClassProperties(classEntry);
+        DwarfClassProperties classProperties = new DwarfClassProperties(entry);
         this.propertiesIndex.put(typeName, classProperties);
         return classProperties;
     }
@@ -439,13 +481,13 @@ public class DwarfDebugInfo extends DebugInfoBase {
         }
     }
 
-    private DwarfClassProperties lookupClassProperties(ClassEntry classEntry) {
-        String typeName = classEntry.getTypeName();
+    private DwarfClassProperties lookupClassProperties(StructureTypeEntry entry) {
+        String typeName = entry.getTypeName();
         DwarfTypeProperties typeProperties = propertiesIndex.get(typeName);
         assert typeProperties == null || typeProperties instanceof DwarfClassProperties;
         DwarfClassProperties classProperties = (DwarfClassProperties) typeProperties;
         if (classProperties == null) {
-            classProperties = addClassProperties(classEntry);
+            classProperties = addClassProperties(entry);
         }
         return classProperties;
     }
@@ -480,6 +522,22 @@ public class DwarfDebugInfo extends DebugInfoBase {
     int getTypeIndex(DwarfTypeProperties typeProperties) {
         assert typeProperties.getTypeInfoIndex() >= 0;
         return typeProperties.getTypeInfoIndex();
+    }
+
+    void setIndirectTypeIndex(TypeEntry typeEntry, int idx) {
+        DwarfTypeProperties typeProperties = lookupTypeProperties(typeEntry);
+        assert typeProperties.getIndirectTypeInfoIndex() == -1 || typeProperties.getIndirectTypeInfoIndex() == idx;
+        typeProperties.setIndirectTypeInfoIndex(idx);
+    }
+
+    int getIndirectTypeIndex(String typeName) {
+        DwarfTypeProperties typeProperties = lookupTypeProperties(typeName);
+        return getIndirectTypeIndex(typeProperties);
+    }
+
+    int getIndirectTypeIndex(DwarfTypeProperties typeProperties) {
+        assert typeProperties.getIndirectTypeInfoIndex() >= 0;
+        return typeProperties.getIndirectTypeInfoIndex();
     }
 
     void setCUIndex(ClassEntry classEntry, int idx) {
@@ -526,6 +584,21 @@ public class DwarfDebugInfo extends DebugInfoBase {
         assert classProperties.getTypeEntry() == classEntry;
         assert classProperties.layoutIndex >= 0;
         return classProperties.layoutIndex;
+    }
+
+    void setIndirectLayoutIndex(ClassEntry classEntry, int idx) {
+        DwarfClassProperties classProperties = lookupClassProperties(classEntry);
+        assert classProperties.getTypeEntry() == classEntry;
+        assert classProperties.indirectLayoutIndex == -1 || classProperties.indirectLayoutIndex == idx;
+        classProperties.indirectLayoutIndex = idx;
+    }
+
+    int getIndirectLayoutIndex(ClassEntry classEntry) {
+        DwarfClassProperties classProperties;
+        classProperties = lookupClassProperties(classEntry);
+        assert classProperties.getTypeEntry() == classEntry;
+        assert classProperties.indirectLayoutIndex >= 0;
+        return classProperties.indirectLayoutIndex;
     }
 
     void setLineIndex(ClassEntry classEntry, int idx) {
@@ -577,10 +650,10 @@ public class DwarfDebugInfo extends DebugInfoBase {
         return classProperties.lineSectionSize;
     }
 
-    public void setFieldDeclarationIndex(ClassEntry classEntry, String fieldName, int pos) {
+    public void setFieldDeclarationIndex(StructureTypeEntry entry, String fieldName, int pos) {
         DwarfClassProperties classProperties;
-        classProperties = lookupClassProperties(classEntry);
-        assert classProperties.getTypeEntry() == classEntry;
+        classProperties = lookupClassProperties(entry);
+        assert classProperties.getTypeEntry() == entry;
         HashMap<String, Integer> fieldDeclarationIndex = classProperties.fieldDeclarationIndex;
         if (fieldDeclarationIndex == null) {
             classProperties.fieldDeclarationIndex = fieldDeclarationIndex = new HashMap<>();
@@ -592,10 +665,10 @@ public class DwarfDebugInfo extends DebugInfoBase {
         }
     }
 
-    public int getFieldDeclarationIndex(ClassEntry classEntry, String fieldName) {
+    public int getFieldDeclarationIndex(StructureTypeEntry entry, String fieldName) {
         DwarfClassProperties classProperties;
-        classProperties = lookupClassProperties(classEntry);
-        assert classProperties.getTypeEntry() == classEntry;
+        classProperties = lookupClassProperties(entry);
+        assert classProperties.getTypeEntry() == entry;
         HashMap<String, Integer> fieldDeclarationIndex = classProperties.fieldDeclarationIndex;
         assert fieldDeclarationIndex != null;
         assert fieldDeclarationIndex.get(fieldName) != null;
