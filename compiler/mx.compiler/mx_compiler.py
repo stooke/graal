@@ -512,6 +512,11 @@ def compiler_gate_benchmark_runner(tasks, extraVMarguments=None, prefix=''):
         mx.warn('Removing scaladacapo:actors from benchmarks because corba has been removed since JDK11 (http://openjdk.java.net/jeps/320)')
         del scala_dacapos['actors']
 
+    if jdk.javaCompliance >= "16":
+        # See GR-29222 for details.
+        mx.warn('Removing scaladacapo:specs from benchmarks because it uses a library that violates module permissions which is no longer allowed in JDK 16 (JDK-8255363)')
+        del scala_dacapos['specs']
+
     for name, iterations in sorted(scala_dacapos.items()):
         with Task(prefix + 'ScalaDaCapo:' + name, tasks, tags=GraalTags.benchmarktest) as t:
             if t: _gate_scala_dacapo(name, iterations, _remove_empty_entries(extraVMarguments) +
@@ -569,7 +574,6 @@ graal_unit_test_runs = [
 ]
 
 _registers = {
-    'sparcv9': 'o0,o1,o2,o3,f8,f9,d32,d34',
     'amd64': 'rbx,r11,r10,r14,xmm3,xmm11,xmm14',
     'aarch64': 'r0,r1,r2,r3,r4,v0,v1,v2,v3'
 }
@@ -1112,6 +1116,8 @@ def create_archive(srcdir, arcpath, prefix):
     arc.close()
 
 
+def _jlink_libraries():
+    return not (mx.get_opts().no_jlinking or mx.env_var_to_bool('NO_JLINKING'))
 
 def makegraaljdk_cli(args):
     """make a JDK with Graal as the default top level JIT"""
@@ -1276,21 +1282,25 @@ def _update_graaljdk(src_jdk, dst_jdk_dir=None, root_module_names=None, export_t
             vendor_info = {'vendor-version' : vm_name}
             # Setting dedup_legal_notices=False avoids due to license files conflicting
             # when switching JAVA_HOME from an OpenJDK to an OracleJDK or vice versa between executions.
-            jlink_new_jdk(jdk, tmp_dst_jdk_dir, module_dists, root_module_names=root_module_names, vendor_info=vendor_info, dedup_legal_notices=False)
+            if _jlink_libraries():
+                jlink_new_jdk(jdk, tmp_dst_jdk_dir, module_dists, root_module_names=root_module_names, vendor_info=vendor_info, dedup_legal_notices=False)
+                if export_truffle:
+                    jmd = as_java_module(_graal_config().dists_dict['truffle:TRUFFLE_API'], jdk)
+                    add_exports = []
+                    for package in jmd.packages:
+                        if package == 'com.oracle.truffle.api.impl':
+                            # The impl package should remain private
+                            continue
+                        if jmd.get_package_visibility(package, "<unnamed>") == 'concealed':
+                            add_exports.append('--add-exports={}/{}=ALL-UNNAMED'.format(jmd.name, package))
+                    if add_exports:
+                        with open(join(tmp_dst_jdk_dir, '.add_exports'), 'w') as fp:
+                            fp.write(os.linesep.join(add_exports))
+            else:
+                mx.warn("--no-jlinking flag used. The resulting VM will be HotSpot, not GraalVM")
+                shutil.copytree(jdk.home, tmp_dst_jdk_dir, symlinks=True)
             jre_dir = tmp_dst_jdk_dir
             jvmci_dir = mx.ensure_dir_exists(join(jre_dir, 'lib', 'jvmci'))
-            if export_truffle:
-                jmd = as_java_module(_graal_config().dists_dict['truffle:TRUFFLE_API'], jdk)
-                add_exports = []
-                for package in jmd.packages:
-                    if package == 'com.oracle.truffle.api.impl':
-                        # The impl package should remain private
-                        continue
-                    if jmd.get_package_visibility(package, "<unnamed>") == 'concealed':
-                        add_exports.append('--add-exports={}/{}=ALL-UNNAMED'.format(jmd.name, package))
-                if add_exports:
-                    with open(join(tmp_dst_jdk_dir, '.add_exports'), 'w') as fp:
-                        fp.write(os.linesep.join(add_exports))
 
         if with_compiler_name_file:
             with open(join(jvmci_dir, 'compiler-name'), 'w') as fp:
@@ -1321,7 +1331,7 @@ def _update_graaljdk(src_jdk, dst_jdk_dir=None, root_module_names=None, export_t
         out = mx.LinesOutputCapture()
         mx.run([jdk.java, '-version'], err=out)
         line = None
-        pattern = re.compile(r'(.* )(?:Server|Graal) VM (?:\d+\.\d+ |[a-zA-Z]+ )?\((?:[a-zA-Z]+ )?build.*')
+        pattern = re.compile(r'(.* )(?:Server|Graal) VM .*\((?:.+ )?build.*')
         for line in out.lines:
             m = pattern.match(line)
             if m:

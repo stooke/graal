@@ -335,7 +335,7 @@ import com.oracle.truffle.espresso.runtime.ReturnAddress;
 import com.oracle.truffle.espresso.runtime.StaticObject;
 import com.oracle.truffle.espresso.substitutions.Target_java_lang_Thread;
 import com.oracle.truffle.espresso.vm.InterpreterToVM;
-import com.oracle.truffle.object.DebugCounter;
+import com.oracle.truffle.espresso.perf.DebugCounter;
 
 /**
  * Bytecode interpreter loop.
@@ -680,12 +680,6 @@ public final class BytecodeNode extends EspressoMethodNode {
                 if (instrument != null) {
                     instrument.notifyStatement(frame, statementIndex, nextStatementIndex);
                     statementIndex = nextStatementIndex;
-
-                    // check for early return
-                    Object earlyReturnValue = getContext().getJDWPListener().getEarlyReturnValue();
-                    if (earlyReturnValue != null) {
-                        return notifyReturn(frame, statementIndex, exitMethodEarlyAndReturn(earlyReturnValue));
-                    }
                 }
 
                 // @formatter:off
@@ -1989,14 +1983,6 @@ public final class BytecodeNode extends EspressoMethodNode {
         return exitMethodAndReturnObject(StaticObject.NULL);
     }
 
-    private Object exitMethodEarlyAndReturn(Object result) {
-        if (Signatures.returnKind(getMethod().getParsedSignature()) == JavaKind.Void) {
-            return exitMethodAndReturn();
-        } else {
-            return result;
-        }
-    }
-
     // endregion Method return
 
     // region Arithmetic/binary operations
@@ -2504,12 +2490,33 @@ public final class BytecodeNode extends EspressoMethodNode {
 
             if (table != LineNumberTableAttribute.EMPTY) {
                 LineNumberTableAttribute.Entry[] entries = table.getEntries();
+                // don't allow multiple entries with same line, keep only the first one
+                // reduce the checks needed heavily by keeping track of max seen line number
+                int[] seenLines = new int[entries.length];
+                Arrays.fill(seenLines, -1);
+                int maxSeenLine = -1;
+
                 this.statementNodes = new EspressoInstrumentableNode[entries.length];
                 this.hookBCIToNodeIndex = new MapperBCI(table);
 
                 for (int i = 0; i < entries.length; i++) {
                     LineNumberTableAttribute.Entry entry = entries[i];
-                    statementNodes[hookBCIToNodeIndex.initIndex(i, entry.getBCI())] = new EspressoStatementNode(entry.getBCI(), entry.getLineNumber());
+                    int lineNumber = entry.getLineNumber();
+                    boolean seen = false;
+                    boolean checkSeen = !(maxSeenLine < lineNumber);
+                    if (checkSeen) {
+                        for (int seenLine : seenLines) {
+                            if (seenLine == lineNumber) {
+                                seen = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!seen) {
+                        statementNodes[hookBCIToNodeIndex.initIndex(i, entry.getBCI())] = new EspressoStatementNode(entry.getBCI(), lineNumber);
+                        seenLines[i] = lineNumber;
+                        maxSeenLine = Math.max(maxSeenLine, lineNumber);
+                    }
                 }
             } else {
                 this.statementNodes = null;
@@ -2538,8 +2545,10 @@ public final class BytecodeNode extends EspressoMethodNode {
         }
 
         public void notifyReturn(VirtualFrame frame, int statementIndex, Object returnValue) {
-            if (context.getJDWPListener().hasMethodBreakpoint(method, returnValue)) {
-                enterAt(frame, statementIndex);
+            if (method.hasActiveBreakpoint()) {
+                if (context.getJDWPListener().onMethodReturn(method, returnValue)) {
+                    enterAt(frame, statementIndex);
+                }
             }
         }
 
@@ -2553,14 +2562,18 @@ public final class BytecodeNode extends EspressoMethodNode {
         }
 
         public void notifyFieldModification(VirtualFrame frame, int index, Field field, StaticObject receiver, Object value) {
-            if (context.getJDWPListener().hasFieldModificationBreakpoint(field, receiver, value)) {
-                enterAt(frame, index);
+            if (field.hasActiveBreakpoint()) {
+                if (context.getJDWPListener().onFieldModification(field, receiver, value)) {
+                    enterAt(frame, index);
+                }
             }
         }
 
         public void notifyFieldAccess(VirtualFrame frame, int index, Field field, StaticObject receiver) {
-            if (context.getJDWPListener().hasFieldAccessBreakpoint(field, receiver)) {
-                enterAt(frame, index);
+            if (field.hasActiveBreakpoint()) {
+                if (context.getJDWPListener().onFieldAccess(field, receiver)) {
+                    enterAt(frame, index);
+                }
             }
         }
 

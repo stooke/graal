@@ -93,11 +93,11 @@ public abstract class AbstractBootImage {
         }
     }
 
-    protected final NativeImageKind kind;
+    protected final NativeImageKind imageKind;
 
     protected AbstractBootImage(NativeImageKind k, HostedUniverse universe, HostedMetaAccess metaAccess, NativeLibraries nativeLibs, NativeImageHeap heap, NativeImageCodeCache codeCache,
                     List<HostedMethod> entryPoints, ClassLoader imageClassLoader) {
-        this.kind = k;
+        this.imageKind = k;
         this.universe = universe;
         this.metaAccess = metaAccess;
         this.nativeLibs = nativeLibs;
@@ -107,8 +107,8 @@ public abstract class AbstractBootImage {
         this.imageClassLoader = imageClassLoader;
     }
 
-    public NativeImageKind getBootImageKind() {
-        return kind;
+    public NativeImageKind getImageKind() {
+        return imageKind;
     }
 
     public int getImageSize() {
@@ -123,7 +123,7 @@ public abstract class AbstractBootImage {
      * Build the image. Calling this method is a precondition to calling {@link #write}. It
      * typically finalizes content of the object. It does not build debug information.
      */
-    public abstract void build(DebugContext debug);
+    public abstract void build(String imageName, DebugContext debug);
 
     /**
      * Write the image to the named file. This also writes debug information -- either to the same
@@ -163,9 +163,5 @@ public abstract class AbstractBootImage {
 
     public boolean requiresCustomDebugRelocation() {
         return false;
-    }
-
-    public AbstractBootImage.NativeImageKind getKind() {
-        return kind;
     }
 }

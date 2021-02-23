@@ -42,6 +42,7 @@ import org.graalvm.compiler.core.common.type.StampPair;
 import org.graalvm.compiler.core.common.type.TypeReference;
 import org.graalvm.compiler.debug.DebugContext;
 import org.graalvm.compiler.graph.Node;
+import org.graalvm.compiler.lir.gen.ArithmeticLIRGeneratorTool.RoundingMode;
 import org.graalvm.compiler.nodes.CallTargetNode;
 import org.graalvm.compiler.nodes.CallTargetNode.InvokeKind;
 import org.graalvm.compiler.nodes.ConditionAnchorNode;
@@ -62,6 +63,7 @@ import org.graalvm.compiler.nodes.ValuePhiNode;
 import org.graalvm.compiler.nodes.calc.CompareNode;
 import org.graalvm.compiler.nodes.calc.ConditionalNode;
 import org.graalvm.compiler.nodes.calc.IntegerMulHighNode;
+import org.graalvm.compiler.nodes.calc.RoundNode;
 import org.graalvm.compiler.nodes.extended.BoxNode;
 import org.graalvm.compiler.nodes.extended.BranchProbabilityNode;
 import org.graalvm.compiler.nodes.extended.GuardedUnsafeLoadNode;
@@ -76,10 +78,13 @@ import org.graalvm.compiler.nodes.graphbuilderconf.InvocationPlugins.Registratio
 import org.graalvm.compiler.nodes.graphbuilderconf.InvocationPlugins.ResolvedJavaSymbol;
 import org.graalvm.compiler.nodes.java.InstanceOfDynamicNode;
 import org.graalvm.compiler.nodes.java.MethodCallTargetNode;
+import org.graalvm.compiler.nodes.spi.LoweringProvider;
+import org.graalvm.compiler.nodes.spi.Replacements;
 import org.graalvm.compiler.nodes.type.StampTool;
 import org.graalvm.compiler.nodes.virtual.EnsureVirtualizedNode;
 import org.graalvm.compiler.phases.util.Providers;
 import org.graalvm.compiler.replacements.nodes.arithmetic.UnsignedMulHighNode;
+import org.graalvm.compiler.serviceprovider.JavaVersionUtil;
 import org.graalvm.compiler.truffle.common.TruffleCompilerRuntime;
 import org.graalvm.compiler.truffle.common.TruffleDebugJavaMethod;
 import org.graalvm.compiler.truffle.compiler.PerformanceInformationHandler;
@@ -116,12 +121,13 @@ public class TruffleGraphBuilderPlugins {
         MetaAccessProvider metaAccess = providers.getMetaAccess();
         registerObjectsPlugins(plugins, metaAccess);
         registerOptimizedAssumptionPlugins(plugins, metaAccess, types);
-        registerExactMathPlugins(plugins, metaAccess);
+        registerExactMathPlugins(plugins, providers.getReplacements(), providers.getLowerer(), metaAccess);
         registerGraalCompilerDirectivesPlugins(plugins, metaAccess);
         registerCompilerDirectivesPlugins(plugins, metaAccess, canDelayIntrinsification);
         registerCompilerAssertsPlugins(plugins, metaAccess, canDelayIntrinsification);
         registerOptimizedCallTargetPlugins(plugins, metaAccess, canDelayIntrinsification, types);
         registerFrameWithoutBoxingPlugins(plugins, metaAccess, canDelayIntrinsification, providers.getConstantReflection(), types);
+        registerMemorySegmentProxyPlugins(plugins, metaAccess);
     }
 
     private static void registerObjectsPlugins(InvocationPlugins plugins, MetaAccessProvider metaAccess) {
@@ -179,9 +185,9 @@ public class TruffleGraphBuilderPlugins {
         r.register1("check", Receiver.class, plugin);
     }
 
-    public static void registerExactMathPlugins(InvocationPlugins plugins, MetaAccessProvider metaAccess) {
+    public static void registerExactMathPlugins(InvocationPlugins plugins, Replacements replacements, LoweringProvider lowerer, MetaAccessProvider metaAccess) {
         final ResolvedJavaType exactMathType = getRuntime().resolveType(metaAccess, "com.oracle.truffle.api.ExactMath");
-        Registration r = new Registration(plugins, new ResolvedJavaSymbol(exactMathType));
+        Registration r = new Registration(plugins, new ResolvedJavaSymbol(exactMathType), replacements);
         for (JavaKind kind : new JavaKind[]{JavaKind.Int, JavaKind.Long}) {
             Class<?> type = kind.toJavaClass();
             r.register2("multiplyHigh", type, type, new InvocationPlugin() {
@@ -195,6 +201,15 @@ public class TruffleGraphBuilderPlugins {
                 @Override
                 public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod, Receiver receiver, ValueNode x, ValueNode y) {
                     b.addPush(kind, new UnsignedMulHighNode(x, y));
+                    return true;
+                }
+            });
+        }
+        for (JavaKind kind : new JavaKind[]{JavaKind.Float, JavaKind.Double}) {
+            r.registerConditional1(lowerer.supportsRounding(), "truncate", kind.toJavaClass(), new InvocationPlugin() {
+                @Override
+                public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod, Receiver receiver, ValueNode x) {
+                    b.addPush(kind, new RoundNode(x, RoundingMode.TRUNCATE));
                     return true;
                 }
             });
@@ -819,6 +834,20 @@ public class TruffleGraphBuilderPlugins {
                 value.getDebug().dump(DebugContext.VERBOSE_LEVEL, value.graph(), "Graph before bailout at node %s", sb);
                 throw b.bailout("Partial evaluation did not reduce value to a constant, is a regular compiler node: " + sb);
             }
+        }
+    }
+
+    public static void registerMemorySegmentProxyPlugins(InvocationPlugins plugins, MetaAccessProvider metaAccess) {
+        if (JavaVersionUtil.JAVA_SPEC >= 16) {
+            final ResolvedJavaType memorySegmentProxyType = getRuntime().resolveType(metaAccess, "jdk.internal.access.foreign.MemorySegmentProxy");
+            Registration r = new Registration(plugins, new ResolvedJavaSymbol(memorySegmentProxyType));
+            r.register1("scope", Receiver.class, new InvocationPlugin() {
+                @Override
+                public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod, Receiver receiver) {
+                    b.add(new DeoptimizeNode(DeoptimizationAction.InvalidateRecompile, DeoptimizationReason.NullCheckException));
+                    return true;
+                }
+            });
         }
     }
 }

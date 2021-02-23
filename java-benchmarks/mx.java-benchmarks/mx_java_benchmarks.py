@@ -38,6 +38,7 @@ from tempfile import mkdtemp, mkstemp
 import mx
 import mx_benchmark
 from mx_benchmark import ParserEntry
+import mx_sdk_benchmark
 
 
 _suite = mx.suite('java-benchmarks')
@@ -170,7 +171,7 @@ class TemporaryWorkdirMixin(mx_benchmark.VmBenchmarkSuite):
         return super(TemporaryWorkdirMixin, self).parserNames() + ["temporary_workdir_parser"]
 
 
-class ShopCartBenchmarkSuite(mx_benchmark.JMeterBenchmarkSuite):
+class ShopCartBenchmarkSuite(mx_sdk_benchmark.JMeterBenchmarkSuite):
     """Benchmark suite for the ShopCart benchmark."""
 
     def name(self):
@@ -183,7 +184,10 @@ class ShopCartBenchmarkSuite(mx_benchmark.JMeterBenchmarkSuite):
         return "graal-compiler"
 
     def version(self):
-        return "0.1"
+        return "0.2"
+
+    def validateReturnCode(self, retcode):
+        return retcode == 143
 
     def benchmarkList(self, bmSuiteArgs):
         return ["tiny", "small", "large"]
@@ -197,6 +201,23 @@ class ShopCartBenchmarkSuite(mx_benchmark.JMeterBenchmarkSuite):
 
     def workloadPath(self, benchmark):
         return os.path.join(self.applicationDist(), "workloads", benchmark + ".jmx")
+
+    def rules(self, out, benchmarks, bmSuiteArgs):
+        # Example of Micronaut startup log:
+        # "[main] INFO io.micronaut.runtime.Micronaut - Startup completed in 328ms. Server Running: <url>"
+        return [
+            mx_benchmark.StdOutRule(
+                r"^\[main\] INFO io.micronaut.runtime.Micronaut - Startup completed in (?P<startup>\d+)ms.",
+                {
+                    "benchmark": benchmarks[0],
+                    "bench-suite": self.benchSuiteName(),
+                    "metric.name": "app-startup",
+                    "metric.value": ("<startup>", float),
+                    "metric.unit": "ms",
+                    "metric.better": "lower",
+                }
+            )
+        ] + super(ShopCartBenchmarkSuite, self).rules(out, benchmarks, bmSuiteArgs)
 
 
 mx_benchmark.add_bm_suite(ShopCartBenchmarkSuite())
@@ -772,7 +793,7 @@ class SpecJvm2008BenchmarkSuite(mx_benchmark.JavaBenchmarkSuite):
     def createCommandLineArgs(self, benchmarks, bmSuiteArgs):
         if benchmarks is None:
             # No benchmark specified in the command line, so run everything.
-            benchmarks = [b for b in self.benchmarkList(bmSuiteArgs)]
+            benchmarks = self.benchmarkList(bmSuiteArgs)
 
         vmArgs = self.vmArgs(bmSuiteArgs)
         runArgs = self.runArgs(bmSuiteArgs)
