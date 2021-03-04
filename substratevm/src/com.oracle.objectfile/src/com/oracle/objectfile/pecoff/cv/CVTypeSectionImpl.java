@@ -30,9 +30,12 @@ import com.oracle.objectfile.BuildDependency;
 import com.oracle.objectfile.LayoutDecision;
 import com.oracle.objectfile.LayoutDecisionMap;
 import com.oracle.objectfile.ObjectFile;
+import com.oracle.objectfile.debugentry.ClassEntry;
+import com.oracle.objectfile.debugentry.PrimaryEntry;
 import com.oracle.objectfile.pecoff.PECoffObjectFile;
 import org.graalvm.compiler.debug.DebugContext;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -41,15 +44,22 @@ import static com.oracle.objectfile.pecoff.cv.CVConstants.CV_SIGNATURE_C13;
 import static com.oracle.objectfile.pecoff.cv.CVConstants.CV_SYMBOL_SECTION_NAME;
 import static com.oracle.objectfile.pecoff.cv.CVConstants.CV_TYPE_SECTION_NAME;
 
+
 public final class CVTypeSectionImpl extends CVSectionImpl {
 
     private static final int CV_RECORD_INITIAL_CAPACITY = 200;
+    private static final int CV_TYPENAME_INITIAL_CAPACITY = 20000;
 
     /* CodeView 4 type records below 1000 are pre-defined. */
     private int sequenceCounter = 0x1000;
 
     /* A sequential map of type records, starting at 1000 */
     private Map<CVTypeRecord, CVTypeRecord> typeMap = new LinkedHashMap<>(CV_RECORD_INITIAL_CAPACITY);
+
+    /* A map of type names to type records - more than one name can map to a record */
+    private Map<String, CVTypeRecord> typenameMap = new HashMap<>(CV_TYPENAME_INITIAL_CAPACITY);
+
+    private CVTypeSectionBuilder builder;
 
     CVTypeSectionImpl() {
     }
@@ -63,6 +73,7 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
     public void createContent(DebugContext debugContext) {
         int pos = 0;
         enableLog(debugContext);
+        builder = new CVTypeSectionBuilder(debugContext, this);
         log(debugContext, "CVTypeSectionImpl.createContent() adding records");
         addRecords();
         log(debugContext, "CVTypeSectionImpl.createContent() start");
@@ -96,6 +107,40 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
     private void addRecords() {
         /* if an external PDB file is generated, add CVTypeServer2Record */
         /* for each class, add all members, types, etc */
+    }
+
+    /**
+     * Call builder to build all type records for function.
+     *
+     * @param entry primaryEntry containing entities whose type records must be added
+     * @return type index of function type
+     */
+    int addTypeRecords(PrimaryEntry entry) {
+        return builder.buildFunction(entry);
+    }
+
+    /**
+     * Call builder to build all type records for function.
+     *
+     * @param entry primaryEntry containing entities whose type records must be added
+     * @return type index of function type
+     */
+    int addTypeRecords(ClassEntry entry) {
+        return builder.buildClass(entry);
+    }
+
+    boolean hasType(String typename) {
+        return typenameMap.containsKey(typename);
+    }
+
+    CVTypeRecord getType(String typename) {
+        return typenameMap.get(typename);
+    }
+
+    public <T extends CVTypeRecord> T defineType(String typename, T record) {
+        final T therecord = addOrReference(record);
+        typenameMap.put(typename, therecord);
+        return therecord;
     }
 
     /**

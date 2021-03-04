@@ -35,17 +35,17 @@ abstract class CVTypeConstants {
     static final short T_NOTYPE = 0x0000;
     static final short T_VOID = 0x0003;
 
-    // static final short T_CHAR = 0x0010; /* 8 bit signed (java type) */
+    static final short T_CHAR = 0x0010; /* 8 bit signed (java type) */
     // static final short T_WCHAR = 0x0071;
-    // static final short T_CHAR16 = 0x007a; /* 16 bit unicode (Java type) */
-    // static final short T_SHORT = 0x0011; /* 16 bit signed short (Java type) */
-    // static final short T_LONG = 0x0014; /* 32 bit signed (java type? maybe T_short4?) */
+    static final short T_CHAR16 = 0x007a; /* 16 bit unicode (Java type) */
+    static final short T_SHORT = 0x0011; /* 16 bit signed short (Java type) */
+    static final short T_LONG = 0x0014; /* 32 bit signed (java type? maybe T_short4?) */
     static final short T_QUAD = 0x0013; /* 64 bit signed long long (Java type) */
-    // static final short T_REAL32 = 0x0040; /* 32 bit float (Java type) */
-    // static final short T_REAL64 = 0x0041; /* 64 but double (Java type) */
+    static final short T_REAL32 = 0x0040; /* 32 bit float (Java type) */
+    static final short T_REAL64 = 0x0041; /* 64 but double (Java type) */
     // static final short T_RCHAR = 0x0070; /* ?? "really a char" */
 
-    // static final short T_INT4 = T_LONG; /* ?? is tis right */
+    static final short T_INT4 = T_LONG; /* ?? is tis right */
     static final short T_UQUAD = T_QUAD; /* ?? */
 
     // static final short T_POINTER_BITS = 0x0700;
@@ -56,14 +56,14 @@ abstract class CVTypeConstants {
     static final short LF_POINTER = 0x1002;
     static final short LF_PROCEDURE = 0x1008;
     static final short LF_ARGLIST = 0x1201;
-    // static final short LF_FIELDLIST = 0x1203;
+    static final short LF_FIELDLIST = 0x1203;
     static final short LF_BITFIELD = 0x1205;
     static final short LF_BCLASS = 0x1400;
     static final short LF_ARRAY = 0x1503;
     static final short LF_CLASS = 0x1504;
     static final short LF_STRUCTURE = 0x1505;
-    // static final short LF_UNION = 0x1506;
-    // static final short LF_ENUM = 0x1507;
+    static final short LF_UNION = 0x1506;
+    static final short LF_ENUM = 0x1507;
     static final short LF_MEMBER = 0x150d;
     static final short LF_TYPESERVER2 = 0x1515;
     static final short LF_INTERFACE = 0x1519;

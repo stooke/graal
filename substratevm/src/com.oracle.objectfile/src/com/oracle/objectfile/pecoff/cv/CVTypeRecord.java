@@ -26,6 +26,8 @@
 
 package com.oracle.objectfile.pecoff.cv;
 
+import org.graalvm.compiler.debug.GraalError;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -126,6 +128,31 @@ abstract class CVTypeRecord {
             pos = CVUtil.putByte(LF_PAD1, buffer, pos);
         }
         return pos;
+    }
+
+    static final class CVTypePrimitive extends CVTypeRecord {
+
+        CVTypePrimitive(short cvtype) {
+            super(cvtype);
+        }
+
+        @Override
+        protected int computeSize(int initialPos) {
+            GraalError.shouldNotReachHere();
+            return 0;
+        }
+
+        @Override
+        protected int computeContents(byte[] buffer, int initialPos) {
+            GraalError.shouldNotReachHere();
+            return 0;
+        }
+
+        @Override
+        public int hashCode() {
+            GraalError.shouldNotReachHere();
+            return 0;
+        }
     }
 
     static final class CVTypeProcedureRecord extends CVTypeRecord {
