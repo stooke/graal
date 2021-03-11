@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2020, 2020, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2020, 2020, Red Hat Inc. All rights reserved.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2021, Red Hat Inc. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -44,7 +44,6 @@ import static com.oracle.objectfile.pecoff.cv.CVConstants.CV_SIGNATURE_C13;
 import static com.oracle.objectfile.pecoff.cv.CVConstants.CV_SYMBOL_SECTION_NAME;
 import static com.oracle.objectfile.pecoff.cv.CVConstants.CV_TYPE_SECTION_NAME;
 
-
 public final class CVTypeSectionImpl extends CVSectionImpl {
 
     private static final int CV_RECORD_INITIAL_CAPACITY = 200;
@@ -62,6 +61,7 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
     private CVTypeSectionBuilder builder;
 
     CVTypeSectionImpl() {
+        builder = new CVTypeSectionBuilder(this);
     }
 
     @Override
@@ -73,7 +73,7 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
     public void createContent(DebugContext debugContext) {
         int pos = 0;
         enableLog(debugContext);
-        builder = new CVTypeSectionBuilder(debugContext, this);
+        builder.setDebugContext(debugContext);
         log(debugContext, "CVTypeSectionImpl.createContent() adding records");
         addRecords();
         log(debugContext, "CVTypeSectionImpl.createContent() start");
@@ -137,22 +137,27 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
         return typenameMap.get(typename);
     }
 
-    public <T extends CVTypeRecord> T defineType(String typename, T record) {
+    <T extends CVTypeRecord> T defineType(String typename, T record) {
         final T therecord = addOrReference(record);
         typenameMap.put(typename, therecord);
         return therecord;
+    }
+
+    void definePrimitiveType(String typename, short typeId) {
+        CVTypeRecord record = new CVTypeRecord.CVTypePrimitive(typeId);
+        typenameMap.put(typename, record);
     }
 
     /**
      * Return either the caller-created instance or a matching existing instance. Every entry in
      * typeMap is a T, because it is ONLY this function which inserts entries (of type T).
      *
-     * @param <T> type of new record
+     * @param <T>       type of new record
      * @param newRecord record to add if an existing record with same hash hasn't already been added
      * @return the record (if previously unseen) or old record
      */
     @SuppressWarnings("unchecked")
-    public <T extends CVTypeRecord> T addOrReference(T newRecord) {
+    <T extends CVTypeRecord> T addOrReference(T newRecord) {
         final T record;
         if (typeMap.containsKey(newRecord)) {
             record = (T) typeMap.get(newRecord);

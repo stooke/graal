@@ -68,6 +68,8 @@ final class CVSymbolSubsectionBuilder {
      * @param classEntry current class
      */
     private void build(ClassEntry classEntry) {
+        /* add type records for the class, it's superclass, and instance variables */
+        addTypeRecords(classEntry);
         /* Loop over all functions defined in this class. */
         for (PrimaryEntry primaryEntry : classEntry.getPrimaryEntries()) {
             build(primaryEntry);
@@ -162,6 +164,14 @@ final class CVSymbolSubsectionBuilder {
         cvSymbolSubsection.addRecord(record);
     }
 
+    /**
+     * Add type records for a class and all its members
+     * @param classEntry class to add records for
+     * @return type index of class type
+     */
+    private void addTypeRecords(ClassEntry classEntry) {
+        cvDebugInfo.getCVTypeSection().addTypeRecords(classEntry);
+    }
     /**
      * Add type records for function.
      *

@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2020, 2020, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2020, 2020, Red Hat Inc. All rights reserved.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2021, Red Hat Inc. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -58,11 +58,13 @@ abstract class CVTypeRecord {
     protected final short type;
     private int startPosition;
     private int sequenceNumber; /* CodeView type records are numbered 1000 on up. */
+    private boolean isIncomplete;
 
     CVTypeRecord(short type) {
         this.type = type;
         this.startPosition = -1;
         this.sequenceNumber = -1;
+        this.isIncomplete = false;
     }
 
     int getSequenceNumber() {
@@ -128,6 +130,14 @@ abstract class CVTypeRecord {
             pos = CVUtil.putByte(LF_PAD1, buffer, pos);
         }
         return pos;
+    }
+
+    public boolean isIncomplete() {
+        return isIncomplete;
+    }
+
+    public void setIncomplete(boolean incomplete) {
+        isIncomplete = incomplete;
     }
 
     static final class CVTypePrimitive extends CVTypeRecord {
