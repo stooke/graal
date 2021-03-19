@@ -26,15 +26,16 @@
 
 package com.oracle.objectfile.pecoff.cv;
 
+import com.oracle.objectfile.debugentry.ArrayTypeEntry;
 import com.oracle.objectfile.debugentry.ClassEntry;
+import com.oracle.objectfile.debugentry.EnumClassEntry;
 import com.oracle.objectfile.debugentry.FieldEntry;
+import com.oracle.objectfile.debugentry.HeaderTypeEntry;
+import com.oracle.objectfile.debugentry.InterfaceClassEntry;
 import com.oracle.objectfile.debugentry.PrimaryEntry;
+import com.oracle.objectfile.debugentry.PrimitiveTypeEntry;
 import com.oracle.objectfile.debugentry.TypeEntry;
 import org.graalvm.compiler.debug.DebugContext;
-
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.List;
 
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_CLASS;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_CHAR;
@@ -51,6 +52,7 @@ class CVTypeSectionBuilder {
 
     private CVTypeSectionImpl typeSection;
     private DebugContext debugContext;
+    private int depth = 0;
 
     CVTypeSectionBuilder(CVTypeSectionImpl typeSection) {
         this.typeSection = typeSection;
@@ -74,83 +76,149 @@ class CVTypeSectionBuilder {
 0x1082 0x1505 len=74 LF_STRUCTURE count=10 properties=0x0200 fieldListIndex=0x1081 derivedFrom=0x0 vshape=0x0
 */
 
-
-    int buildClass(ClassEntry classEntry) {
+    CVTypeRecord buildClass(ClassEntry classEntry) {
 
         CVTypeRecord classType = typeSection.getType(classEntry.getTypeName());
-        int idx = classType != null ? classType.getSequenceNumber() : 0;
+        int idx = classType != null ? classType.getSequenceNumber() : UNKNOWN_TYPE_INDEX;
         if (classType == null) {
             log("classentry size=%d kind=%s %s", classEntry.getSize(), classEntry.typeKind().name(), classEntry.getTypeName());
-
+            depth++;
+            typeSection.defineIncompleteType(classEntry.getTypeName());
             /* process super type */
             int superIdx = 0;
-            if (classEntry.getSuperClass() != null) {
-                if (typeSection.hasType(classEntry.getSuperClass().getTypeName())) {
-                    idx = typeSection.getType(classEntry.getSuperClass().getTypeName()).getSequenceNumber();
+            ClassEntry superClass = classEntry.getSuperClass();
+            if (superClass != null) {
+                if (typeSection.hasType(superClass.getTypeName())) {
+                    idx = typeSection.getType(superClass.getTypeName()).getSequenceNumber();
                 } else {
-                    log("  building superclass ");
-                    superIdx = buildClass(classEntry.getSuperClass());
-                    log("  finished superclass");
+                    log("  building superclass %s", superClass.getTypeName());
+                    superIdx = buildClass(superClass).getSequenceNumber();
+                    log("  finished superclass %s", superClass.getTypeName());
                 }
             }
 
             /* process fields */
             int fieldListIdx = 0;
+            int fieldListCount = 0;
             if (classEntry.fields().count() > 0) {
-                log("  building fields ");
+                CVTypeRecord.CVFieldListRecord fieldListRecord = new CVTypeRecord.CVFieldListRecord();
+                log("  building fields %s", fieldListRecord.toString());
                 /* No need to process interfaces? */
-                ArrayList<Integer> fieldList = new ArrayList<>((int) classEntry.fields().count());
                 classEntry.fields()/*.filter(fieldEntry -> !Modifier.isStatic(fieldEntry.getModifiers()))*/.forEach(f -> {
-                    int fieldidx = buildField(f);
-                    fieldList.add(fieldidx);
+                    CVTypeRecord.CVMemberRecord fieldRecord = buildField(f);
+                    fieldListRecord.addMember(fieldRecord);
                 });
-                log("  finished building fields ");
+                CVTypeRecord.CVFieldListRecord newfieldListRecord = typeSection.addOrReference(fieldListRecord);
+                fieldListIdx = newfieldListRecord.getSequenceNumber();
+                fieldListCount = newfieldListRecord.count();
+                log("  finished building fields %s", newfieldListRecord.toString());
             }
 
             /* build final class record */
-            short count = 0; /* count of number of elements in class */
-            short propertyAttributes = 0; /* property attribute field (prop_t) */
+            short count = (short)fieldListCount; /* count of number of elements in class */
+            short attrs = 0; /* property attribute field (prop_t) */
             int derivedFromIndex = 0; /* type index of derived from list if not zero */
             int vshapeIndex = 0; /* type index of vshape table for this class */
-            CVTypeRecord.CVClassRecord classRecord = new CVTypeRecord.CVClassRecord(LF_CLASS, count, propertyAttributes, fieldListIdx, derivedFromIndex, vshapeIndex);
-            idx = typeSection.defineType(classEntry.getTypeName(), classRecord).getSequenceNumber();
+            // TODO would Visual Studio understand this better as a structure record?
+            classType = new CVTypeRecord.CVClassRecord(LF_CLASS, count, attrs, fieldListIdx, derivedFromIndex, vshapeIndex, classEntry.getSize(), classEntry.getTypeName());
+            classType = typeSection.redefineType(classEntry.getTypeName(), classType);
+            idx = classType.getSequenceNumber();
+            depth--;
+            log("  finished class %s", classType);
         } else if (classType.isIncomplete()) {
             log("build incomplete class size=%d kind=%s %s", classEntry.getSize(), classEntry.typeKind().name(), classEntry.getTypeName());
         }
-        return idx;
+        return classType;
     }
 
-    private int buildType(TypeEntry typeEntry) {
-        int idx = 0;
+    private CVTypeRecord buildEnum(EnumClassEntry type) {
+        depth++;
+ /*
+    0x100f 0x1203 len=186 LF_FIELDLIST:
+      field LF_ENUMERATE type=0x1502 attr=0x3 l=1 JOB_OBJECT_NET_RATE_CONTROL_ENABLE
+      field LF_ENUMERATE type=0x1502 attr=0x3 l=2 JOB_OBJECT_NET_RATE_CONTROL_MAX_BANDWIDTH
+      field LF_ENUMERATE type=0x1502 attr=0x3 l=4 JOB_OBJECT_NET_RATE_CONTROL_DSCP_TAG
+      field LF_ENUMERATE type=0x1502 attr=0x3 l=7 JOB_OBJECT_NET_RATE_CONTROL_VALID_FLAGS
+    0x1010 0x1507 len=90 LF_ENUM count=4 properties=0x0200 fieldListIndex=0x100f underLyingTypeIndex=0x74 JOB_OBJECT_NET_RATE_CONTROL_FLAGS
+*/
+        CVTypeRecord.CVFieldListRecord fields = new CVTypeRecord.CVFieldListRecord();
+        type.fields().forEach(f -> {
+            log("        LF_ENUMERATE offset=%d %s %s\n", f.getOffset(), f.getModifiersString(), f.fieldName());
+            CVTypeRecord.CVEnumerateRecord er = new CVTypeRecord.CVEnumerateRecord((short)f.getModifiers(), f.getOffset(), f.fieldName());
+            fields.addMember(er);
+        });
+        CVTypeRecord.CVFieldListRecord nfields = addTypeRecord(fields);
+        CVTypeRecord.CVEnumRecord enumRecord = new CVTypeRecord.CVEnumRecord((short)0x3, T_LONG, nfields, type.getTypeName());
+        // TODO: are enum names unique (i.e. qualifed by class) or not?
+        CVTypeRecord.CVEnumRecord nenumRecord = typeSection.defineType(type.getTypeName(), enumRecord);
+        log("      LF_ENUM idx=0x%04x sz=0x%x enum %s", nenumRecord.getSequenceNumber(), type.getSize(), type.getTypeName());
+        depth--;
+        return nenumRecord;
+    }
+
+    private CVTypeRecord buildType(TypeEntry typeEntry) {
+        depth++;
+        CVTypeRecord typeRecord = null;
         switch (typeEntry.typeKind()) {
-            case PRIMITIVE:
-                idx = typeSection.getType(typeEntry.getTypeName()).getSequenceNumber();
+            case PRIMITIVE: {
+                PrimitiveTypeEntry type = (PrimitiveTypeEntry) typeEntry;
+                //int attr = type.getFlags();
+                typeRecord = typeSection.getType(typeEntry.getTypeName());
+                //log("      typeentry idx=0x%04x sz=0x%x attr=0x%x primitive %s", typeRecord.getSequenceNumber(), typeEntry.getSize(), attr, typeEntry.getTypeName());
                 break;
-            case ENUM:
-                idx = typeSection.hasType(typeEntry.getTypeName()) ? typeSection.getType(typeEntry.getTypeName()).getSequenceNumber() : 0;
+            }
+            case ENUM: {
+                typeRecord = buildEnum((EnumClassEntry) typeEntry);
                 break;
-            case INSTANCE:
-                idx = typeSection.hasType(typeEntry.getTypeName()) ? typeSection.getType(typeEntry.getTypeName()).getSequenceNumber() : 0;
+            }
+            case ARRAY: {
+                ArrayTypeEntry type = (ArrayTypeEntry) typeEntry;
+                final TypeEntry elementType = type.getElementType();
+                int elementIndex = buildType(elementType).getSequenceNumber();
+                // aseSize, lengthOffset
+                CVTypeRecord.CVTypeArrayRecord record = new CVTypeRecord.CVTypeArrayRecord(elementIndex, T_QUAD, type.getSize());
+                typeRecord = addTypeRecord(record);
+                log("      LF_ARRAY idx=0x%04x sz=0x%x baseIndex=0x%04x [%s]", typeRecord.getSequenceNumber(), type.getSize(), elementIndex, elementType.getTypeName());
                 break;
-            case INTERFACE:
-                idx = typeSection.hasType(typeEntry.getTypeName()) ? typeSection.getType(typeEntry.getTypeName()).getSequenceNumber() : 0;
+            }
+            case INSTANCE: {
+                ClassEntry type = (ClassEntry) typeEntry;
+                typeRecord = buildClass(type);
+                log("      LF_CLASS idx=0x%04x sz=0x%x %s", typeRecord.getSequenceNumber(), typeEntry.getSize(),  typeEntry.getTypeName());
                 break;
-            case ARRAY:
-                idx = typeSection.hasType(typeEntry.getTypeName()) ? typeSection.getType(typeEntry.getTypeName()).getSequenceNumber() : 0;
+            }
+            case INTERFACE: {
+                InterfaceClassEntry type = (InterfaceClassEntry) typeEntry;
+                typeRecord = buildClass(type);
+                log("      LF_INTERFACE idx=0x%04x sz=0x%x %s", typeRecord.getSequenceNumber(), typeEntry.getSize(),  typeEntry.getTypeName());
                 break;
-            case HEADER:
-                idx = typeSection.hasType(typeEntry.getTypeName()) ? typeSection.getType(typeEntry.getTypeName()).getSequenceNumber() : 0;
+            }
+            case HEADER: {
+                // TODO probably a class entry?
+                HeaderTypeEntry type = (HeaderTypeEntry) typeEntry;
+                typeRecord = typeSection.getType(typeEntry.getTypeName());
+                if (typeRecord != null) {
+                    log("      header idx=0x%04x sz=0x%x %s", typeRecord.getSequenceNumber(), typeEntry.getSize(), typeEntry.getTypeName());
+                } else {
+                    typeRecord = typeSection.defineIncompleteType(typeEntry.getTypeName());
+                    log("      header NULL idx=0x%04x sz=0x%x %s", UNKNOWN_TYPE_INDEX, typeEntry.getSize(), typeEntry.getTypeName());
+                }
                 break;
+            }
         }
-        log("      typeentry idx=0x%04x sz=0x%x %s %s", idx, typeEntry.getSize(), typeEntry.typeKind().name(), typeEntry.getTypeName());
-        return idx;
+        depth--;
+        return typeRecord;
     }
 
-    private int buildField(FieldEntry fieldEntry) {
+    private static final short UNKNOWN_TYPE_INDEX = 9999;
+
+    private CVTypeRecord.CVMemberRecord buildField(FieldEntry fieldEntry) {
         TypeEntry valueType = fieldEntry.getValueType();
-        int vtIndex = buildType(valueType);
-        log("    fieldEntry offset=%02x size=%d mod=%s type=%s typeidx=0x%04x %s", fieldEntry.getOffset(), fieldEntry.getSize(), fieldEntry.getModifiersString(), fieldEntry.getValueType(), vtIndex, fieldEntry.fieldName());
-        return 0;
+        CVTypeRecord valueTypeRecord = buildType(valueType);
+        int vtIndex = valueTypeRecord != null ? valueTypeRecord.getSequenceNumber() : UNKNOWN_TYPE_INDEX;
+        CVTypeRecord.CVMemberRecord record = new CVTypeRecord.CVMemberRecord((short)0x3, vtIndex, fieldEntry.getOffset(), fieldEntry.fieldName());
+        log("    LF_MEMBER offset=%02x size=%d mod=%s type=%s typeidx=0x%04x %s", fieldEntry.getOffset(), fieldEntry.getSize(), fieldEntry.getModifiersString(), valueType.getTypeName(), vtIndex, fieldEntry.fieldName());
+        return record;
     }
 
     /**
@@ -159,13 +227,21 @@ class CVTypeSectionBuilder {
      * @param entry primaryEntry containing entities whoses type records must be added
      * @return type index of function type
      */
-    int buildFunction(PrimaryEntry entry) {
+    CVTypeRecord buildFunction(PrimaryEntry entry) {
         log("build primary " + entry.getPrimary().getFullMethodNameWithParams());
-        // TODO - CVTypeRecord returnType = findOrCreateType(entry.getPrimary().getMethodReturnTypeName());
+
+        /* Build return type records. */
+        //CVTypeRecord returnType = findOrCreateType(entry.getPrimary().getMethodReturnTypeName());
         CVTypeRecord returnType = findOrCreateType("void");
+        assert returnType != null;
+
+        /* TODO - Build param type records. */
         CVTypeRecord.CVTypeArglistRecord argListType = addTypeRecord(new CVTypeRecord.CVTypeArglistRecord().add(T_NOTYPE));
+
+        /* Build actual type record */
+        /* TODO - build member function records as required. */
         CVTypeRecord funcType = addTypeRecord(new CVTypeRecord.CVTypeProcedureRecord().returnType(returnType).argList(argListType));
-        return funcType.getSequenceNumber();
+        return funcType;
     }
 
     private  void addPrimitiveTypes() {
@@ -198,7 +274,7 @@ class CVTypeSectionBuilder {
     }
 
     private void log(String fmt, Object... args) {
- //       System.out.format(fmt + "\n", args);
+        System.out.format(fmt + "\n", args);
     }
 }
 

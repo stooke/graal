@@ -115,7 +115,7 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
      * @param entry primaryEntry containing entities whose type records must be added
      * @return type index of function type
      */
-    int addTypeRecords(PrimaryEntry entry) {
+    CVTypeRecord addTypeRecords(PrimaryEntry entry) {
         return builder.buildFunction(entry);
     }
 
@@ -123,10 +123,9 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
      * Call builder to build all type records for function.
      *
      * @param entry primaryEntry containing entities whose type records must be added
-     * @return type index of function type
      */
-    int addTypeRecords(ClassEntry entry) {
-        return builder.buildClass(entry);
+    void addTypeRecords(ClassEntry entry) {
+        builder.buildClass(entry);
     }
 
     boolean hasType(String typename) {
@@ -146,6 +145,18 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
     void definePrimitiveType(String typename, short typeId) {
         CVTypeRecord record = new CVTypeRecord.CVTypePrimitive(typeId);
         typenameMap.put(typename, record);
+    }
+
+    CVTypeRecord defineIncompleteType(String typename) {
+        CVTypeRecord record = new CVTypeRecord.CVIncompleteType((short)sequenceCounter++);
+        typenameMap.put(typename, record);
+        return record;
+    }
+
+    <T extends CVTypeRecord> T redefineType(String typename, T record) {
+        final T therecord = addOrReference(record);
+        typenameMap.put(typename, therecord);
+        return therecord;
     }
 
     /**

@@ -60,6 +60,7 @@ abstract class CVSectionImpl extends BasicProgbitsSectionImpl {
         if (context.areScopesEnabled()) {
             debug = true;
         }
+        debug = true;
     }
 
     protected void log(DebugContext context, String format, Object... args) {

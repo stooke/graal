@@ -167,7 +167,6 @@ final class CVSymbolSubsectionBuilder {
     /**
      * Add type records for a class and all its members
      * @param classEntry class to add records for
-     * @return type index of class type
      */
     private void addTypeRecords(ClassEntry classEntry) {
         cvDebugInfo.getCVTypeSection().addTypeRecords(classEntry);
@@ -179,6 +178,6 @@ final class CVSymbolSubsectionBuilder {
      * @return type index of function type
      */
     private int addTypeRecords(PrimaryEntry entry) {
-        return cvDebugInfo.getCVTypeSection().addTypeRecords(entry);
+        return cvDebugInfo.getCVTypeSection().addTypeRecords(entry).getSequenceNumber();
     }
 }

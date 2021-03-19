@@ -59,6 +59,7 @@ abstract class CVTypeConstants {
     static final short LF_FIELDLIST = 0x1203;
     static final short LF_BITFIELD = 0x1205;
     static final short LF_BCLASS = 0x1400;
+    static final short LF_ENUMERATE = 0x1502;
     static final short LF_ARRAY = 0x1503;
     static final short LF_CLASS = 0x1504;
     static final short LF_STRUCTURE = 0x1505;
@@ -69,19 +70,40 @@ abstract class CVTypeConstants {
     static final short LF_INTERFACE = 0x1519;
     static final short LF_BINTERFACE = 0x151a;
 
-    /*-
-    static final short LF_CHAR        = (short) 0x8000;
-    static final short LF_SHORT       = (short) 0x8001;
-    static final short LF_USHORT      = (short) 0x8002;
-    static final short LF_LONG        = (short) 0x8003;
-    static final short LF_ULONG       = (short) 0x8004;
-    static final short LF_REAL32      = (short) 0x8005;
-    static final short LF_REAL64      = (short) 0x8006;
-    static final short LF_QUADWORD    = (short) 0x8009;
-    static final short LF_UQUADWORD   = (short) 0x800a;
-    static final short LF_OCTWORD     = (short) 0x8017;
-    static final short LF_UOCTWORD    = (short) 0x8018;
-    */
+    static final short LF_FUNC_ID     = 0x1601;
+    static final short LF_MFUNC_ID    = 0x1602;
+    static final short LF_BUILDINFO   = 0x1603;
+    static final short LF_STRING_ID   = 0x1605;
+    static final short LF_UDT_SRC_LINE = 0x1606;
+    static final short LF_UDT_MOD_SRC_LINE = 0x1607;
+    static final short LF_ID_LAST     = 0x1608;
+
+    static final short LF_NUMERIC     = (short)0x8000;
+    static final short LF_CHAR        = (short)0x8000;
+    static final short LF_SHORT       = (short)0x8001;
+    static final short LF_USHORT      = (short)0x8002;
+    static final short LF_LONG        = (short)0x8003;
+    static final short LF_ULONG       = (short)0x8004;
+    static final short LF_REAL32      = (short)0x8005;
+    static final short LF_REAL64      = (short)0x8006;
+    static final short LF_REAL80      = (short)0x8007;
+    static final short LF_REAL128     = (short)0x8008;
+    static final short LF_QUADWORD    = (short)0x8009;
+    static final short LF_UQUADWORD   = (short)0x800a;
+    static final short LF_REAL48      = (short)0x800b;
+    static final short LF_COMPLEX32   = (short)0x800c;
+    static final short LF_COMPLEX64   = (short)0x800d;
+    static final short LF_COMPLEX80   = (short)0x800e;
+    static final short LF_COMPLEX128  = (short)0x800f;
+    static final short LF_VARSTRING   = (short)0x8010;
+    static final short LF_OCTWORD     = (short)0x8017;
+    static final short LF_UOCTWORD    = (short)0x8018;
+
+    static final short LF_DECIMAL     = (short)0x8019;
+    static final short LF_DATE        = (short)0x801a;
+    static final short LF_UTF8STRING  = (short)0x801b;
+
+    static final short LF_REAL16      = (short)0x801c;
 
     /* Padding. */
     // static final byte LF_PAD0 = (byte) 0xf0;
