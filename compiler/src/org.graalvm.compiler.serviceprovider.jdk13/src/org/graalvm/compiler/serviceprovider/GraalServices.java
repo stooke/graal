@@ -64,7 +64,7 @@ import static jdk.vm.ci.services.Services.IS_IN_NATIVE_IMAGE;
 import static jdk.vm.ci.services.Services.IS_BUILDING_NATIVE_IMAGE;
 
 /**
- * JDK 13+ version of {@link GraalServices}.
+ * JDK 13..15 version of {@link GraalServices}.
  */
 public final class GraalServices {
 

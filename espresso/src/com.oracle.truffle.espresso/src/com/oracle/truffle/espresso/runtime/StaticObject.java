@@ -668,7 +668,7 @@ public final class StaticObject implements TruffleObject {
                 throw InvalidArrayIndexException.create(index);
             }
             try {
-                return receiver.<boolean[]> unwrap()[(int) index];
+                return receiver.<byte[]> unwrap()[(int) index] != 0;
             } catch (IndexOutOfBoundsException outOfBounds) {
                 error.enter();
                 throw InvalidArrayIndexException.create(index);
@@ -820,7 +820,7 @@ public final class StaticObject implements TruffleObject {
                 throw UnsupportedTypeException.create(new Object[]{value}, e.getMessage());
             }
             try {
-                receiver.<boolean[]> unwrap()[(int) index] = boolValue;
+                receiver.<byte[]> unwrap()[(int) index] = boolValue ? (byte) 1 : (byte) 0;
             } catch (IndexOutOfBoundsException outOfBounds) {
                 error.enter();
                 throw InvalidArrayIndexException.create(index);
@@ -1167,7 +1167,7 @@ public final class StaticObject implements TruffleObject {
         ObjectKlass k = getInteropKlass();
 
         for (Method m : k.getVTable()) {
-            if (LookupVirtualMethodNode.isCanditate(m)) {
+            if (LookupVirtualMethodNode.isCandidate(m)) {
                 // Note: If there are overloading, the same key may appear twice.
                 // TODO: Cache the keys array in the Klass.
                 members.add(m.getNameAsString());
@@ -1223,7 +1223,8 @@ public final class StaticObject implements TruffleObject {
     RuntimeException throwException(@Shared("error") @Cached BranchProfile error) throws UnsupportedMessageException {
         checkNotForeign();
         if (isException()) {
-            throw Meta.throwException(this);
+            Meta meta = getKlass().getMeta();
+            throw meta.throwException(this);
         }
         error.enter();
         throw UnsupportedMessageException.create();
@@ -1760,7 +1761,7 @@ public final class StaticObject implements TruffleObject {
             if (bytecodeNode != null) {
                 bytecodeNode.enterImplicitExceptionProfile();
             }
-            throw Meta.throwException(meta.java_lang_ArrayIndexOutOfBoundsException);
+            throw meta.throwException(meta.java_lang_ArrayIndexOutOfBoundsException);
         }
     }
 
@@ -1771,7 +1772,7 @@ public final class StaticObject implements TruffleObject {
             if (bytecodeNode != null) {
                 bytecodeNode.enterImplicitExceptionProfile();
             }
-            throw Meta.throwException(meta.java_lang_ArrayStoreException);
+            throw meta.throwException(meta.java_lang_ArrayStoreException);
         }
     }
 
@@ -1789,14 +1790,14 @@ public final class StaticObject implements TruffleObject {
 
     public void setArrayByte(byte value, int index, Meta meta, BytecodeNode bytecodeNode) {
         checkNotForeign();
-        assert isArray() && (fields instanceof byte[] || fields instanceof boolean[]);
+        assert isArray() && fields instanceof byte[];
         if (index >= 0 && index < length()) {
             UNSAFE.putByte(fields, getByteArrayOffset(index), value);
         } else {
             if (bytecodeNode != null) {
                 bytecodeNode.enterImplicitExceptionProfile();
             }
-            throw Meta.throwException(meta.java_lang_ArrayIndexOutOfBoundsException);
+            throw meta.throwException(meta.java_lang_ArrayIndexOutOfBoundsException);
         }
     }
 
@@ -1806,14 +1807,14 @@ public final class StaticObject implements TruffleObject {
 
     public byte getArrayByte(int index, Meta meta, BytecodeNode bytecodeNode) {
         checkNotForeign();
-        assert isArray() && (fields instanceof byte[] || fields instanceof boolean[]);
+        assert isArray() && fields instanceof byte[];
         if (index >= 0 && index < length()) {
             return UNSAFE.getByte(fields, getByteArrayOffset(index));
         } else {
             if (bytecodeNode != null) {
                 bytecodeNode.enterImplicitExceptionProfile();
             }
-            throw Meta.throwException(meta.java_lang_ArrayIndexOutOfBoundsException);
+            throw meta.throwException(meta.java_lang_ArrayIndexOutOfBoundsException);
         }
     }
 
@@ -1826,9 +1827,6 @@ public final class StaticObject implements TruffleObject {
     private Object cloneWrappedArray() {
         checkNotForeign();
         assert isArray();
-        if (fields instanceof boolean[]) {
-            return this.<boolean[]> unwrap().clone();
-        }
         if (fields instanceof byte[]) {
             return this.<byte[]> unwrap().clone();
         }
@@ -1865,10 +1863,6 @@ public final class StaticObject implements TruffleObject {
         return createArray(meta._byte_array, array);
     }
 
-    public static StaticObject wrap(boolean[] array, Meta meta) {
-        return createArray(meta._boolean_array, array);
-    }
-
     public static StaticObject wrap(char[] array, Meta meta) {
         return createArray(meta._char_array, array);
     }
@@ -1897,7 +1891,7 @@ public final class StaticObject implements TruffleObject {
         assert array != null;
         assert array.getClass().isArray() && array.getClass().getComponentType().isPrimitive();
         if (array instanceof boolean[]) {
-            return wrap((boolean[]) array, meta);
+            throw EspressoError.shouldNotReachHere("Cannot wrap a boolean[]. Create a byte[] and call `StaticObject.createArray(meta._boolean_array, byteArray)`.");
         }
         if (array instanceof byte[]) {
             return wrap((byte[]) array, meta);

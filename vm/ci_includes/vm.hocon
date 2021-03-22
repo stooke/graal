@@ -19,20 +19,15 @@ vm_java_16: ${labsjdk-ce-16} {
     BASE_JDK_SHORT_VERSION: "16"
   }
 }
-vm_java_16: ${labsjdk-ce-16} {
-  environment: {
-    BASE_JDK_NAME: ${jdks.labsjdk-ce-16.name}
-    BASE_JDK_VERSION: ${jdks.labsjdk-ce-16.version}
-    BASE_JDK_SHORT_VERSION: "16"
-  }
-}
 vm_common_windows_jdk8: ${svm-common-windows-openjdk8}
-vm_windows_jdk8_devkit_var: "$VS2017_15_5_5_1_0_ROOT"
 
 svm_suite: /substratevm
 vm_extra_suites: "truffleruby,graalpython,fastr,/wasm,/espresso"
 vm_extra_suites_aarch64: "/wasm,/espresso"
 vm_extra_suites_windows: "/wasm,/espresso"
+vm_extra_suites_java16: "truffleruby,graalpython,fastr,/wasm"
+vm_extra_suites_aarch64_java16: "/wasm"
+vm_extra_suites_windows_java16: "/wasm"
 custom_vm_linux: {}
 custom_vm_darwin: {}
 vm_profiles: []

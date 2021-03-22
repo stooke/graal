@@ -31,7 +31,6 @@ import java.util.Queue;
 import org.graalvm.collections.EconomicMap;
 import org.graalvm.collections.EconomicSet;
 import org.graalvm.collections.Equivalence;
-import org.graalvm.compiler.core.common.NumUtil;
 import org.graalvm.compiler.core.common.calc.Condition;
 import org.graalvm.compiler.core.common.cfg.Loop;
 import org.graalvm.compiler.core.common.type.IntegerStamp;
@@ -52,9 +51,11 @@ import org.graalvm.compiler.nodes.FullInfopointNode;
 import org.graalvm.compiler.nodes.IfNode;
 import org.graalvm.compiler.nodes.LogicNode;
 import org.graalvm.compiler.nodes.LoopBeginNode;
+import org.graalvm.compiler.nodes.LoopExitNode;
 import org.graalvm.compiler.nodes.NodeView;
 import org.graalvm.compiler.nodes.PhiNode;
 import org.graalvm.compiler.nodes.PiNode;
+import org.graalvm.compiler.nodes.ProxyNode;
 import org.graalvm.compiler.nodes.StructuredGraph;
 import org.graalvm.compiler.nodes.ValueNode;
 import org.graalvm.compiler.nodes.ValuePhiNode;
@@ -73,6 +74,7 @@ import org.graalvm.compiler.nodes.cfg.ControlFlowGraph;
 import org.graalvm.compiler.nodes.debug.ControlFlowAnchored;
 import org.graalvm.compiler.nodes.extended.ValueAnchorNode;
 import org.graalvm.compiler.nodes.loop.InductionVariable.Direction;
+import org.graalvm.compiler.nodes.spi.CoreProviders;
 import org.graalvm.compiler.nodes.util.GraphUtil;
 
 public class LoopEx {
@@ -305,13 +307,13 @@ public class LoopEx {
             if (negated) {
                 condition = condition.negate();
             }
-            boolean oneOff = false;
+            boolean isLimitIncluded = false;
             boolean unsigned = false;
             switch (condition) {
                 case EQ:
                     if (iv.initNode() == limit) {
                         // allow "single iteration" case
-                        oneOff = true;
+                        isLimitIncluded = true;
                     } else {
                         return false;
                     }
@@ -344,7 +346,7 @@ public class LoopEx {
                 case BE:
                     unsigned = true; // fall through
                 case LE:
-                    oneOff = true;
+                    isLimitIncluded = true;
                     if (iv.direction() != Direction.Up) {
                         return false;
                     }
@@ -359,7 +361,7 @@ public class LoopEx {
                 case AE:
                     unsigned = true; // fall through
                 case GE:
-                    oneOff = true;
+                    isLimitIncluded = true;
                     if (iv.direction() != Direction.Down) {
                         return false;
                     }
@@ -374,7 +376,7 @@ public class LoopEx {
                 default:
                     throw GraalError.shouldNotReachHere(condition.toString());
             }
-            counted = new CountedLoopInfo(this, iv, ifNode, limit, oneOff, negated ? ifNode.falseSuccessor() : ifNode.trueSuccessor(), unsigned);
+            counted = new CountedLoopInfo(this, iv, ifNode, limit, isLimitIncluded, negated ? ifNode.falseSuccessor() : ifNode.trueSuccessor(), unsigned);
             return true;
         }
         return false;
@@ -476,7 +478,7 @@ public class LoopEx {
                     }
                     if (!isValidConvert && op instanceof NarrowNode) {
                         NarrowNode narrow = (NarrowNode) op;
-                        isValidConvert = NumUtil.isSignedNbit(narrow.getResultBits(), ((IntegerStamp) narrow.getValue().stamp(NodeView.DEFAULT)).upMask());
+                        isValidConvert = narrow.isLossless();
                     }
 
                     if (isValidConvert) {
@@ -557,5 +559,26 @@ public class LoopEx {
             }
         }
         return true;
+    }
+
+    /**
+     * Remove loop proxies that became obsolete over time, i.e., they proxy a value that already
+     * flowed out of a loop and dominates the loop now.
+     */
+    public static void removeObsoleteProxies(StructuredGraph graph, CoreProviders context) {
+        LoopsData loopsData = context.getLoopsDataProvider().getLoopsData(graph);
+        for (LoopEx loop : loopsData.loops()) {
+            removeObsoleteProxiesForLoop(loop);
+        }
+    }
+
+    public static void removeObsoleteProxiesForLoop(LoopEx loop) {
+        for (LoopExitNode lex : loop.loopBegin().loopExits()) {
+            for (ProxyNode proxy : lex.proxies().snapshot()) {
+                if (loop.isOutsideLoop(proxy.value())) {
+                    proxy.replaceAtUsagesAndDelete(proxy.getOriginalNode());
+                }
+            }
+        }
     }
 }

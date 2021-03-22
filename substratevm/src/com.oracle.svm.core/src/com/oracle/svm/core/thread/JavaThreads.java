@@ -50,6 +50,7 @@ import org.graalvm.nativeimage.c.function.CEntryPoint;
 import org.graalvm.nativeimage.c.struct.RawField;
 import org.graalvm.nativeimage.c.struct.RawStructure;
 import org.graalvm.word.PointerBase;
+import org.graalvm.word.WordFactory;
 
 import com.oracle.svm.core.SubstrateOptions;
 import com.oracle.svm.core.SubstrateUtil;
@@ -199,6 +200,25 @@ public abstract class JavaThreads {
         return toTarget(thread).isVirtual();
     }
 
+    /**
+     * Returns the isolate thread associated with a Java thread. The Java thread must currently be
+     * alive (started) and remain alive during the execution of this method and then for as long as
+     * the returned {@link IsolateThread} pointer is used.
+     */
+    public static IsolateThread getIsolateThreadUnsafe(Thread t) {
+        return toTarget(t).isolateThread;
+    }
+
+    /**
+     * Returns the isolate thread associated with a Java thread. The caller must own the
+     * {@linkplain VMThreads#THREAD_MUTEX threads mutex} and release it only after it has finished
+     * using the returned {@link IsolateThread} pointer.
+     */
+    public static IsolateThread getIsolateThread(Thread t) {
+        VMThreads.guaranteeOwnsThreadMutex("Threads mutex must be locked before accessing/iterating the thread list.");
+        return getIsolateThreadUnsafe(t);
+    }
+
     @SuppressFBWarnings(value = "BC", justification = "Cast for @TargetClass")
     static Target_java_lang_ThreadGroup toTarget(ThreadGroup threadGroup) {
         return Target_java_lang_ThreadGroup.class.cast(threadGroup);
@@ -305,8 +325,7 @@ public abstract class JavaThreads {
      * PosixJavaThreads.pthreadStartRoutine, e.g., called from PosixJavaThreads.start0.
      */
     public static void assignJavaThread(Thread thread, boolean manuallyStarted) {
-        VMError.guarantee(currentThread.get() == null, "overwriting existing java.lang.Thread");
-        currentThread.set(thread);
+        assignJavaThread0(thread);
 
         /* If the thread was manually started, finish initializing it. */
         if (manuallyStarted) {
@@ -321,10 +340,19 @@ public abstract class JavaThreads {
         }
     }
 
+    @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
+    private static void assignJavaThread0(Thread thread) {
+        VMError.guarantee(currentThread.get() == null, "overwriting existing java.lang.Thread");
+        currentThread.set(thread);
+
+        assert toTarget(thread).isolateThread.isNull();
+        toTarget(thread).isolateThread = CurrentIsolate.getCurrentThread();
+    }
+
     @Uninterruptible(reason = "Called during isolate initialization")
     public void initializeIsolate() {
         /* The thread that creates the isolate is considered the "main" thread. */
-        currentThread.set(mainThread);
+        assignJavaThread0(mainThread);
     }
 
     /**
@@ -355,11 +383,10 @@ public abstract class JavaThreads {
         VMThreads.THREAD_MUTEX.assertIsOwner("Must hold the VMThreads mutex");
         assert StatusSupport.isStatusIgnoreSafepoints(vmThread) || VMOperation.isInProgress();
 
-        // Detach ParkEvents for this thread, if any.
-        final Thread thread = currentThread.get(vmThread);
+        Thread thread = currentThread.get(vmThread);
         ParkEvent.detach(getUnsafeParkEvent(thread));
         ParkEvent.detach(getSleepParkEvent(thread));
-
+        toTarget(thread).isolateThread = WordFactory.nullPointer();
         if (!thread.isDaemon()) {
             nonDaemonThreads.decrementAndGet();
         }
@@ -568,7 +595,7 @@ public abstract class JavaThreads {
 
         StackTraceElement[][] result = new StackTraceElement[1][0];
         JavaVMOperation.enqueueBlockingSafepoint("getStackTrace", () -> {
-            result[0] = getStackTrace(VMThreads.findFromJavaThread(thread));
+            result[0] = getStackTrace(getIsolateThread(thread));
         });
         return result[0];
     }

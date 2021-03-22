@@ -24,8 +24,7 @@
  */
 package com.oracle.svm.core.genscavenge;
 
-import static org.graalvm.compiler.nodes.extended.BranchProbabilityNode.FREQUENT_PROBABILITY;
-import static org.graalvm.compiler.nodes.extended.BranchProbabilityNode.LUDICROUSLY_SLOW_PATH_PROBABILITY;
+import static org.graalvm.compiler.nodes.extended.BranchProbabilityNode.EXTREMELY_SLOW_PATH_PROBABILITY;
 import static org.graalvm.compiler.nodes.extended.BranchProbabilityNode.probability;
 
 import org.graalvm.compiler.word.Word;
@@ -37,8 +36,8 @@ import org.graalvm.word.WordFactory;
 
 import com.oracle.svm.core.MemoryWalker;
 import com.oracle.svm.core.SubstrateOptions;
+import com.oracle.svm.core.UnmanagedMemoryUtil;
 import com.oracle.svm.core.annotate.Uninterruptible;
-import com.oracle.svm.core.config.ConfigurationValues;
 import com.oracle.svm.core.genscavenge.GCImpl.ChunkReleaser;
 import com.oracle.svm.core.heap.ObjectVisitor;
 import com.oracle.svm.core.hub.LayoutEncoding;
@@ -459,7 +458,7 @@ final class Space {
 
         UnsignedWord size = LayoutEncoding.getSizeFromObject(originalObj);
         Pointer copyMemory = allocateMemory(size);
-        if (probability(LUDICROUSLY_SLOW_PATH_PROBABILITY, copyMemory.isNull())) {
+        if (probability(EXTREMELY_SLOW_PATH_PROBABILITY, copyMemory.isNull())) {
             Log failureLog = Log.log().string("[! Space.copyAlignedObject:").indent(true);
             failureLog.string("  failure to allocate ").unsigned(size).string(" bytes").newline();
             failureLog.string("  object to be promoted: ").object(originalObj).string(" header ").hex(ObjectHeaderImpl.readHeaderFromObject(originalObj)).newline();
@@ -467,27 +466,19 @@ final class Space {
             throw VMError.shouldNotReachHere("Promotion failure");
         }
 
+        /*
+         * This does a direct memory copy, without regard to whether the copied data contains object
+         * references. That's okay, because all references in the copy are visited and overwritten
+         * later on anyways (the card table is also updated at that point if necessary).
+         */
         Pointer originalMemory = Word.objectToUntrackedPointer(originalObj);
-        UnsignedWord offset = WordFactory.zero();
-        while (probability(FREQUENT_PROBABILITY, offset.belowThan(size))) {
-            /*
-             * This copies words, without regard to whether they are pointers and so need to dirty
-             * remembered sets, etc. That's okay, because when the dust settles, anything the copy
-             * references will be in the old Space, so any card remembered sets for the object can
-             * be "clean". This writes the hub from the original over the hub installed by the
-             * allocateArray or allocateObject. That shouldn't be an issue, here.
-             */
-            copyMemory.writeWord(offset, originalMemory.readWord(offset));
-            offset = offset.add(ConfigurationValues.getTarget().wordSize);
-        }
+        UnmanagedMemoryUtil.copyLongsForward(originalMemory, copyMemory, size);
 
-        // If the object was promoted to the old gen, we need to take care of the remembered set.
         Object copy = copyMemory.toObject();
-        AlignedHeapChunk.AlignedHeader copyChunk = AlignedHeapChunk.getEnclosingChunk(copy);
-
-        // We pretty much always need to update the first object table. Even when doing a full GC
-        // that copies from old to old.
-        if (HeapChunk.getSpace(copyChunk).isOldSpace()) {
+        if (isOldSpace()) {
+            // If the object was promoted to the old gen, we need to take care of the remembered
+            // set bit and the first object table (even when promoting from old to old).
+            AlignedHeapChunk.AlignedHeader copyChunk = AlignedHeapChunk.getEnclosingChunk(copy);
             AlignedHeapChunk.setUpRememberedSetForObject(copyChunk, copy);
         }
         return copy;

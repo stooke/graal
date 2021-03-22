@@ -299,7 +299,7 @@ public class AnnotationSupport extends CustomSubstitution<AnnotationSubstitution
             if (resultType.isArray()) {
                 /* From the specification: Arrays with length > 0 need to be cloned. */
                 ValueNode arrayLength = kit.append(new ArrayLengthNode(loadField));
-                kit.startIf(graph.unique(new IntegerEqualsNode(arrayLength, ConstantNode.forInt(0, graph))), BranchProbabilityNode.NOT_LIKELY_PROBABILITY);
+                kit.startIf(graph.unique(new IntegerEqualsNode(arrayLength, ConstantNode.forInt(0, graph))), BranchProbabilityNode.NOT_LIKELY_PROFILE);
                 kit.elsePart();
 
                 ResolvedJavaMethod cloneMethod = kit.findMethod(Object.class, "clone", false);
@@ -369,12 +369,12 @@ public class AnnotationSupport extends CustomSubstitution<AnnotationSubstitution
             ValueNode trueValue = ConstantNode.forBoolean(true, graph);
             ValueNode falseValue = ConstantNode.forBoolean(false, graph);
 
-            kit.startIf(graph.unique(new ObjectEqualsNode(receiver, other)), BranchProbabilityNode.LIKELY_PROBABILITY);
+            kit.startIf(graph.unique(new ObjectEqualsNode(receiver, other)), BranchProbabilityNode.LIKELY_PROFILE);
             kit.thenPart();
             kit.append(new ReturnNode(trueValue));
             kit.endIf();
 
-            kit.startIf(graph.unique(InstanceOfNode.create(TypeReference.createTrustedWithoutAssumptions(annotationInterfaceType), other)), BranchProbabilityNode.NOT_LIKELY_PROBABILITY);
+            kit.startIf(graph.unique(InstanceOfNode.create(TypeReference.createTrustedWithoutAssumptions(annotationInterfaceType), other)), BranchProbabilityNode.NOT_LIKELY_PROFILE);
             kit.elsePart();
             kit.append(new ReturnNode(falseValue));
             kit.endIf();
@@ -392,7 +392,8 @@ public class AnnotationSupport extends CustomSubstitution<AnnotationSubstitution
                 ValueNode otherAttribute = kit.createInvokeWithExceptionAndUnwind(otherMethod, InvokeKind.Interface, state, bci++, other);
 
                 /* Access our value. We know that it is in a field. */
-                ValueNode ourAttribute = kit.append(LoadFieldNode.create(null, receiver, ourField));
+                ValueNode receiverNonNull = kit.maybeCreateExplicitNullCheck(receiver);
+                ValueNode ourAttribute = kit.append(LoadFieldNode.create(null, receiverNonNull, ourField));
 
                 if (attributeType.isPrimitive()) {
                     /*
@@ -422,10 +423,11 @@ public class AnnotationSupport extends CustomSubstitution<AnnotationSubstitution
                 } else {
                     /* Just call Object.equals(). Primitive values are already boxed. */
                     ResolvedJavaMethod m = kit.findMethod(Object.class, "equals", false);
-                    attributeEqual = kit.createInvokeWithExceptionAndUnwind(m, InvokeKind.Virtual, state, bci++, ourAttribute, otherAttribute);
+                    ValueNode ourAttributeNonNull = kit.maybeCreateExplicitNullCheck(ourAttribute);
+                    attributeEqual = kit.createInvokeWithExceptionAndUnwind(m, InvokeKind.Virtual, state, bci++, ourAttributeNonNull, otherAttribute);
                 }
 
-                kit.startIf(graph.unique(new IntegerEqualsNode(attributeEqual, trueValue)), BranchProbabilityNode.LIKELY_PROBABILITY);
+                kit.startIf(graph.unique(new IntegerEqualsNode(attributeEqual, trueValue)), BranchProbabilityNode.LIKELY_PROFILE);
                 kit.elsePart();
                 kit.append(new ReturnNode(falseValue));
                 kit.endIf();
@@ -520,7 +522,7 @@ public class AnnotationSupport extends CustomSubstitution<AnnotationSubstitution
         TypeReference exceptionProxyTypeRef = TypeReference.createTrusted(kit.getAssumptions(), exceptionProxyType);
 
         LogicNode condition = kit.append(InstanceOfNode.create(exceptionProxyTypeRef, attribute));
-        kit.startIf(condition, BranchProbabilityNode.SLOW_PATH_PROBABILITY);
+        kit.startIf(condition, BranchProbabilityNode.SLOW_PATH_PROFILE);
         kit.thenPart();
 
         /* Generate the TypeNotPresentException exception and throw it. */
