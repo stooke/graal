@@ -78,6 +78,7 @@ abstract class CVTypeConstants {
     static final short LF_UDT_MOD_SRC_LINE = 0x1607;
     static final short LF_ID_LAST     = 0x1608;
 
+    /* LF_NUMERIC constanta */
     static final short LF_NUMERIC     = (short)0x8000;
     static final short LF_CHAR        = (short)0x8000;
     static final short LF_SHORT       = (short)0x8001;

@@ -49,9 +49,10 @@ public class TemporaryBuildDirectoryProviderImpl implements TemporaryBuildDirect
                     tempDirectory = Files.createTempDirectory("SVM-");
                     deleteTempDirectory = true;
                 } else {
-                    tempDirectory = FileSystems.getDefault().getPath(tempName).resolve("SVM-" + System.currentTimeMillis());
+                    tempDirectory = FileSystems.getDefault().getPath(tempName).resolve("SVM-" + 0);
                     assert !Files.exists(tempDirectory);
                     Files.createDirectories(tempDirectory);
+                    deleteTempDirectory = false;
                 }
             } catch (IOException ex) {
                 throw VMError.shouldNotReachHere(ex);

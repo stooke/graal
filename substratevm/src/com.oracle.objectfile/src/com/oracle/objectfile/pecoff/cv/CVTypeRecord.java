@@ -42,9 +42,11 @@ import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_ENUMERATE;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_FIELDLIST;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_INTERFACE;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_MEMBER;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_MODIFIER;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_PAD1;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_PAD2;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_PAD3;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_POINTER;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_PROCEDURE;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_STRUCTURE;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_TYPESERVER2;
@@ -57,6 +59,8 @@ import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_UQUAD;
  * (contents)
  */
 abstract class CVTypeRecord {
+
+    static final short UNKNOWN_TYPE_INDEX = 9999;
 
     protected final short type;
     private int startPosition;
@@ -209,6 +213,114 @@ abstract class CVTypeRecord {
         }
     }
 
+    static final class CVTypePointerRecord extends CVTypeRecord {
+
+        /* standard 64-bit absulute pointer type */
+        public static final int NORMAL_64 = 0x100c;
+
+        final int pointsTo;
+
+        /*
+        int kind      =  attributes & 0x00001f;
+        int mode      = (attributes & 0x0000e0) >> 5;
+        int modifiers = (attributes & 0x001f00) >> 8;
+        int size      = (attributes & 0x07e000) >> 13;
+        int flags     = (attributes & 0x380000) >> 19;
+        */
+        final int attrs;
+
+        public CVTypePointerRecord(int pointTo, int attrs) {
+            super(LF_POINTER);
+            this.pointsTo = pointTo;
+            this.attrs = attrs;
+        }
+
+        @Override
+        public int computeSize(int initialPos) {
+            return computeContents(null, initialPos);
+        }
+
+        @Override
+        public int computeContents(byte[] buffer, int initialPos) {
+            int pos = CVUtil.putInt(pointsTo, buffer, initialPos);
+            return CVUtil.putInt(attrs, buffer, pos);
+        }
+
+        @Override
+        public String toString() {
+            return String.format("LF_POINTER 0x%04x pointTo=0x%04x", getSequenceNumber(), pointsTo);
+        }
+
+        @Override
+        public int hashCode() {
+            int h = type;
+            h = 31 * h + pointsTo;
+            h = 31 * h + attrs;
+            return h;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (!super.equals(obj)) {
+                return false;
+            }
+            CVTypePointerRecord other = (CVTypePointerRecord) obj;
+            return this.pointsTo == other.pointsTo;
+        }
+    }
+
+    static final class CVTypeModifierRecord extends CVTypeRecord {
+
+        private final int typeIndex;
+        private final short attrs;
+
+        public CVTypeModifierRecord(int typeIndex, short attrs) {
+            super(LF_MODIFIER);
+            this.typeIndex = typeIndex;
+            this.attrs = attrs;
+        }
+
+        public CVTypeModifierRecord(int typeIndex, boolean isConst, boolean isVolatile, boolean isUnaligned) {
+            this(typeIndex, (short) ((isConst ? 1 : 0) + (isVolatile ? 2 : 0) + (isUnaligned ? 4 : 0)));
+        }
+
+        @Override
+        public int computeSize(int initialPos) {
+            return computeContents(null, initialPos);
+        }
+
+        @Override
+        public int computeContents(byte[] buffer, int initialPos) {
+            int pos = CVUtil.putInt(typeIndex, buffer, initialPos);
+            return CVUtil.putShort(attrs, buffer, pos);
+        }
+
+        @Override
+        public String toString() {
+            boolean isConst     = (attrs & 0x0001) == 0x0001;
+            boolean isVolatile  = (attrs & 0x0002) == 0x0002;
+            boolean isUnaligned = (attrs & 0x0004) == 0x0004;
+            return String.format("LF_POINTER 0x%04x attr=0x%x%s%s%s pointTo=0x%04x", getSequenceNumber(), attrs, isConst ? " const" : "", isVolatile ? " volatile" : "", isUnaligned ? " unaligned" : "", typeIndex);
+        }
+
+        @Override
+        public int hashCode() {
+            int h = type;
+            h = 31 * h + typeIndex;
+            h = 31 * h + attrs;
+            return h;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (!super.equals(obj)) {
+                return false;
+            }
+            CVTypeModifierRecord other = (CVTypeModifierRecord) obj;
+            return this.typeIndex == other.typeIndex && this.attrs == other.attrs;
+        }
+    }
+
     static final class CVTypeProcedureRecord extends CVTypeRecord {
 
         int returnType = -1;
@@ -241,8 +353,8 @@ abstract class CVTypeRecord {
         @Override
         public int computeContents(byte[] buffer, int initialPos) {
             int pos = CVUtil.putInt(returnType, buffer, initialPos);
-            pos = CVUtil.putByte((byte) 0, buffer, pos); /* callType */
-            pos = CVUtil.putByte((byte) 0, buffer, pos); /* funcAttr */
+            pos = CVUtil.putByte((byte) 0, buffer, pos); /* TODO callType */
+            pos = CVUtil.putByte((byte) 0, buffer, pos); /* TODO funcAttr */
             pos = CVUtil.putShort((short) argList.getSize(), buffer, pos);
             pos = CVUtil.putInt(argList.getSequenceNumber(), buffer, pos);
             return pos;
@@ -382,24 +494,26 @@ abstract class CVTypeRecord {
 
         @Override
         public int computeContents(byte[] buffer, int initialPos) {
-            int pos = CVUtil.putShort(attrs, buffer, initialPos);
+            int pos = CVUtil.putShort(type, buffer, initialPos);
+            pos = CVUtil.putShort(attrs, buffer, pos);
             pos = CVUtil.putInt(underlyingTypeIndex, buffer, pos);
-            /* TODO - offset field is variable length, I think */
-            pos = CVUtil.putShort((short)offset, buffer, pos);
+            pos = CVUtil.putLfNumeric(offset, buffer, pos);
             pos = CVUtil.putUTF8StringBytes(name, buffer, pos);
             return pos;
         }
 
         @Override
         public String toString() {
-            return String.format("LF_MEMBER 0x%04x attr=0x%x t=0x%x off=0x%x %s", type, attrs, underlyingTypeIndex, offset, name);
+            return String.format("LF_MEMBER 0x%04x attr=0x%x t=0x%x off=%d 0x%x %s", type, attrs, underlyingTypeIndex, offset, offset & 0xffff, name);
         }
 
         @Override
         public int hashCode() {
             int h = super.hashCode();
+            h = 31 * h + attrs;
             h = 31 * h + underlyingTypeIndex;
             h = 31 * h + offset;
+            h = 31 * h + name.hashCode();
             return h;
         }
 
@@ -598,6 +712,9 @@ abstract class CVTypeRecord {
         protected int computeContents(byte[] buffer, int initialPos) {
             int pos = initialPos;
             for (FieldRecord field : members) {
+                while ((pos & 1) == 1) {
+                    pos = CVUtil.putByte(LF_PAD1, buffer, pos);
+                }
                 pos = field.computeContents(buffer, pos);
             }
             return pos;
@@ -637,9 +754,9 @@ abstract class CVTypeRecord {
 
     static final class CVEnumerateRecord extends FieldRecord {
 
-        final int value;
+        final long value;
 
-        CVEnumerateRecord(short attrs, int value, String name) {
+        CVEnumerateRecord(short attrs, long value, String name) {
             super(LF_ENUMERATE, attrs, name);
             this.value = value;
         }
@@ -651,9 +768,10 @@ abstract class CVTypeRecord {
 
         @Override
         public int computeContents(byte[] buffer, int initialPos) {
-            int pos = CVUtil.putShort(attrs, buffer, initialPos);
-            /* TODO - value field is variable length, I think */
-            pos = CVUtil.putShort((short)value, buffer, pos);
+            int pos = CVUtil.putShort(type, buffer, initialPos);
+            pos = CVUtil.putShort(attrs, buffer, pos);
+            System.out.format("XXXX enumerate %s offset=%d 0x%x\n", name, value, value & 0xffff);
+            pos = CVUtil.putLfNumeric(value, buffer, pos);
             pos = CVUtil.putUTF8StringBytes(name, buffer, pos);
             return pos;
         }
@@ -666,7 +784,7 @@ abstract class CVTypeRecord {
         @Override
         public int hashCode() {
             int h = super.hashCode();
-            h = 31 * h + value;
+            h = 31 * h + (int)value;
             h = 31 * h + name.hashCode();
             return h;
         }
@@ -685,10 +803,10 @@ abstract class CVTypeRecord {
 
         String name;
         int attrs;
-        short underlyingTypeIndex;
+        int underlyingTypeIndex;
         CVFieldListRecord fieldRecord;
 
-        CVEnumRecord(short attrs, short underlyingTypeIndex, CVFieldListRecord fieldRecord, String name) {
+        CVEnumRecord(short attrs, int underlyingTypeIndex, CVFieldListRecord fieldRecord, String name) {
             super(LF_ENUM);
             this.attrs = attrs;
             this.underlyingTypeIndex = underlyingTypeIndex;
@@ -704,8 +822,8 @@ abstract class CVTypeRecord {
         @Override
         protected int computeContents(byte[] buffer, int initialPos) {
             int pos = CVUtil.putShort((short)attrs, buffer, initialPos);
-            pos = CVUtil.putShort(underlyingTypeIndex, buffer, pos);
-            pos = CVUtil.putShort((short)fieldRecord.getSequenceNumber(), buffer, pos);
+            pos = CVUtil.putInt(underlyingTypeIndex, buffer, pos);
+            pos = CVUtil.putInt(fieldRecord.getSequenceNumber(), buffer, pos);
             pos = CVUtil.putUTF8StringBytes(name, buffer, pos);
             return pos;
         }
@@ -832,8 +950,8 @@ abstract class CVTypeRecord {
 
         @Override
         public int computeContents(byte[] buffer, int initialPos) {
-            int pos = CVUtil.putShort((short)elementType, buffer, initialPos);
-            pos = CVUtil.putShort((short)indexType, buffer, pos);
+            int pos = CVUtil.putInt(elementType, buffer, initialPos);
+            pos = CVUtil.putInt(indexType, buffer, pos);
             pos = CVUtil.putInt(length, buffer, pos);
             return pos;
         }

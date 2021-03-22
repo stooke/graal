@@ -37,6 +37,8 @@ import com.oracle.objectfile.debugentry.PrimitiveTypeEntry;
 import com.oracle.objectfile.debugentry.TypeEntry;
 import org.graalvm.compiler.debug.DebugContext;
 
+import java.lang.reflect.Modifier;
+
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_CLASS;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_CHAR;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_CHAR16;
@@ -47,6 +49,7 @@ import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_REAL32;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_REAL64;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_SHORT;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_VOID;
+import static com.oracle.objectfile.pecoff.cv.CVTypeRecord.UNKNOWN_TYPE_INDEX;
 
 class CVTypeSectionBuilder {
 
@@ -76,7 +79,7 @@ class CVTypeSectionBuilder {
 0x1082 0x1505 len=74 LF_STRUCTURE count=10 properties=0x0200 fieldListIndex=0x1081 derivedFrom=0x0 vshape=0x0
 */
 
-    CVTypeRecord buildClass(ClassEntry classEntry) {
+    private CVTypeRecord buildClass(ClassEntry classEntry) {
 
         CVTypeRecord classType = typeSection.getType(classEntry.getTypeName());
         int idx = classType != null ? classType.getSequenceNumber() : UNKNOWN_TYPE_INDEX;
@@ -89,7 +92,7 @@ class CVTypeSectionBuilder {
             ClassEntry superClass = classEntry.getSuperClass();
             if (superClass != null) {
                 if (typeSection.hasType(superClass.getTypeName())) {
-                    idx = typeSection.getType(superClass.getTypeName()).getSequenceNumber();
+                    superIdx = typeSection.getType(superClass.getTypeName()).getSequenceNumber();
                 } else {
                     log("  building superclass %s", superClass.getTypeName());
                     superIdx = buildClass(superClass).getSequenceNumber();
@@ -108,7 +111,7 @@ class CVTypeSectionBuilder {
                     CVTypeRecord.CVMemberRecord fieldRecord = buildField(f);
                     fieldListRecord.addMember(fieldRecord);
                 });
-                CVTypeRecord.CVFieldListRecord newfieldListRecord = typeSection.addOrReference(fieldListRecord);
+                CVTypeRecord.CVFieldListRecord newfieldListRecord = addTypeRecord(fieldListRecord);
                 fieldListIdx = newfieldListRecord.getSequenceNumber();
                 fieldListCount = newfieldListRecord.count();
                 log("  finished building fields %s", newfieldListRecord.toString());
@@ -122,12 +125,14 @@ class CVTypeSectionBuilder {
             // TODO would Visual Studio understand this better as a structure record?
             classType = new CVTypeRecord.CVClassRecord(LF_CLASS, count, attrs, fieldListIdx, derivedFromIndex, vshapeIndex, classEntry.getSize(), classEntry.getTypeName());
             classType = typeSection.redefineType(classEntry.getTypeName(), classType);
-            idx = classType.getSequenceNumber();
             depth--;
             log("  finished class %s", classType);
         } else if (classType.isIncomplete()) {
             log("build incomplete class size=%d kind=%s %s", classEntry.getSize(), classEntry.typeKind().name(), classEntry.getTypeName());
         }
+        CVTypeRecord.CVTypePointerRecord pointerType = new CVTypeRecord.CVTypePointerRecord(classType.getSequenceNumber(), CVTypeRecord.CVTypePointerRecord.NORMAL_64);
+        pointerType = addTypeRecord(pointerType);
+        /* This is Java; we define a pointer type and return it instead of the class */
         return classType;
     }
 
@@ -144,7 +149,8 @@ class CVTypeSectionBuilder {
         CVTypeRecord.CVFieldListRecord fields = new CVTypeRecord.CVFieldListRecord();
         type.fields().forEach(f -> {
             log("        LF_ENUMERATE offset=%d %s %s\n", f.getOffset(), f.getModifiersString(), f.fieldName());
-            CVTypeRecord.CVEnumerateRecord er = new CVTypeRecord.CVEnumerateRecord((short)f.getModifiers(), f.getOffset(), f.fieldName());
+            short attr = (short) (Modifier.isPublic(f.getModifiers()) ? 0x03 : (Modifier.isPrivate(f.getModifiers())) ? 0x01 : 0x02);
+            CVTypeRecord.CVEnumerateRecord er = new CVTypeRecord.CVEnumerateRecord(attr, f.getOffset(), f.fieldName());
             fields.addMember(er);
         });
         CVTypeRecord.CVFieldListRecord nfields = addTypeRecord(fields);
@@ -156,7 +162,7 @@ class CVTypeSectionBuilder {
         return nenumRecord;
     }
 
-    private CVTypeRecord buildType(TypeEntry typeEntry) {
+    CVTypeRecord buildType(TypeEntry typeEntry) {
         depth++;
         CVTypeRecord typeRecord = null;
         switch (typeEntry.typeKind()) {
@@ -207,17 +213,18 @@ class CVTypeSectionBuilder {
             }
         }
         depth--;
+        log("      aka %s", typeRecord.toString());
         return typeRecord;
     }
-
-    private static final short UNKNOWN_TYPE_INDEX = 9999;
 
     private CVTypeRecord.CVMemberRecord buildField(FieldEntry fieldEntry) {
         TypeEntry valueType = fieldEntry.getValueType();
         CVTypeRecord valueTypeRecord = buildType(valueType);
         int vtIndex = valueTypeRecord != null ? valueTypeRecord.getSequenceNumber() : UNKNOWN_TYPE_INDEX;
-        CVTypeRecord.CVMemberRecord record = new CVTypeRecord.CVMemberRecord((short)0x3, vtIndex, fieldEntry.getOffset(), fieldEntry.fieldName());
-        log("    LF_MEMBER offset=%02x size=%d mod=%s type=%s typeidx=0x%04x %s", fieldEntry.getOffset(), fieldEntry.getSize(), fieldEntry.getModifiersString(), valueType.getTypeName(), vtIndex, fieldEntry.fieldName());
+        short attr = (short) (Modifier.isPublic(fieldEntry.getModifiers()) ? 0x03 : (Modifier.isPrivate(fieldEntry.getModifiers())) ? 0x01 : 0x02);
+        CVTypeRecord.CVMemberRecord record = new CVTypeRecord.CVMemberRecord(attr, vtIndex, fieldEntry.getOffset(), fieldEntry.fieldName());
+        log("      LF_MEMBER offset=%02x size=%d mod=%s type=%s typeidx=0x%04x %s", fieldEntry.getOffset(), fieldEntry.getSize(), fieldEntry.getModifiersString(), valueType.getTypeName(), vtIndex, fieldEntry.fieldName());
+        log("        aka %s", record.toString());
         return record;
     }
 
@@ -232,7 +239,7 @@ class CVTypeSectionBuilder {
 
         /* Build return type records. */
         //CVTypeRecord returnType = findOrCreateType(entry.getPrimary().getMethodReturnTypeName());
-        CVTypeRecord returnType = findOrCreateType("void");
+        CVTypeRecord returnType = typeSection.getType("void");
         assert returnType != null;
 
         /* TODO - Build param type records. */
