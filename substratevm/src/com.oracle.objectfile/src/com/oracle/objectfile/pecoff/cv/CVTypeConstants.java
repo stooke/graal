@@ -51,13 +51,16 @@ abstract class CVTypeConstants {
     // static final short T_POINTER_BITS = 0x0700;
     // static final short T_POINTER32 = 0x0400; /* 32 bit pointer */
     // static final short T_POINTER64 = 0x0600; /* 64 bit pointer */
+    static final short MAX_PRIMITIVE = 0x0fff;
 
     static final short LF_MODIFIER = 0x1001;
     static final short LF_POINTER = 0x1002;
     static final short LF_PROCEDURE = 0x1008;
+    static final short LF_MFUNCTION   = 0x1009;
     static final short LF_ARGLIST = 0x1201;
     static final short LF_FIELDLIST = 0x1203;
     static final short LF_BITFIELD = 0x1205;
+    static final short LF_METHODLIST  = 0x1206;
     static final short LF_BCLASS = 0x1400;
     static final short LF_ENUMERATE = 0x1502;
     static final short LF_ARRAY = 0x1503;
@@ -66,6 +69,9 @@ abstract class CVTypeConstants {
     static final short LF_UNION = 0x1506;
     static final short LF_ENUM = 0x1507;
     static final short LF_MEMBER = 0x150d;
+    static final short LF_METHOD = 0x150f;
+    static final short LF_NESTTYPE    = 0x1510;
+    static final short LF_ONEMETHOD   = 0x1511;
     static final short LF_TYPESERVER2 = 0x1515;
     static final short LF_INTERFACE = 0x1519;
     static final short LF_BINTERFACE = 0x151a;
@@ -125,4 +131,10 @@ abstract class CVTypeConstants {
     static final byte LF_PAD14 = (byte) 0xfe;
     static final byte LF_PAD15 = (byte) 0xff;
     */
+
+    static final int MPROP_VANILLA   = 0;
+    static final int MPROP_VIRTUAL   = (1 << 2);  // redefinition
+    static final int MPROP_STATIC    = (2 << 2);
+    static final int MPROP_FRIEND    = (3 << 2);
+    static final int MPROP_IVIRTUAL  = (4 << 2);
 }

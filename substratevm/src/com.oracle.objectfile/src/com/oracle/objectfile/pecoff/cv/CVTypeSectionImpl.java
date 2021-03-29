@@ -47,6 +47,7 @@ import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_CLASS;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_ENUMERATE;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_POINTER;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_STRUCTURE;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MAX_PRIMITIVE;
 import static com.oracle.objectfile.pecoff.cv.CVTypeRecord.UNKNOWN_TYPE_INDEX;
 
 public final class CVTypeSectionImpl extends CVSectionImpl {
@@ -61,11 +62,11 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
     private Map<CVTypeRecord, CVTypeRecord> typeMap = new LinkedHashMap<>(CV_RECORD_INITIAL_CAPACITY);
 
     /* A map of type names to type records - more than one name can map to a record */
-    private Map<String, CVTypeRecord> typenameMap = new HashMap<>(CV_TYPENAME_INITIAL_CAPACITY);
+    private Map<String, CVTypeRecord> typeNameMap = new HashMap<>(CV_TYPENAME_INITIAL_CAPACITY);
 
     /* For convenience, quick lookup of pointer type indices given class type index */
     /* Could have saved this in typenameMap. */
-    private Map<Integer, Integer> typePointerMap = new HashMap<>(CV_TYPENAME_INITIAL_CAPACITY);
+    private Map<Integer, CVTypeRecord.CVTypePointerRecord> typePointerMap = new HashMap<>(CV_TYPENAME_INITIAL_CAPACITY);
 
     private CVTypeSectionBuilder builder;
 
@@ -138,14 +139,26 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
     }
 
     boolean hasType(String typename) {
-        return typenameMap.containsKey(typename);
+        return typeNameMap.containsKey(typename);
     }
 
     CVTypeRecord getType(String typename) {
-        return typenameMap.get(typename);
+        return typeNameMap.get(typename);
     }
 
-    int getPointerIndexForType(CVTypeRecord t) {
+    CVTypeRecord getPointerRecordForType(String typeName) {
+        CVTypeRecord t = getType(typeName);
+        if (t != null) {
+            /* While pointers to primitives are allowed, they are not implemented yet. */
+            /* TODO: if we see a primitive type here, look for the pointer and create one if it doesn't exist already. */
+            assert t.getSequenceNumber() > MAX_PRIMITIVE;
+            return typePointerMap.get(t.getSequenceNumber());
+        } else {
+            return null;
+        }
+    }
+
+    CVTypeRecord getPointerRecordForType(CVTypeRecord t) {
         assert t.getSequenceNumber() != UNKNOWN_TYPE_INDEX;
         assert t.type == LF_CLASS || t.type == LF_STRUCTURE || t.type == LF_ENUMERATE;
         return typePointerMap.get(t.getSequenceNumber());
@@ -153,24 +166,24 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
 
     <T extends CVTypeRecord> T defineType(String typename, T record) {
         final T therecord = addOrReference(record);
-        typenameMap.put(typename, therecord);
+        typeNameMap.put(typename, therecord);
         return therecord;
     }
 
     void definePrimitiveType(String typename, short typeId) {
         CVTypeRecord record = new CVTypeRecord.CVTypePrimitive(typeId);
-        typenameMap.put(typename, record);
+        typeNameMap.put(typename, record);
     }
 
     CVTypeRecord defineIncompleteType(String typename) {
         CVTypeRecord record = new CVTypeRecord.CVIncompleteType(UNKNOWN_TYPE_INDEX);
-        typenameMap.put(typename, record);
+        typeNameMap.put(typename, record);
         return record;
     }
 
     <T extends CVTypeRecord> T redefineType(String typename, T record) {
         final T therecord = addOrReference(record);
-        typenameMap.put(typename, therecord);
+        typeNameMap.put(typename, therecord);
         return therecord;
     }
 
@@ -194,7 +207,11 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
             if (newRecord.type == LF_POINTER) {
                 /* convenience to find associated pointer records */
                 CVTypeRecord.CVTypePointerRecord pr = (CVTypeRecord.CVTypePointerRecord) newRecord;
-                typePointerMap.put(pr.pointsTo, pr.getSequenceNumber());
+                typePointerMap.put(pr.pointsTo, pr);
+            } else if (newRecord.type == LF_CLASS || newRecord.type == LF_STRUCTURE) {
+                CVTypeRecord.CVClassRecord cr = (CVTypeRecord.CVClassRecord) newRecord;
+                /* TODO should we use uniquename here? */
+                typeNameMap.put(cr.className, cr);
             }
         }
         return record;
