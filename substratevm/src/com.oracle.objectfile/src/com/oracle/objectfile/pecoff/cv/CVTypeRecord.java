@@ -52,8 +52,10 @@ import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_PAD2;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_PAD3;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_POINTER;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_PROCEDURE;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_STRING_ID;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_STRUCTURE;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_TYPESERVER2;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_UDT_SRC_LINE;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_IVIRTUAL;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_VIRTUAL;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_UQUAD;
@@ -219,10 +221,11 @@ abstract class CVTypeRecord {
         }
     }
 
+
     static final class CVTypePointerRecord extends CVTypeRecord {
 
         /* standard 64-bit absulute pointer type */
-        public static final int NORMAL_64 = 0x100c;
+        static final int NORMAL_64 = 0x100c;
 
         final int pointsTo;
 
@@ -287,6 +290,107 @@ abstract class CVTypeRecord {
             }
             CVTypePointerRecord other = (CVTypePointerRecord) obj;
             return this.pointsTo == other.pointsTo;
+        }
+    }
+
+    static final class CVUdtTypeLineRecord extends CVTypeRecord {
+
+        int typeIndex;
+        int fileIdx;
+        int line;
+
+        CVUdtTypeLineRecord(int typeIndex, int fileIdx, int line) {
+            super(LF_UDT_SRC_LINE);
+            this.typeIndex = typeIndex;
+            this.fileIdx = fileIdx;
+            this.line = line;
+        }
+
+        @Override
+        public int computeSize(int initialPos) {
+            return computeContents(null, initialPos);
+        }
+
+        @Override
+        public int computeContents(byte[] buffer, int initialPos) {
+            int pos = CVUtil.putInt(typeIndex, buffer, initialPos);
+            pos = CVUtil.putInt(fileIdx, buffer, pos);
+            return CVUtil.putInt(line, buffer, pos);
+        }
+
+        @Override
+        public String toString() {
+            return String.format("LF_UDT_SRC_LINE 0x%04x typeIdx=0x%x fileIdx=0x%x line=%d", getSequenceNumber(), typeIndex, fileIdx, line);
+        }
+
+        @Override
+        public int hashCode() {
+            int h = type;
+            h = 31 * h + typeIndex;
+            h = 31 * h + fileIdx;
+            h = 31 * h + line;
+            return h;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (!super.equals(obj)) {
+                return false;
+            }
+            CVUdtTypeLineRecord other = (CVUdtTypeLineRecord) obj;
+            /* NB: if the record has the same type but different file or line, it's probably an error. */
+            return this.typeIndex == other.typeIndex && this.fileIdx == other.fileIdx && this.line == other.line;
+        }
+    }
+
+    static final class CVTypeStringIdRecord extends CVTypeRecord {
+
+        String string;
+        int substringIdx;
+
+        public CVTypeStringIdRecord(int substringIdx, String string) {
+            super(LF_STRING_ID);
+            this.substringIdx = substringIdx;
+            this.string = string;
+        }
+
+        public CVTypeStringIdRecord(String string) {
+            super(LF_STRING_ID);
+            this.substringIdx = 0;
+            this.string = string;
+        }
+
+        @Override
+        public int computeSize(int initialPos) {
+            return computeContents(null, initialPos);
+        }
+
+        @Override
+        public int computeContents(byte[] buffer, int initialPos) {
+            int pos = CVUtil.putInt(substringIdx, buffer, initialPos);
+            return CVUtil.putUTF8StringBytes(string, buffer, pos);
+        }
+
+        @Override
+        public String toString() {
+            return String.format("LF_STRING_ID 0x%04x substringIdx=0x%x %s", getSequenceNumber(), substringIdx, string);
+        }
+
+        @Override
+        public int hashCode() {
+            int h = type;
+            h = 31 * h + substringIdx;
+            h = 31 * h + string.hashCode();
+            return h;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (!super.equals(obj)) {
+                return false;
+            }
+            CVTypeStringIdRecord other = (CVTypeStringIdRecord) obj;
+            return this.string.equals(other.string);
         }
     }
 
@@ -1052,9 +1156,9 @@ abstract class CVTypeRecord {
             return computeContents(null, initialPos);
         }
 
-        int pad4Bytes(byte[] buffer, int initialPos) {
+        static int pad42(byte[] buffer, int initialPos) {
             int pos = initialPos;
-            int pad = initialPos & 0x3;
+            int pad = (initialPos + 2) & 0x3;
             if (pad > 2) {
                 pos = CVUtil.putByte(LF_PAD3, buffer, pos);
             }
@@ -1072,7 +1176,7 @@ abstract class CVTypeRecord {
             int pos = initialPos;
             for (FieldRecord field : members) {
                 pos = field.computeContents(buffer, pos);
-                pos = pad4Bytes(buffer, pos);
+                pos = pad42(buffer, pos);
                 /* Align on 4-byte boundary */
             }
             return pos;

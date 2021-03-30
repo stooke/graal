@@ -33,6 +33,9 @@ import java.nio.ByteBuffer;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_CHAR;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_LONG;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_NUMERIC;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_PAD1;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_PAD2;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_PAD3;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_QUADWORD;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_SHORT;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_ULONG;
@@ -152,6 +155,21 @@ abstract class CVUtil {
         int pos = initialPos;
         while ((pos & 0x3) != 0) {
             pos++;
+        }
+        return pos;
+    }
+
+    static int pad4(byte[] buffer, int initialPos) {
+        int pos = initialPos;
+        int pad = initialPos & 0x3;
+        if (pad > 2) {
+            pos = CVUtil.putByte(LF_PAD3, buffer, pos);
+        }
+        if (pad > 1) {
+            pos = CVUtil.putByte(LF_PAD2, buffer, pos);
+        }
+        if (pad > 0) {
+            pos = CVUtil.putByte(LF_PAD1, buffer, pos);
         }
         return pos;
     }

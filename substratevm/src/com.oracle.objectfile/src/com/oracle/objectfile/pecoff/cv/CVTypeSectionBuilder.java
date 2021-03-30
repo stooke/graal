@@ -315,6 +315,19 @@ class CVTypeSectionBuilder {
             int vshapeIndex = 0; /* type index of vshape table for this class */
             classRecord = new CVTypeRecord.CVClassRecord(LF_CLASS, count, attrs, fieldListIdx, superIdx, vshapeIndex, classEntry.getSize(), classEntry.getTypeName(), null);
             classRecord = addTypeRecord(classRecord);
+
+            /* Add a UDT record (if we have the information) */
+            /* Try to find a line number - if none, don't bother to create the record. */
+            int line = classEntry.getPrimaryEntries().isEmpty() ? 0 : classEntry.getPrimaryEntries().getFirst().getPrimary().getLine();
+            if (line > 0) {
+                int idIdx = typeSection.getStringId(classEntry.getFileName()).getSequenceNumber();
+                CVTypeRecord.CVUdtTypeLineRecord udt = new CVTypeRecord.CVUdtTypeLineRecord(classRecord.getSequenceNumber(), idIdx, line);
+                addTypeRecord(udt);
+            }
+
+            /* may need to add S_UDT record to symbol table */
+
+
             depth--;
             /* we've added the complete class record now, */
             inProcessMap.remove(classEntry.getTypeName());

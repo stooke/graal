@@ -359,6 +359,31 @@ abstract class CVSymbolSubrecord {
         }
     }
 
+
+    public static final class CVSymbolUDTRecord extends CVSymbolSubrecord {
+
+        int typeIdx;
+        String typeName;
+
+        CVSymbolUDTRecord(CVDebugInfo cvDebugInfo, int typeIdx, String typeName) {
+            super(cvDebugInfo, CVDebugConstants.S_UDT);
+            this.typeIdx = typeIdx;
+            this.typeName = typeName;
+        }
+
+        @Override
+        protected int computeContents(byte[] buffer, int initialPos) {
+            int pos = CVUtil.putInt(typeIdx, buffer, initialPos);
+            pos = CVUtil.putUTF8StringBytes(typeName, buffer, pos);
+            return pos;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("S_UDT type=0x%x typename=%s", typeIdx, typeName);
+        }
+    }
+
     public static class CVSymbolEndRecord extends CVSymbolSubrecord {
 
         CVSymbolEndRecord(CVDebugInfo cvDebugInfo, short cmd) {
