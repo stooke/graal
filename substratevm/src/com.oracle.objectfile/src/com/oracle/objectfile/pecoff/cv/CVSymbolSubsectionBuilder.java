@@ -29,6 +29,7 @@ package com.oracle.objectfile.pecoff.cv;
 import com.oracle.objectfile.debugentry.ClassEntry;
 import com.oracle.objectfile.debugentry.PrimaryEntry;
 import com.oracle.objectfile.debugentry.Range;
+import com.oracle.objectfile.debugentry.TypeEntry;
 import org.graalvm.compiler.debug.DebugContext;
 
 final class CVSymbolSubsectionBuilder {
@@ -56,8 +57,12 @@ final class CVSymbolSubsectionBuilder {
         this.debugContext = theDebugContext;
         this.lineRecordBuilder = new CVLineRecordBuilder(debugContext, cvDebugInfo);
         /* loop over all classes defined in this module. */
-        for (ClassEntry classEntry : cvDebugInfo.getPrimaryClasses()) {
-            build(classEntry);
+        for (TypeEntry typeEntry : cvDebugInfo.getTypes()) {
+            /* add type records for the class, it's superclass, and instance variables */
+            addTypeRecords(typeEntry);
+            if (typeEntry.isClass()) {
+                build((ClassEntry) typeEntry);
+            }
         }
         cvDebugInfo.getCVSymbolSection().addRecord(cvSymbolSubsection);
     }
@@ -68,8 +73,6 @@ final class CVSymbolSubsectionBuilder {
      * @param classEntry current class
      */
     private void build(ClassEntry classEntry) {
-        /* add type records for the class, it's superclass, and instance variables */
-        addTypeRecords(classEntry);
         /* Loop over all functions defined in this class. */
         for (PrimaryEntry primaryEntry : classEntry.getPrimaryEntries()) {
             build(primaryEntry);
@@ -168,7 +171,7 @@ final class CVSymbolSubsectionBuilder {
      * Add type records for a class and all its members
      * @param classEntry class to add records for
      */
-    private void addTypeRecords(ClassEntry classEntry) {
+    private void addTypeRecords(TypeEntry classEntry) {
         cvDebugInfo.getCVTypeSection().addTypeRecords(classEntry);
     }
     /**

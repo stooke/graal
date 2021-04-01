@@ -68,8 +68,6 @@ import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_UQUAD;
  */
 abstract class CVTypeRecord {
 
-    static final short UNKNOWN_TYPE_INDEX = 9999;
-
     protected final short type;
     private int startPosition;
     private int sequenceNumber; /* CodeView type records are numbered 1000 on up. */
@@ -861,7 +859,7 @@ abstract class CVTypeRecord {
     static final class CVMemberRecord extends FieldRecord {
 
         final int underlyingTypeIndex; /* type index of member type */
-        final int offset;
+        int offset;
 
         CVMemberRecord(short attrs, int underlyingTypeIndex, int offset, String name) {
             super(LF_MEMBER, attrs, name);

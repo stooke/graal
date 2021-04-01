@@ -30,8 +30,8 @@ import com.oracle.objectfile.BuildDependency;
 import com.oracle.objectfile.LayoutDecision;
 import com.oracle.objectfile.LayoutDecisionMap;
 import com.oracle.objectfile.ObjectFile;
-import com.oracle.objectfile.debugentry.ClassEntry;
 import com.oracle.objectfile.debugentry.PrimaryEntry;
+import com.oracle.objectfile.debugentry.TypeEntry;
 import com.oracle.objectfile.pecoff.PECoffObjectFile;
 import org.graalvm.compiler.debug.DebugContext;
 
@@ -44,11 +44,9 @@ import static com.oracle.objectfile.pecoff.cv.CVConstants.CV_SIGNATURE_C13;
 import static com.oracle.objectfile.pecoff.cv.CVConstants.CV_SYMBOL_SECTION_NAME;
 import static com.oracle.objectfile.pecoff.cv.CVConstants.CV_TYPE_SECTION_NAME;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_CLASS;
-import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_ENUMERATE;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_POINTER;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_STRUCTURE;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MAX_PRIMITIVE;
-import static com.oracle.objectfile.pecoff.cv.CVTypeRecord.UNKNOWN_TYPE_INDEX;
 
 public final class CVTypeSectionImpl extends CVSectionImpl {
 
@@ -132,11 +130,11 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
     }
 
     /**
-     * Call builder to build all type records for function.
+     * Call builder to build all type records and types referenced by that type.
      *
      * @param entry primaryEntry containing entities whose type records must be added
      */
-    void addTypeRecords(ClassEntry entry) {
+    void addTypeRecords(TypeEntry entry) {
         builder.buildType(entry);
     }
 
@@ -165,12 +163,6 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
         return addOrReference(r);
     }
 
-    CVTypeRecord getPointerRecordForType(CVTypeRecord t) {
-        assert t.getSequenceNumber() != UNKNOWN_TYPE_INDEX;
-        assert t.type == LF_CLASS || t.type == LF_STRUCTURE || t.type == LF_ENUMERATE;
-        return typePointerMap.get(t.getSequenceNumber());
-    }
-
     <T extends CVTypeRecord> T defineType(String typename, T record) {
         final T therecord = addOrReference(record);
         typeNameMap.put(typename, therecord);
@@ -180,18 +172,6 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
     void definePrimitiveType(String typename, short typeId) {
         CVTypeRecord record = new CVTypeRecord.CVTypePrimitive(typeId);
         typeNameMap.put(typename, record);
-    }
-
-    CVTypeRecord defineIncompleteType(String typename) {
-        CVTypeRecord record = new CVTypeRecord.CVIncompleteType(UNKNOWN_TYPE_INDEX);
-        typeNameMap.put(typename, record);
-        return record;
-    }
-
-    <T extends CVTypeRecord> T redefineType(String typename, T record) {
-        final T therecord = addOrReference(record);
-        typeNameMap.put(typename, therecord);
-        return therecord;
     }
 
     /**
