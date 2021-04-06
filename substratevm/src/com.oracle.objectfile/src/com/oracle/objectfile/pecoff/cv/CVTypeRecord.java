@@ -71,13 +71,11 @@ abstract class CVTypeRecord {
     protected final short type;
     private int startPosition;
     private int sequenceNumber; /* CodeView type records are numbered 1000 on up. */
-    private boolean isIncomplete;
 
     CVTypeRecord(short type) {
         this.type = type;
         this.startPosition = -1;
         this.sequenceNumber = -1;
-        this.isIncomplete = false;
     }
 
     int getSequenceNumber() {
@@ -145,46 +143,6 @@ abstract class CVTypeRecord {
             pos = CVUtil.putByte(LF_PAD1, buffer, pos);
         }
         return pos;
-    }
-
-    public boolean isIncomplete() {
-        return isIncomplete;
-    }
-
-    public void setIncomplete(boolean incomplete) {
-        isIncomplete = incomplete;
-    }
-
-    static final class CVIncompleteType extends CVTypeRecord {
-
-        CVIncompleteType(short cvtype) {
-            super(cvtype);
-            setSequenceNumber(cvtype);
-            setIncomplete(true);
-        }
-
-        @Override
-        protected int computeSize(int initialPos) {
-            GraalError.shouldNotReachHere();
-            return 0;
-        }
-
-        @Override
-        protected int computeContents(byte[] buffer, int initialPos) {
-            GraalError.shouldNotReachHere();
-            return 0;
-        }
-
-        @Override
-        public int hashCode() {
-            GraalError.shouldNotReachHere();
-            return 0;
-        }
-
-        @Override
-        public String toString() {
-            return String.format("INCOMPLETE 0x%04x", getSequenceNumber());
-        }
     }
 
     static final class CVTypePrimitive extends CVTypeRecord {
@@ -1015,9 +973,9 @@ abstract class CVTypeRecord {
         }
     }
 
-    static class CVBaseIntefaceRecord extends CVBaseClassRecord {
+    static class CVBaseInterfaceRecord extends CVBaseClassRecord {
 
-        CVBaseIntefaceRecord(short attrs, int fieldIndex) {
+        CVBaseInterfaceRecord(short attrs, int fieldIndex) {
             super(LF_BINTERFACE, attrs, fieldIndex);
         }
 
@@ -1073,11 +1031,21 @@ abstract class CVTypeRecord {
             pos = CVUtil.putInt(derivedFromIndex, buffer, pos);
             pos = CVUtil.putInt(vshapeIndex, buffer, pos);
             pos = CVUtil.putLfNumeric(size, buffer, pos);
-            pos = CVUtil.putUTF8StringBytes(className, buffer, pos);
+            pos = CVUtil.putUTF8StringBytes(className.replace(".", "_"), buffer, pos);
             if (uniqueName != null) {
                 pos = CVUtil.putUTF8StringBytes(uniqueName, buffer, pos);
+           // } else {
+            //    pos = CVUtil.putUTF8StringBytes(className.replace(".", "_"), buffer, pos);
             }
             return pos;
+        }
+
+        public boolean isForwardRef() {
+            return (propertyAttributes & ATTR_FORWARD_REF) != 0;
+        }
+
+        public boolean hasUniqueName() {
+            return (propertyAttributes & ATTR_HAS_UNIQUENAME) != 0;
         }
 
         protected String toString(String lfTypeStr) {

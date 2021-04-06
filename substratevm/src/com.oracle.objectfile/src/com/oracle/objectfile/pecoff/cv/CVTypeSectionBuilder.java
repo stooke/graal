@@ -33,12 +33,10 @@ import com.oracle.objectfile.debugentry.HeaderTypeEntry;
 import com.oracle.objectfile.debugentry.InterfaceClassEntry;
 import com.oracle.objectfile.debugentry.MethodEntry;
 import com.oracle.objectfile.debugentry.PrimaryEntry;
-import com.oracle.objectfile.debugentry.PrimitiveTypeEntry;
 import com.oracle.objectfile.debugentry.Range;
 import com.oracle.objectfile.debugentry.StructureTypeEntry;
 import com.oracle.objectfile.debugentry.TypeEntry;
 import com.oracle.objectfile.debuginfo.DebugInfoProvider;
-import org.graalvm.collections.Pair;
 import org.graalvm.compiler.debug.DebugContext;
 
 import java.lang.reflect.Modifier;
@@ -73,27 +71,56 @@ class CVTypeSectionBuilder {
     private HeaderTypeEntry globalHeaderEntry;
     private int depth = 0;
 
+    static class TypeInfo {
+        CVTypeRecord record;
+        TypeEntry typeEntry;
+        TypeInfo(CVTypeRecord record, TypeEntry typeEntry) {
+            this.record = record;
+            this.typeEntry = typeEntry;
+        }
+    }
+
+    /* A map of type names to type records.  Only forward references are stored here, and only until they are defined. */
+    private static final int MAX_FORWARD_REFS = 100;
+    private Map<String, TypeInfo> typeInfoMap = new HashMap<>(MAX_FORWARD_REFS);
+
     CVTypeSectionBuilder(CVTypeSectionImpl typeSection) {
         this.typeSection = typeSection;
         addPrimitiveTypes();
     }
 
-    /*
-    0x106e 0x1505 len=46 LF_STRUCTURE count=0 properties=0x0280 fieldListIndex=0x0 derivedFrom=0x0 vshape=0x0
-    0x106f 0x1002 len=10 LF_POINTER refType=0x00106e attrib=0x01000c kind=12 mode=0 modifiers=0 size=8 flags=0
-0x1081 0x1203 len=238 LF_FIELDLIST:
-    field LF_MEMBER type=0x150d attr=0x3 typeidx=0x0022 offset=0x0000 Version
-    field LF_MEMBER type=0x150d attr=0x3 typeidx=0x106f offset=0x0008 Pool
-    field LF_MEMBER type=0x150d attr=0x3 typeidx=0x1063 offset=0x0010 CleanupGroup
-    field LF_MEMBER type=0x150d attr=0x3 typeidx=0x1072 offset=0x0018 CleanupGroupCancelCallback
-    field LF_MEMBER type=0x150d attr=0x3 typeidx=0x0603 offset=0x0020 RaceDll
-    field LF_MEMBER type=0x150d attr=0x3 typeidx=0x1074 offset=0x0028 ActivationContext
-    field LF_MEMBER type=0x150d attr=0x3 typeidx=0x1079 offset=0x0030 FinalizationCallback
-    field LF_MEMBER type=0x150d attr=0x3 typeidx=0x1080 offset=0x0038 u
-    field LF_MEMBER type=0x150d attr=0x3 typeidx=0x103a offset=0x003c CallbackPriority
-    field LF_MEMBER type=0x150d attr=0x3 typeidx=0x0022 offset=0x0040 Size
-0x1082 0x1505 len=74 LF_STRUCTURE count=10 properties=0x0200 fieldListIndex=0x1081 derivedFrom=0x0 vshape=0x0
-*/
+    void buildRemainingRecords() {
+        /* currently java.lang.Class is the only type undefined at this point */
+        for (TypeInfo ti : typeInfoMap.values()) {
+            if (ti.record.type == LF_CLASS && ((CVTypeRecord.CVClassRecord) ti.record).isForwardRef()) {
+                assert ti.typeEntry.isClass();
+                if (ti.typeEntry == null) {
+                    int idx = getUnderlyingType(((CVTypeRecord.CVClassRecord) ti.record).className);
+                    log("****** no typeentry for %s; type remains incomplete", ((CVTypeRecord.CVClassRecord) ti.record).className);
+                } else {
+                    buildType(ti.typeEntry);
+                }
+            }
+        }
+        /* Sanity check. */
+        for (TypeInfo ti : typeInfoMap.values()) {
+            if (ti.record.type == LF_CLASS && ((CVTypeRecord.CVClassRecord) ti.record).isForwardRef()) {
+                log("****** still have undefined type %s", ti.record);
+            }
+        }
+    }
+
+    private int getUnderlyingType(String typeName) {
+        final int idx;
+        if (typeName.endsWith("[]")) {
+            idx = getUnderlyingType(typeName.substring(0, typeName.length() - 2));
+        } else {
+            /* A non-array typename. Find the record or pointer. */
+            CVTypeRecord clsRecord = typeSection.getType(typeName);
+            idx = clsRecord != null ? clsRecord.getSequenceNumber() : 0;
+        }
+        return idx;
+    }
 
     private static final int IN_PROCESS_DEPTH = 10;
 
@@ -114,7 +141,8 @@ class CVTypeSectionBuilder {
             typeRecord = buildForwardReference(typeEntry);
         } else {
             typeRecord = typeSection.getType(typeEntry.getTypeName());
-            if (typeRecord != null) {
+            /* If we've never seen the class or only defined it as a forward reference, define it now. */
+            if (typeRecord != null && typeRecord.type == LF_CLASS && !((CVTypeRecord.CVClassRecord)typeRecord).isForwardRef()) {
                 log("buildType type %s(%s) is known %s", typeEntry.getTypeName(), typeEntry.typeKind().name(), typeRecord);
             } else {
                 log("buildType %s %s size=%d - begin", typeEntry.typeKind().name(), typeEntry.getTypeName(), typeEntry.getSize());
@@ -143,7 +171,7 @@ class CVTypeSectionBuilder {
                             globalHeaderEntry = (HeaderTypeEntry) typeEntry;
                             /* create a synthetic class for this object and make java.lang.Object derive from it */
                             log("Object header size=%d kind=%s %s", typeEntry.getSize(), typeEntry.typeKind().name(), typeEntry.getTypeName());
-                            typeRecord = buildStruct((HeaderTypeEntry) typeEntry, 0, null);
+                            typeRecord = buildStruct((HeaderTypeEntry) typeEntry, 0, null, null);
                             objectHeaderRecordIndex = typeRecord.getSequenceNumber();
                         } else {
                             log( "****** more than one HEADER %s ******", typeEntry.getTypeName());
@@ -158,13 +186,14 @@ class CVTypeSectionBuilder {
         return typeRecord;
     }
 
-    private CVTypeRecord buildForwardReference(TypeEntry typeEntry) {
-        CVTypeRecord fref = typeSection.getType(typeEntry.getTypeName());
-        if (fref == null) {
-            fref = addTypeRecord(new CVTypeRecord.CVClassRecord((short) ATTR_FORWARD_REF, typeEntry.getTypeName(), null));
-            log("buildForwardReference: type %s (%s): added %s", typeEntry.getTypeName(), typeEntry.typeKind().name(), fref);
+    private CVTypeRecord buildForwardReference(TypeEntry entry) {
+        CVTypeRecord record = typeSection.getType(entry.getTypeName());
+        if (record == null) {
+            record = addTypeRecord(new CVTypeRecord.CVClassRecord((short) ATTR_FORWARD_REF, entry.getTypeName(), null));
+            typeInfoMap.put(entry.getTypeName(), new TypeInfo(record, entry));
+            log("buildForwardReference: type %s (%s): added %s", entry.getTypeName(), entry.typeKind().name(), record);
         }
-        return fref;
+        return record;
     }
 
     private int getIndexForPointer(TypeEntry entry, boolean onlyForwardReference) {
@@ -175,6 +204,7 @@ class CVTypeSectionBuilder {
                 /* we've never heard of this class (but it may be in process) */
                 if (onlyForwardReference) {
                     record = addTypeRecord(new CVTypeRecord.CVClassRecord((short) ATTR_FORWARD_REF, entry.getTypeName(), null));
+                    typeInfoMap.put(entry.getTypeName(), new TypeInfo(record, entry));
                     log("buildForwardReference: type %s (%s): added %s", entry.getTypeName(), entry.typeKind().name(), record);
                 } else {
                     record = buildType(entry);
@@ -200,6 +230,7 @@ class CVTypeSectionBuilder {
             if (clsRecord == null) {
                 /* we've never heard of this class (but it may be in process) */
                 clsRecord = addTypeRecord(new CVTypeRecord.CVClassRecord((short) ATTR_FORWARD_REF, typeName, null));
+                typeInfoMap.put(typeName, new TypeInfo(clsRecord, null));
             } else if (clsRecord.getSequenceNumber() <= MAX_PRIMITIVE) {
                 return clsRecord.getSequenceNumber();
             }
@@ -221,7 +252,7 @@ class CVTypeSectionBuilder {
     private CVTypeRecord buildClass(ClassEntry classEntry) {
 
         CVTypeRecord classRecord = typeSection.getType(classEntry.getTypeName());
-        if (classRecord == null) {
+        if (classRecord == null || classRecord.type == LF_CLASS && ((CVTypeRecord.CVClassRecord) classRecord).isForwardRef()) {
             log("classentry size=%d kind=%s %s", classEntry.getSize(), classEntry.typeKind().name(), classEntry.getTypeName());
             depth++;
             inProcessMap.put(classEntry.getTypeName(), classEntry);
@@ -325,6 +356,8 @@ class CVTypeSectionBuilder {
             int vshapeIndex = 0; /* type index of vshape table for this class */
             classRecord = new CVTypeRecord.CVClassRecord(LF_CLASS, count, attrs, fieldListIdx, superIdx, vshapeIndex, classEntry.getSize(), classEntry.getTypeName(), null);
             classRecord = addTypeRecord(classRecord);
+            /* remove any forward refs fromthe todo list */
+            typeInfoMap.remove(classEntry.getTypeName());
 
             /* Save this in case we find a class with no superclass */
             if (classEntry.getTypeName().equals(JAVA_LANG_OBJECT)) {
@@ -359,27 +392,22 @@ class CVTypeSectionBuilder {
         int elementTypeIndex = getIndexForPointer(elementType, false);
         CVTypeRecord array0record = addTypeRecord(new CVTypeRecord.CVTypeArrayRecord(elementTypeIndex, T_QUAD, 0));
 
-        /* build a field for DynamicHub? */
-   //     CVTypeRecord.CVMemberRecord hm = new CVTypeRecord.CVMemberRecord((short) 0x03, getIndexForPointer("java.lang.Class"), 0, "clazz");
-
-        /* build a field for the length */
-  //      int lengthOffset = 0x08;
-   //     CVTypeRecord.CVMemberRecord lm = new CVTypeRecord.CVMemberRecord((short) 0x03, typeSection.getType("int").getSequenceNumber(), lengthOffset, "length");
-
         /* build a field for the 0 length array */
-        //int dataOffset = 0;
         CVTypeRecord.CVMemberRecord dm = new CVTypeRecord.CVMemberRecord((short) 0x03, array0record.getSequenceNumber(), 0, "data");
 
         CVTypeRecord.CVMemberRecord[] fields = {dm};
-        CVTypeRecord record = buildStruct(typeEntry, javaLangObjectRecordIndex, fields);
+        CVTypeRecord record = buildStruct(typeEntry, javaLangObjectRecordIndex, typeEntry.getTypeName().replace("[]","_XX"), fields);
         log("build ARRAY: %s", record);
         return record;
     }
 
-    private CVTypeRecord buildStruct(StructureTypeEntry typeEntry, int superTypeIndex, CVTypeRecord.CVMemberRecord[] extraFields) {
+    private CVTypeRecord buildStruct(StructureTypeEntry typeEntry, int superTypeIndex, String typeName, CVTypeRecord.CVMemberRecord[] extraFields) {
         /* create a synthetic class for this object and make java.lang.Object derive from it */
         depth++;
-        inProcessMap.put(typeEntry.getTypeName(), typeEntry);
+        if (typeName == null) {
+            typeName = typeEntry.getTypeName();
+        }
+        inProcessMap.put(typeName, typeEntry);
 
         int fieldListIdx = 0;
         int fieldListCount = 0;
@@ -404,7 +432,7 @@ class CVTypeSectionBuilder {
             if (extraFields != null) {
                 for (CVTypeRecord.CVMemberRecord fieldRecord : extraFields) {
                     fieldRecord.offset = (typeEntry.getSize() + 7) & ~0x7;
-                    log("field %s", fieldRecord);
+                    log("synthetic field %s", fieldRecord);
                     fieldListRecord.add(fieldRecord);
                     /* TODO don't know size of element totalHeaderFieldSize = Math.max(totalHeaderFieldSize, fieldRecord.offset)); */
                 }
@@ -417,13 +445,13 @@ class CVTypeSectionBuilder {
                 fieldListCount = newfieldListRecord.count();
                 log("finished building fields %s", newfieldListRecord);
             } else {
-                log("finished building fields - no manifested fields found in %s (%d declared)", typeEntry.getTypeName(), typeEntry.fields().count());
+                log("finished building fields - no manifested fields found in %s (%d declared)", typeName, typeEntry.fields().count());
             }
             depth--;
         }
         /* Build final class record. */
         short attrs = 0; /* property attribute field (prop_t) */
-        CVTypeRecord typeRecord = new CVTypeRecord.CVClassRecord(LF_CLASS, (short) fieldListCount, attrs, fieldListIdx, superTypeIndex, 0, totalHeaderFieldSize, typeEntry.getTypeName(), null);
+        CVTypeRecord typeRecord = new CVTypeRecord.CVClassRecord(LF_CLASS, (short) fieldListCount, attrs, fieldListIdx, superTypeIndex, 0, totalHeaderFieldSize, typeName, null);
         typeRecord = addTypeRecord(typeRecord);
 
         /* May need to add LF_UDT_SRC_LINE to type table once we have source info. */
@@ -440,14 +468,6 @@ class CVTypeSectionBuilder {
         return fieldEntry.getOffset() >= 0;
     }
 
-    /*
-   0x100f 0x1203 len=186 LF_FIELDLIST:
-     field LF_ENUMERATE type=0x1502 attr=0x3 l=1 JOB_OBJECT_NET_RATE_CONTROL_ENABLE
-     field LF_ENUMERATE type=0x1502 attr=0x3 l=2 JOB_OBJECT_NET_RATE_CONTROL_MAX_BANDWIDTH
-     field LF_ENUMERATE type=0x1502 attr=0x3 l=4 JOB_OBJECT_NET_RATE_CONTROL_DSCP_TAG
-     field LF_ENUMERATE type=0x1502 attr=0x3 l=7 JOB_OBJECT_NET_RATE_CONTROL_VALID_FLAGS
-   0x1010 0x1507 len=90 LF_ENUM count=4 properties=0x0200 fieldListIndex=0x100f underLyingTypeIndex=0x74 JOB_OBJECT_NET_RATE_CONTROL_FLAGS
-*/
     /* use the standard class builder for enums
     private CVTypeRecord buildEnum(EnumClassEntry type) {
         depth++;
@@ -490,10 +510,10 @@ class CVTypeSectionBuilder {
         mFunctionRecord.setCallType((byte) 0);
         short attr = (short) (Modifier.isPublic(methodEntry.getModifiers()) ? 0x03 : (Modifier.isPrivate(methodEntry.getModifiers())) ? 0x01 : 0x02);
         mFunctionRecord.setFuncAttr((byte) attr);
-        mFunctionRecord.setReturnType(getIndexForPointer(methodEntry.getValueType().getTypeName()));
+        mFunctionRecord.setReturnType(getIndexForPointer(methodEntry.getValueType(), false));
         CVTypeRecord.CVTypeArglistRecord argListType = new CVTypeRecord.CVTypeArglistRecord();
         for (int i = 0; i < methodEntry.getParamCount(); i++) {
-            argListType.add(getIndexForPointer(methodEntry.getParamType(i).getTypeName()));
+            argListType.add(getIndexForPointer(methodEntry.getParamType(i), false));
         }
         argListType = addTypeRecord(argListType);
         mFunctionRecord.setArgList(argListType);
@@ -513,10 +533,13 @@ class CVTypeSectionBuilder {
         depth++;
 
         /* Build return type records. */
-        int returnTypeIndex = getIndexForPointer(primary.getMethodReturnTypeName());
+        /* TODO - build from proper type instead of name */
+        /* currently this builds ugly class records for arrays, so cheat by returning Object */
+        int returnTypeIndex = primary.getMethodReturnTypeName().endsWith("[]") ? getIndexForPointer(JAVA_LANG_OBJECT) : getIndexForPointer(primary.getMethodReturnTypeName());
 
         /* Build arglist type record. */
         CVTypeRecord.CVTypeArglistRecord argListType = new CVTypeRecord.CVTypeArglistRecord();
+        /* TODO - build correct arg list from real types */
         argListType.add(T_VOID);
         argListType = addTypeRecord(argListType);
 

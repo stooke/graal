@@ -67,6 +67,7 @@ abstract class CVSectionImpl extends BasicProgbitsSectionImpl {
         if (debug) {
             context.logv(DebugContext.INFO_LEVEL, format, args);
         }
+        System.out.format(format + "\n", args);
     }
 
     protected void verboseLog(DebugContext context, String format, Object... args) {

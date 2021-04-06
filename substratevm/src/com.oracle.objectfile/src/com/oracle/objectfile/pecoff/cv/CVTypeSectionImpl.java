@@ -57,10 +57,13 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
     private int sequenceCounter = 0x1000;
 
     /* A sequential map of type records, starting at 1000 */
+    /* This map is used to implement deduplication. */
     private Map<CVTypeRecord, CVTypeRecord> typeMap = new LinkedHashMap<>(CV_RECORD_INITIAL_CAPACITY);
 
     /* A map of type names to type records - more than one name can map to a record */
     private Map<String, CVTypeRecord> typeNameMap = new HashMap<>(CV_TYPENAME_INITIAL_CAPACITY);
+
+   // private Map<TypeEntry, CVTypeRecord> typeEntryMap = new HashMap<>(CV_TYPENAME_INITIAL_CAPACITY);
 
     /* For convenience, quick lookup of pointer type indices given class type index */
     /* Could have saved this in typenameMap. */
@@ -117,6 +120,7 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
     private void addRecords() {
         /* if an external PDB file is generated, add CVTypeServer2Record */
         /* for each class, add all members, types, etc */
+        builder.buildRemainingRecords();
     }
 
     /**
@@ -198,7 +202,10 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
             } else if (newRecord.type == LF_CLASS || newRecord.type == LF_STRUCTURE) {
                 CVTypeRecord.CVClassRecord cr = (CVTypeRecord.CVClassRecord) newRecord;
                 /* TODO should we use uniquename here? */
-                typeNameMap.put(cr.className, cr);
+                /* Save off the class definition (or forward reference) */
+                if (!cr.isForwardRef() || !typeNameMap.containsKey(cr.className)) {
+                    typeNameMap.put(cr.className, cr);
+                }
             }
         }
         return record;
