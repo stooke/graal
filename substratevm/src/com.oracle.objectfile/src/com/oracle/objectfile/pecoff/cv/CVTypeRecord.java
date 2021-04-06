@@ -147,9 +147,12 @@ abstract class CVTypeRecord {
 
     static final class CVTypePrimitive extends CVTypeRecord {
 
-        CVTypePrimitive(short cvtype) {
+        int length;
+
+        CVTypePrimitive(short cvtype, int length) {
             super(cvtype);
             assert cvtype < 0x1000;
+            this.length = length;
             setSequenceNumber(cvtype);
         }
 
@@ -173,7 +176,7 @@ abstract class CVTypeRecord {
 
         @Override
         public String toString() {
-            return String.format("PRIMITIVE 0x%04x", getSequenceNumber());
+            return String.format("PRIMITIVE 0x%04x (len=%d)", getSequenceNumber(), length);
         }
     }
 

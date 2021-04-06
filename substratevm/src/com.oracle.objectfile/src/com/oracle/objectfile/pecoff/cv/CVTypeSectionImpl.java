@@ -173,8 +173,8 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
         return therecord;
     }
 
-    void definePrimitiveType(String typename, short typeId) {
-        CVTypeRecord record = new CVTypeRecord.CVTypePrimitive(typeId);
+    void definePrimitiveType(String typename, short typeId, int length) {
+        CVTypeRecord record = new CVTypeRecord.CVTypePrimitive(typeId, length);
         typeNameMap.put(typename, record);
     }
 

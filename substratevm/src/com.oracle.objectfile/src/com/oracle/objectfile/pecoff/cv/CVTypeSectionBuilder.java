@@ -551,15 +551,15 @@ class CVTypeSectionBuilder {
     }
 
     private void addPrimitiveTypes() {
-        typeSection.definePrimitiveType("void", T_VOID);
-        typeSection.definePrimitiveType("byte", T_CHAR);
-        typeSection.definePrimitiveType("boolean", T_CHAR);
-        typeSection.definePrimitiveType("char", T_CHAR16);  // unsigned
-        typeSection.definePrimitiveType("short", T_SHORT);
-        typeSection.definePrimitiveType("int", T_LONG);
-        typeSection.definePrimitiveType("long", T_QUAD);
-        typeSection.definePrimitiveType("float", T_REAL32);
-        typeSection.definePrimitiveType("double", T_REAL64);
+        typeSection.definePrimitiveType("void", T_VOID, 0);
+        typeSection.definePrimitiveType("byte", T_CHAR, Byte.BYTES);
+        typeSection.definePrimitiveType("boolean", T_CHAR, 1);
+        typeSection.definePrimitiveType("char", T_CHAR16, Character.BYTES);
+        typeSection.definePrimitiveType("short", T_SHORT, Short.BYTES);
+        typeSection.definePrimitiveType("int", T_LONG, Integer.BYTES);
+        typeSection.definePrimitiveType("long", T_QUAD, Long.BYTES);
+        typeSection.definePrimitiveType("float", T_REAL32, Float.BYTES);
+        typeSection.definePrimitiveType("double", T_REAL64, Double.BYTES);
     }
 
     private <T extends CVTypeRecord> T addTypeRecord(T record) {
