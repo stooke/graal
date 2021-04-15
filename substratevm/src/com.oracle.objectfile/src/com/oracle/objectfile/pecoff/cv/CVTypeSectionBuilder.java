@@ -47,14 +47,16 @@ import java.util.Map;
 
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_CLASS;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MAX_PRIMITIVE;
-import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_CHAR;
-import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_CHAR16;
-import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_LONG;
-import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_QUAD;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_INT1;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_INT2;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_INT4;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_INT8;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_REAL32;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_REAL64;
-import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_SHORT;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_UINT1;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_UINT4;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_VOID;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_WCHAR;
 import static com.oracle.objectfile.pecoff.cv.CVTypeRecord.CVClassRecord.ATTR_FORWARD_REF;
 
 class CVTypeSectionBuilder {
@@ -276,10 +278,16 @@ class CVTypeSectionBuilder {
             /* process fields */
             int fieldListIdx = 0;
             int fieldListCount = 0;
-            if (classEntry.fields().count() > 0 || classEntry.methods().count() > 0) {
+            if (classEntry.fields().count() > 0 || classEntry.methods().count() > 0 || superIdx != 0) {
                 depth++;
                 CVTypeRecord.CVFieldListRecord fieldListRecord = new CVTypeRecord.CVFieldListRecord();
                 log("building fields %s", fieldListRecord);
+
+                if (superIdx != 0) {
+                    CVTypeRecord.CVBaseMemberRecord btype = new CVTypeRecord.CVBaseMemberRecord((short) 0x3, superIdx, 0);
+                    log("basetype %s", btype);
+                    fieldListRecord.add(btype);
+                }
 
                 /* Skip over unmanifested fields. */
                 classEntry.fields().filter(CVTypeSectionBuilder::isManifestedField).forEach(f -> {
@@ -354,7 +362,7 @@ class CVTypeSectionBuilder {
             short count = (short)fieldListCount; /* count of number of elements in class */
             short attrs = 0; /* property attribute field (prop_t) */
             int vshapeIndex = 0; /* type index of vshape table for this class */
-            classRecord = new CVTypeRecord.CVClassRecord(LF_CLASS, count, attrs, fieldListIdx, superIdx, vshapeIndex, classEntry.getSize(), classEntry.getTypeName(), null);
+            classRecord = new CVTypeRecord.CVClassRecord(LF_CLASS, count, attrs, fieldListIdx, 0, vshapeIndex, classEntry.getSize(), classEntry.getTypeName(), null);
             classRecord = addTypeRecord(classRecord);
             /* remove any forward refs fromthe todo list */
             typeInfoMap.remove(classEntry.getTypeName());
@@ -390,13 +398,13 @@ class CVTypeSectionBuilder {
         /* build 0 length array */
         final TypeEntry elementType = typeEntry.getElementType();
         int elementTypeIndex = getIndexForPointer(elementType, false);
-        CVTypeRecord array0record = addTypeRecord(new CVTypeRecord.CVTypeArrayRecord(elementTypeIndex, T_QUAD, 0));
+        CVTypeRecord array0record = addTypeRecord(new CVTypeRecord.CVTypeArrayRecord(elementTypeIndex, T_UINT4, 0));
 
         /* build a field for the 0 length array */
         CVTypeRecord.CVMemberRecord dm = new CVTypeRecord.CVMemberRecord((short) 0x03, array0record.getSequenceNumber(), 0, "data");
 
         CVTypeRecord.CVMemberRecord[] fields = {dm};
-        CVTypeRecord record = buildStruct(typeEntry, javaLangObjectRecordIndex, typeEntry.getTypeName().replace("[]","_XX"), fields);
+        CVTypeRecord record = buildStruct(typeEntry, javaLangObjectRecordIndex, typeEntry.getTypeName(), fields);
         log("build ARRAY: %s", record);
         return record;
     }
@@ -413,10 +421,18 @@ class CVTypeSectionBuilder {
         int fieldListCount = 0;
         int totalHeaderFieldSize = 0;
 
-        if (typeEntry.fields().count() > 0 || extraFields != null) {
+        if (typeEntry.fields().count() > 0 || extraFields != null || superTypeIndex != 0) {
             depth++;
             CVTypeRecord.CVFieldListRecord fieldListRecord = new CVTypeRecord.CVFieldListRecord();
             log("building fields %s", fieldListRecord);
+
+            if (superTypeIndex != 0) {
+                CVTypeRecord.CVBaseMemberRecord btype = new CVTypeRecord.CVBaseMemberRecord((short) 0x3, superTypeIndex, 0);
+                log("basetype %s", btype);
+                fieldListRecord.add(btype);
+                /* TODO - we don't really know the size here unless we refactor a bunch. */
+                totalHeaderFieldSize = Math.max(totalHeaderFieldSize, 0);
+            }
 
             for (Object field : typeEntry.fields().toArray()) {
                 FieldEntry f = (FieldEntry) field;
@@ -451,7 +467,7 @@ class CVTypeSectionBuilder {
         }
         /* Build final class record. */
         short attrs = 0; /* property attribute field (prop_t) */
-        CVTypeRecord typeRecord = new CVTypeRecord.CVClassRecord(LF_CLASS, (short) fieldListCount, attrs, fieldListIdx, superTypeIndex, 0, totalHeaderFieldSize, typeName, null);
+        CVTypeRecord typeRecord = new CVTypeRecord.CVClassRecord(LF_CLASS, (short) fieldListCount, attrs, fieldListIdx, 0, 0, totalHeaderFieldSize, typeName, null);
         typeRecord = addTypeRecord(typeRecord);
 
         /* May need to add LF_UDT_SRC_LINE to type table once we have source info. */
@@ -552,12 +568,12 @@ class CVTypeSectionBuilder {
 
     private void addPrimitiveTypes() {
         typeSection.definePrimitiveType("void", T_VOID, 0);
-        typeSection.definePrimitiveType("byte", T_CHAR, Byte.BYTES);
-        typeSection.definePrimitiveType("boolean", T_CHAR, 1);
-        typeSection.definePrimitiveType("char", T_CHAR16, Character.BYTES);
-        typeSection.definePrimitiveType("short", T_SHORT, Short.BYTES);
-        typeSection.definePrimitiveType("int", T_LONG, Integer.BYTES);
-        typeSection.definePrimitiveType("long", T_QUAD, Long.BYTES);
+        typeSection.definePrimitiveType("byte", T_INT1, Byte.BYTES);
+        typeSection.definePrimitiveType("boolean", T_UINT1, 1);
+        typeSection.definePrimitiveType("char", T_WCHAR, Character.BYTES);
+        typeSection.definePrimitiveType("short", T_INT2, Short.BYTES);
+        typeSection.definePrimitiveType("int", T_INT4, Integer.BYTES);
+        typeSection.definePrimitiveType("long", T_INT8, Long.BYTES);
         typeSection.definePrimitiveType("float", T_REAL32, Float.BYTES);
         typeSection.definePrimitiveType("double", T_REAL64, Double.BYTES);
     }

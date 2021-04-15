@@ -55,10 +55,11 @@ import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_PROCEDURE;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_STRING_ID;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_STRUCTURE;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_TYPESERVER2;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_UDT_MOD_SRC_LINE;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_UDT_SRC_LINE;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_IVIRTUAL;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_VIRTUAL;
-import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_UQUAD;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_UINT8;
 
 /*
  * CV Type Record format (little-endian):
@@ -67,6 +68,8 @@ import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_UQUAD;
  * (contents)
  */
 abstract class CVTypeRecord {
+
+    static int FIRST_TYPE_INDEX = 0x1000;
 
     protected final short type;
     private int startPosition;
@@ -87,7 +90,7 @@ abstract class CVTypeRecord {
     }
 
     int computeFullSize(int initialPos) {
-        assert sequenceNumber >= 0x1000;
+        assert sequenceNumber >= FIRST_TYPE_INDEX;
         this.startPosition = initialPos;
         int pos = initialPos + Short.BYTES * 2; /* Save room for length and leaf type. */
         pos = computeSize(pos);
@@ -96,7 +99,7 @@ abstract class CVTypeRecord {
     }
 
     int computeFullContents(byte[] buffer, int initialPos) {
-        assert sequenceNumber >= 0x1000;
+        assert sequenceNumber >= FIRST_TYPE_INDEX;
         int pos = initialPos + Short.BYTES; /* Save room for length short. */
         pos = CVUtil.putShort(type, buffer, pos);
         pos = computeContents(buffer, pos);
@@ -107,7 +110,9 @@ abstract class CVTypeRecord {
         return pos;
     }
 
-    protected abstract int computeSize(int initialPos);
+    public int computeSize(int initialPos) {
+        return computeContents(null, initialPos);
+    }
 
     protected abstract int computeContents(byte[] buffer, int initialPos);
 
@@ -151,13 +156,13 @@ abstract class CVTypeRecord {
 
         CVTypePrimitive(short cvtype, int length) {
             super(cvtype);
-            assert cvtype < 0x1000;
+            assert cvtype < FIRST_TYPE_INDEX;
             this.length = length;
             setSequenceNumber(cvtype);
         }
 
         @Override
-        protected int computeSize(int initialPos) {
+        public int computeSize(int initialPos) {
             GraalError.shouldNotReachHere();
             return 0;
         }
@@ -197,15 +202,10 @@ abstract class CVTypeRecord {
         */
         final int attrs;
 
-        public CVTypePointerRecord(int pointTo, int attrs) {
+        CVTypePointerRecord(int pointTo, int attrs) {
             super(LF_POINTER);
             this.pointsTo = pointTo;
             this.attrs = attrs;
-        }
-
-        @Override
-        public int computeSize(int initialPos) {
-            return computeContents(null, initialPos);
         }
 
         @Override
@@ -252,41 +252,40 @@ abstract class CVTypeRecord {
         }
     }
 
-    static final class CVUdtTypeLineRecord extends CVTypeRecord {
+    static class CVUdtTypeLineRecord extends CVTypeRecord {
 
         int typeIndex;
-        int fileIdx;
+        int fileIndex;
         int line;
 
-        CVUdtTypeLineRecord(int typeIndex, int fileIdx, int line) {
-            super(LF_UDT_SRC_LINE);
-            this.typeIndex = typeIndex;
-            this.fileIdx = fileIdx;
-            this.line = line;
+        CVUdtTypeLineRecord(int typeIndex, int fileIndex, int line) {
+            this(LF_UDT_SRC_LINE, typeIndex, fileIndex, line);
         }
 
-        @Override
-        public int computeSize(int initialPos) {
-            return computeContents(null, initialPos);
+        CVUdtTypeLineRecord(short t, int typeIndex, int fileIndex, int line) {
+            super(t);
+            this.typeIndex = typeIndex;
+            this.fileIndex = fileIndex;
+            this.line = line;
         }
 
         @Override
         public int computeContents(byte[] buffer, int initialPos) {
             int pos = CVUtil.putInt(typeIndex, buffer, initialPos);
-            pos = CVUtil.putInt(fileIdx, buffer, pos);
+            pos = CVUtil.putInt(fileIndex, buffer, pos);
             return CVUtil.putInt(line, buffer, pos);
         }
 
         @Override
         public String toString() {
-            return String.format("LF_UDT_SRC_LINE 0x%04x typeIdx=0x%x fileIdx=0x%x line=%d", getSequenceNumber(), typeIndex, fileIdx, line);
+            return String.format("LF_UDT_SRC_LINE 0x%04x typeIdx=0x%x fileIdx=0x%x line=%d", getSequenceNumber(), typeIndex, fileIndex, line);
         }
 
         @Override
         public int hashCode() {
             int h = type;
             h = 31 * h + typeIndex;
-            h = 31 * h + fileIdx;
+            h = 31 * h + fileIndex;
             h = 31 * h + line;
             return h;
         }
@@ -298,7 +297,45 @@ abstract class CVTypeRecord {
             }
             CVUdtTypeLineRecord other = (CVUdtTypeLineRecord) obj;
             /* NB: if the record has the same type but different file or line, it's probably an error. */
-            return this.typeIndex == other.typeIndex && this.fileIdx == other.fileIdx && this.line == other.line;
+            return this.typeIndex == other.typeIndex && this.fileIndex == other.fileIndex && this.line == other.line;
+        }
+    }
+
+    static final class CVUdtTypeLineModRecord extends CVUdtTypeLineRecord {
+
+        final short mod;
+
+        CVUdtTypeLineModRecord(int typeIndex, int fileIndex, int line, short mod) {
+            super(LF_UDT_MOD_SRC_LINE, typeIndex, fileIndex, line);
+            this.mod = mod;
+        }
+
+        @Override
+        public int computeContents(byte[] buffer, int initialPos) {
+            int pos = super.computeContents(buffer, initialPos);
+            return CVUtil.putShort(mod, buffer, pos);
+        }
+
+        @Override
+        public String toString() {
+            return String.format("LF_UDT_MOD_SRC_LINE 0x%04x typeIdx=0x%x fileIdx=0x%x line=%d mod=%d", getSequenceNumber(), typeIndex, fileIndex, line, mod);
+        }
+
+        @Override
+        public int hashCode() {
+            int h = super.hashCode();
+            h = 31 * h + mod;
+            return h;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (!super.equals(obj)) {
+                return false;
+            }
+            CVUdtTypeLineModRecord other = (CVUdtTypeLineModRecord) obj;
+            /* NB: if the record has the same type but different file or line, it's probably an error. */
+            return this.mod == other.mod;
         }
     }
 
@@ -313,15 +350,10 @@ abstract class CVTypeRecord {
             this.string = string;
         }
 
-        public CVTypeStringIdRecord(String string) {
+        CVTypeStringIdRecord(String string) {
             super(LF_STRING_ID);
             this.substringIdx = 0;
             this.string = string;
-        }
-
-        @Override
-        public int computeSize(int initialPos) {
-            return computeContents(null, initialPos);
         }
 
         @Override
@@ -358,7 +390,7 @@ abstract class CVTypeRecord {
         private final int typeIndex;
         private final short attrs;
 
-        public CVTypeModifierRecord(int typeIndex, short attrs) {
+        CVTypeModifierRecord(int typeIndex, short attrs) {
             super(LF_MODIFIER);
             this.typeIndex = typeIndex;
             this.attrs = attrs;
@@ -366,11 +398,6 @@ abstract class CVTypeRecord {
 
         public CVTypeModifierRecord(int typeIndex, boolean isConst, boolean isVolatile, boolean isUnaligned) {
             this(typeIndex, (short) ((isConst ? 1 : 0) + (isVolatile ? 2 : 0) + (isUnaligned ? 4 : 0)));
-        }
-
-        @Override
-        public int computeSize(int initialPos) {
-            return computeContents(null, initialPos);
         }
 
         @Override
@@ -427,11 +454,6 @@ abstract class CVTypeRecord {
         CVTypeProcedureRecord argList(CVTypeArglistRecord leaf) {
             this.argList = leaf;
             return this;
-        }
-
-        @Override
-        public int computeSize(int initialPos) {
-            return computeContents(null, initialPos);
         }
 
         @Override
@@ -543,19 +565,19 @@ abstract class CVTypeRecord {
             this.returnType = returnType;
         }
 
-        public void setClassType(int classType) {
+        void setClassType(int classType) {
             this.classType = classType;
         }
 
-        public void setThisType(int thisType) {
+        void setThisType(int thisType) {
             this.thisType = thisType;
         }
 
-        public void setCallType(byte callType) {
+        void setCallType(byte callType) {
             this.callType = callType;
         }
 
-        public void setFuncAttr(byte funcAttr) {
+        void setFuncAttr(byte funcAttr) {
             this.funcAttr = funcAttr;
         }
 
@@ -563,14 +585,10 @@ abstract class CVTypeRecord {
             this.thisAdjust = thisAdjust;
         }
 
-        public void setArgList(CVTypeArglistRecord argList) {
+        void setArgList(CVTypeArglistRecord argList) {
             this.argList = argList;
         }
 
-        @Override
-        public int computeSize(int initialPos) {
-            return computeContents(null, initialPos);
-        }
         /*
             int returnType = in.getInt();
             int classType = in.getInt();
@@ -638,7 +656,7 @@ abstract class CVTypeRecord {
         }
         ArrayList<MDef> methods = new ArrayList<>(10);
 
-        public CVTypeMethodListRecord() {
+        CVTypeMethodListRecord() {
             super(LF_METHODLIST);
         }
 
@@ -648,11 +666,6 @@ abstract class CVTypeRecord {
 
         public int count() {
             return methods.size();
-        }
-
-        @Override
-        public int computeSize(int initialPos) {
-            return computeContents(null, initialPos);
         }
 
         @Override
@@ -782,11 +795,6 @@ abstract class CVTypeRecord {
         }
 
         @Override
-        public int computeSize(int initialPos) {
-            return computeContents(null, initialPos);
-        }
-
-        @Override
         public int computeContents(byte[] buffer, int initialPos) {
             int pos = CVUtil.putShort(type, buffer, initialPos);
             pos = CVUtil.putShort(attrs, buffer, pos); /* (count) */
@@ -797,7 +805,7 @@ abstract class CVTypeRecord {
 
         @Override
         public String toString() {
-            return String.format("LF_METHOD 0x%04x count=0x%x listIdx=0x%04x %s", type, attrs, methodListIndex, name);
+            return String.format("LF_METHOD(0x%04x) count=0x%x listIdx=0x%04x %s", type, attrs, methodListIndex, name);
         }
 
         @Override
@@ -829,11 +837,6 @@ abstract class CVTypeRecord {
         }
 
         @Override
-        public int computeSize(int initialPos) {
-            return computeContents(null, initialPos);
-        }
-
-        @Override
         public int computeContents(byte[] buffer, int initialPos) {
             int pos = CVUtil.putShort(type, buffer, initialPos);
             pos = CVUtil.putShort(attrs, buffer, pos);
@@ -845,7 +848,7 @@ abstract class CVTypeRecord {
 
         @Override
         public String toString() {
-            return String.format("LF_MEMBER 0x%04x attr=0x%x(%s) t=0x%x off=%d 0x%x %s", type, attrs, attrString(), underlyingTypeIndex, offset, offset & 0xffff, name);
+            return String.format("LF_MEMBER(0x%04x) attr=0x%x(%s) t=0x%x off=%d 0x%x %s", type, attrs, attrString(), underlyingTypeIndex, offset, offset & 0xffff, name);
         }
 
         @Override
@@ -880,11 +883,6 @@ abstract class CVTypeRecord {
         }
 
         @Override
-        public int computeSize(int initialPos) {
-            return computeContents(null, initialPos);
-        }
-
-        @Override
         public int computeContents(byte[] buffer, int initialPos) {
             int pos = CVUtil.putShort(type, buffer, initialPos);
             pos = CVUtil.putShort(attrs, buffer, pos);
@@ -899,7 +897,7 @@ abstract class CVTypeRecord {
 
         @Override
         public String toString() {
-            return String.format("LF_ONEMETHOD 0x%04x attr=0x%x(%s) funcIdx=0x%x off=0x%x %s", type, attrs, attrString(), funcIdx, vtbleOffset, name);
+            return String.format("LF_ONEMETHOD(0x%04x) attr=0x%x(%s) funcIdx=0x%x off=0x%x %s", type, attrs, attrString(), funcIdx, vtbleOffset, name);
         }
 
         @Override
@@ -917,6 +915,50 @@ abstract class CVTypeRecord {
             }
             CVOneMethodRecord other = (CVOneMethodRecord) obj;
             return this.vtbleOffset == other.vtbleOffset && this.funcIdx == other.funcIdx;
+        }
+    }
+
+    static class CVBaseMemberRecord extends FieldRecord {
+
+        int basetypeIndex; /* type index of member type */
+        int offset; /* in java, usually 0 as there is no multiple inheritance. */
+
+        CVBaseMemberRecord(short attrs, int basetypeIndex, int offset) {
+            super(LF_BCLASS, attrs, "");
+            this.basetypeIndex = basetypeIndex;
+            this.offset = offset;
+        }
+
+        @Override
+        public int computeContents(byte[] buffer, int initialPos) {
+            int pos = CVUtil.putShort(type, buffer, initialPos);
+            pos = CVUtil.putShort(attrs, buffer, pos);
+            pos = CVUtil.putInt(basetypeIndex, buffer, pos);
+            pos = CVUtil.putLfNumeric(offset, buffer, pos);
+            return pos;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("LF_BCLASS(0x%04x) attr=0x%04x (%s) baseIdx=0x%04x offset=0x%x", LF_BCLASS, attrs, attrString(), basetypeIndex, offset);
+        }
+
+        @Override
+        public int hashCode() {
+            int h = type;
+            h = 31 * h + attrs;
+            h = 31 * h + basetypeIndex;
+            h = 31 * h + offset;
+            return h;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (!super.equals(obj)) {
+                return false;
+            }
+            CVBaseMemberRecord other = (CVBaseMemberRecord) obj;
+            return this.basetypeIndex == other.basetypeIndex && this.offset == other.offset;
         }
     }
 
@@ -993,13 +1035,29 @@ abstract class CVTypeRecord {
         static final int ATTR_FORWARD_REF = 0x0080;
         static final int ATTR_HAS_UNIQUENAME = 0x0200;
 
-        short count; /* count of number of elements in class */
-        short propertyAttributes; /* property attribute field (prop_t) */
-        int fieldIndex; /* type index of LF_FIELDLIST descriptor list */
-        int derivedFromIndex; /* type index of derived from list if not zero */
-        int vshapeIndex; /* type index of vshape table for this class */
+        /* Count of number of elements in class field list. */
+        short count;
+
+        /* Property attribute field (prop_t). */
+        short propertyAttributes;
+
+        /* Type index of LF_FIELDLIST descriptor list. */
+        int fieldIndex;
+
+        /* Type index of derived from list if not zero */
+        /* For Java, there is only one class, so LF_BCLASS is in the meber list and derivedFromIndex is 0. */
+        int derivedFromIndex;
+
+        /* Type index of vshape table for this class. */
+        int vshapeIndex;
+
+        /* Size (in bytes) of an instance. */
         long size;
+
+        /* Class name. */
         String className;
+
+        /* Linker class name. */
         String uniqueName;
 
         CVClassRecord(short recType, short count, short attrs, int fieldIndex, int derivedFromIndex, int vshapeIndex, long size, String className, String uniqueName) {
@@ -1022,28 +1080,24 @@ abstract class CVTypeRecord {
         }
 
         @Override
-        public int computeSize(int initialPos) {
-            return computeContents(null, initialPos);
-        }
-
-        @Override
         public int computeContents(byte[] buffer, int initialPos) {
             int pos = CVUtil.putShort(count, buffer, initialPos);
-            pos = CVUtil.putShort(propertyAttributes, buffer, pos);
+            pos = CVUtil.putShort((short) (propertyAttributes | ATTR_HAS_UNIQUENAME), buffer, pos);
             pos = CVUtil.putInt(fieldIndex, buffer, pos);
             pos = CVUtil.putInt(derivedFromIndex, buffer, pos);
             pos = CVUtil.putInt(vshapeIndex, buffer, pos);
             pos = CVUtil.putLfNumeric(size, buffer, pos);
-            pos = CVUtil.putUTF8StringBytes(className.replace(".", "_"), buffer, pos);
+            String fixedName = className.replace('.', '_').replace("[]", "_array").replace('$', '_');
+            pos = CVUtil.putUTF8StringBytes(fixedName, buffer, pos);
             if (uniqueName != null) {
                 pos = CVUtil.putUTF8StringBytes(uniqueName, buffer, pos);
-           // } else {
-            //    pos = CVUtil.putUTF8StringBytes(className.replace(".", "_"), buffer, pos);
+            } else {
+                pos = CVUtil.putUTF8StringBytes(fixedName, buffer, pos);
             }
             return pos;
         }
 
-        public boolean isForwardRef() {
+        boolean isForwardRef() {
             return (propertyAttributes & ATTR_FORWARD_REF) != 0;
         }
 
@@ -1052,8 +1106,8 @@ abstract class CVTypeRecord {
         }
 
         protected String toString(String lfTypeStr) {
-            return String.format("%s 0x%04x count=%d attr=0x%x(%s) fld=0x%x super=0x%x vshape=0x%x size=%d %s", lfTypeStr, getSequenceNumber(), count, propertyAttributes, propertyString(propertyAttributes), fieldIndex, derivedFromIndex,
-                    vshapeIndex, size, className, uniqueName != null ? "(" + uniqueName + ")" : "");
+            return String.format("%s 0x%04x count=%d attr=0x%x(%s) fld=0x%x super=0x%x vshape=0x%x size=%d %s%s", lfTypeStr, getSequenceNumber(), count, propertyAttributes, propertyString(propertyAttributes), fieldIndex, derivedFromIndex,
+                    vshapeIndex, size, className, uniqueName != null ? " (" + uniqueName + ")" : "");
         }
 
         @Override
@@ -1118,11 +1172,6 @@ abstract class CVTypeRecord {
 
         int count() {
             return members.size();
-        }
-
-        @Override
-        protected int computeSize(int initialPos) {
-            return computeContents(null, initialPos);
         }
 
         static int pad42(byte[] buffer, int initialPos) {
@@ -1194,11 +1243,6 @@ abstract class CVTypeRecord {
         }
 
         @Override
-        public int computeSize(int initialPos) {
-            return computeContents(null, initialPos);
-        }
-
-        @Override
         public int computeContents(byte[] buffer, int initialPos) {
             int pos = CVUtil.putShort(type, buffer, initialPos);
             pos = CVUtil.putShort(attrs, buffer, pos);
@@ -1210,7 +1254,7 @@ abstract class CVTypeRecord {
 
         @Override
         public String toString() {
-            return String.format("LF_ENUMERATE 0x%04x attr=0x%x(%s) val=0x%x %s", attrs, attrString(), value, name);
+            return String.format("LF_ENUMERATE 0x%04x attr=0x%x(%s) val=0x%x %s", type, attrs, attrString(), value, name);
         }
 
         @Override
@@ -1245,11 +1289,6 @@ abstract class CVTypeRecord {
             this.underlyingTypeIndex = underlyingTypeIndex;
             this.fieldRecord = fieldRecord;
             this.name = name;
-        }
-
-        @Override
-        protected int computeSize(int initialPos) {
-            return computeContents(null, initialPos);
         }
 
         @Override
@@ -1365,14 +1404,14 @@ abstract class CVTypeRecord {
         CVTypeArrayRecord(int elementType, int length) {
             super(LF_ARRAY);
             this.elementType = elementType;
-            this.indexType = T_UQUAD;
+            this.indexType = T_UINT8;
             this.length = length;
         }
 
         CVTypeArrayRecord(CVTypeRecord elementType, int length) {
             super(LF_ARRAY);
             this.elementType = elementType.getSequenceNumber();
-            this.indexType = T_UQUAD;
+            this.indexType = T_UINT8;
             this.length = length;
         }
 
@@ -1442,11 +1481,6 @@ abstract class CVTypeRecord {
         }
 
         @Override
-        public int computeSize(int initialPos) {
-            return computeContents(null, initialPos);
-        }
-
-        @Override
         public int computeContents(byte[] buffer, int initialPos) {
             int pos = CVUtil.putBytes(guid, buffer, initialPos);
             pos = CVUtil.putInt(age, buffer, pos);
@@ -1485,7 +1519,6 @@ abstract class CVTypeRecord {
             b[idx2] = tmp;
         }
     }
-
 
     static String propertyString(int properties) {
         StringBuilder sb = new StringBuilder();

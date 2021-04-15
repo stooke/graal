@@ -189,8 +189,28 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
     @SuppressWarnings("unchecked")
     <T extends CVTypeRecord> T addOrReference(T newRecord) {
         final T record;
+        final boolean isInstance = newRecord.type == LF_CLASS || newRecord.type == LF_STRUCTURE;
+        /* Currently the hashes for identical class records do not always match.
+           Until this is tracked down, use type name.
+         */
         if (typeMap.containsKey(newRecord)) {
             record = (T) typeMap.get(newRecord);
+        } else if (isInstance) {
+            CVTypeRecord.CVClassRecord cr = (CVTypeRecord.CVClassRecord) newRecord;
+            if (cr.className.equals("java.io.BufferedWriter")) {
+                cr = cr;
+            }
+            /* TODO should we use uniquename here? */
+            /* Save off the class definition (or forward reference) */
+            CVTypeRecord.CVClassRecord oldRecord = (CVTypeRecord.CVClassRecord) typeNameMap.get(cr.className);
+            if (oldRecord == null || (oldRecord.isForwardRef() && !cr.isForwardRef())) {
+                newRecord.setSequenceNumber(sequenceCounter++);
+                typeMap.put(newRecord, newRecord);
+                record = newRecord;
+                typeNameMap.put(cr.className, cr);
+            } else {
+                record = (T) oldRecord;
+            }
         } else {
             newRecord.setSequenceNumber(sequenceCounter++);
             typeMap.put(newRecord, newRecord);
@@ -199,13 +219,6 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
                 /* convenience to find associated pointer records */
                 CVTypeRecord.CVTypePointerRecord pr = (CVTypeRecord.CVTypePointerRecord) newRecord;
                 typePointerMap.put(pr.pointsTo, pr);
-            } else if (newRecord.type == LF_CLASS || newRecord.type == LF_STRUCTURE) {
-                CVTypeRecord.CVClassRecord cr = (CVTypeRecord.CVClassRecord) newRecord;
-                /* TODO should we use uniquename here? */
-                /* Save off the class definition (or forward reference) */
-                if (!cr.isForwardRef() || !typeNameMap.containsKey(cr.className)) {
-                    typeNameMap.put(cr.className, cr);
-                }
             }
         }
         return record;

@@ -35,18 +35,24 @@ abstract class CVTypeConstants {
     static final short T_NOTYPE = 0x0000;
     static final short T_VOID = 0x0003;
 
-    static final short T_CHAR = 0x0010; /* 8 bit signed (java type) */
-    // static final short T_WCHAR = 0x0071;
-    static final short T_CHAR16 = 0x007a; /* 16 bit unicode (Java type) */
-    static final short T_SHORT = 0x0011; /* 16 bit signed short (Java type) */
-    static final short T_LONG = 0x0014; /* 32 bit signed (java type? maybe T_short4?) */
-    static final short T_QUAD = 0x0013; /* 64 bit signed long long (Java type) */
-    static final short T_REAL32 = 0x0040; /* 32 bit float (Java type) */
-    static final short T_REAL64 = 0x0041; /* 64 but double (Java type) */
-    // static final short T_RCHAR = 0x0070; /* ?? "really a char" */
+    static final short T_WCHAR = 0x0071; /* 16 bite wide character (java char type) */
+    static final short T_REAL32 = 0x0040; /* 32 bit float (Java float type) */
+    static final short T_REAL64 = 0x0041; /* 64 but double (Java double type) */
 
-    static final short T_INT4 = T_LONG; /* ?? is tis right */
-    static final short T_UQUAD = T_QUAD; /* ?? */
+    static final short T_INT1 = 0x0068; /* 8 bit int (java byte type) */
+    static final short T_INT2 = 0x0072; /* 16 bit int (java short type) */
+    static final short T_INT4 = 0x0074; /* 32 bit int (java int type) */
+    static final short T_INT8 = 0x0076; /* 64 bit int (java long type) */
+
+    static final short T_64PINT1 = 0x0668; /* 64 bit pointer to 8 bit int (java byte type) */
+    static final short T_64PINT2 = 0x0672; /* 64 bit pointer to 16 bit int (java short type) */
+    static final short T_64PINT4 = 0x0674; /* 64 bit pointer to 32 bit int (java int type) */
+    static final short T_64PINT8 = 0x0676; /* 64 bit pointer to 64 bit int (java long type) */
+
+    static final short T_UINT1 = 0x0069; /* 8 bit unsigned int */
+    static final short T_UINT2 = 0x0073; /* 16 bit unsigned int */
+    static final short T_UINT4 = 0x0075; /* 32 bit unsigned int */
+    static final short T_UINT8 = 0x0077; /* 64 bit unsigned int */
 
     // static final short T_POINTER_BITS = 0x0700;
     // static final short T_POINTER32 = 0x0400; /* 32 bit pointer */
