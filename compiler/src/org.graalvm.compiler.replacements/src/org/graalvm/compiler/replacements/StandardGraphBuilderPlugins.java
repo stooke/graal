@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -54,6 +54,7 @@ import org.graalvm.compiler.graph.NodeList;
 import org.graalvm.compiler.lir.gen.ArithmeticLIRGeneratorTool.RoundingMode;
 import org.graalvm.compiler.nodes.AbstractBeginNode;
 import org.graalvm.compiler.nodes.BeginNode;
+import org.graalvm.compiler.nodes.BreakpointNode;
 import org.graalvm.compiler.nodes.ConstantNode;
 import org.graalvm.compiler.nodes.DeoptimizeNode;
 import org.graalvm.compiler.nodes.EndNode;
@@ -260,8 +261,9 @@ public class StandardGraphBuilderPlugins {
                 @Override
                 public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod, Receiver receiver, ValueNode value) {
                     ResolvedJavaField field = b.getMetaAccess().lookupJavaField(STRING_VALUE_FIELD);
+                    ValueNode object = b.nullCheckedValue(value);
                     b.addPush(JavaKind.Object, LoadFieldNode.create(b.getConstantFieldProvider(), b.getConstantReflection(), b.getMetaAccess(),
-                                    b.getOptions(), b.getAssumptions(), value, field, false, false));
+                                    b.getOptions(), b.getAssumptions(), object, field, false, false));
                     return true;
                 }
             });
@@ -301,8 +303,9 @@ public class StandardGraphBuilderPlugins {
                 @Override
                 public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod, Receiver receiver, ValueNode value) {
                     ResolvedJavaField field = b.getMetaAccess().lookupJavaField(STRING_VALUE_FIELD);
+                    ValueNode object = b.nullCheckedValue(value);
                     b.addPush(JavaKind.Object, LoadFieldNode.create(b.getConstantFieldProvider(), b.getConstantReflection(), b.getMetaAccess(),
-                                    b.getOptions(), b.getAssumptions(), value, field, false, false));
+                                    b.getOptions(), b.getAssumptions(), object, field, false, false));
                     return true;
                 }
             });
@@ -522,14 +525,16 @@ public class StandardGraphBuilderPlugins {
         r.register2("divideUnsigned", type, type, new InvocationPlugin() {
             @Override
             public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod, Receiver receiver, ValueNode dividend, ValueNode divisor) {
-                b.push(kind, b.append(UnsignedDivNode.create(dividend, divisor, null, NodeView.DEFAULT)));
+                GuardingNode zeroCheck = b.maybeEmitExplicitDivisionByZeroCheck(divisor);
+                b.push(kind, b.append(UnsignedDivNode.create(dividend, divisor, zeroCheck, NodeView.DEFAULT)));
                 return true;
             }
         });
         r.register2("remainderUnsigned", type, type, new InvocationPlugin() {
             @Override
             public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod, Receiver receiver, ValueNode dividend, ValueNode divisor) {
-                b.push(kind, b.append(UnsignedRemNode.create(dividend, divisor, null, NodeView.DEFAULT)));
+                GuardingNode zeroCheck = b.maybeEmitExplicitDivisionByZeroCheck(divisor);
+                b.push(kind, b.append(UnsignedRemNode.create(dividend, divisor, zeroCheck, NodeView.DEFAULT)));
                 return true;
             }
         });
@@ -1040,10 +1045,6 @@ public class StandardGraphBuilderPlugins {
         }
     }
 
-    /**
-     * Unsafe access relative to null object is an access to off-heap memory. As linear pointer
-     * compression uses non-zero null, here null object must be replaced with zero constant.
-     */
     public abstract static class UnsafeAccessPlugin implements InvocationPlugin {
         @FunctionalInterface
         public interface UnsafeNodeConstructor {
@@ -1084,18 +1085,31 @@ public class StandardGraphBuilderPlugins {
             graph.markUnsafeAccess();
             /* For unsafe access object pointers can only be stored in the heap */
             if (unsafeAccessKind == JavaKind.Object) {
-                setAccessNodeResult(createObjectAccessNode(value, nodeConstructor), b);
+                ValueNode object = value;
+                if (explicitUnsafeNullChecks) {
+                    object = b.nullCheckedValue(object);
+                }
+                setAccessNodeResult(createObjectAccessNode(object, nodeConstructor), b);
             } else if (StampTool.isPointerAlwaysNull(value)) {
                 setAccessNodeResult(createMemoryAccessNode(graph, nodeConstructor), b);
             } else if (!explicitUnsafeNullChecks || StampTool.isPointerNonNull(value)) {
+                /*
+                 * If !explicitUnsafeNullChecks and value is not guaranteed to be non-null, the
+                 * created node or its lowering must ensure that a null value will lead to an
+                 * off-heap access using an absolute address. Really, this would be handled better
+                 * in platform-dependent lowering or parser-dependent predicate rather than a
+                 * boolean flag.
+                 */
                 setAccessNodeResult(createObjectAccessNode(value, nodeConstructor), b);
             } else {
-                FixedWithNextNode objectAccess = graph.add(createObjectAccessNode(value, nodeConstructor));
+                PiNode nonNullObject = graph.addWithoutUnique(new PiNode(value, StampFactory.objectNonNull()));
+                FixedWithNextNode objectAccess = graph.add(createObjectAccessNode(nonNullObject, nodeConstructor));
                 FixedWithNextNode memoryAccess = graph.add(createMemoryAccessNode(graph, nodeConstructor));
                 FixedWithNextNode[] accessNodes = new FixedWithNextNode[]{objectAccess, memoryAccess};
 
                 LogicNode condition = graph.addOrUniqueWithInputs(IsNullNode.create(value));
-                b.add(new IfNode(condition, memoryAccess, objectAccess, BranchProbabilityData.unknown()));
+                IfNode ifNode = b.add(new IfNode(condition, memoryAccess, objectAccess, BranchProbabilityData.unknown()));
+                nonNullObject.setGuard(ifNode.falseSuccessor());
 
                 MergeNode merge = b.append(new MergeNode());
                 for (FixedWithNextNode node : accessNodes) {
@@ -1526,6 +1540,25 @@ public class StandardGraphBuilderPlugins {
                 return true;
             }
         });
+        r.register0("breakpoint", new InvocationPlugin() {
+            @Override
+            public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod, Receiver receiver) {
+                b.add(new BreakpointNode());
+                return true;
+            }
+        });
+        r.register1("isCompilationConstant", Object.class, new InvocationPlugin() {
+            @Override
+            public boolean inlineOnly() {
+                return true;
+            }
+
+            @Override
+            public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod, Receiver receiver, ValueNode value) {
+                b.addPush(JavaKind.Boolean, ConstantNode.forBoolean(value.isJavaConstant()));
+                return true;
+            }
+        });
     }
 
     private static void registerJMHBlackholePlugins(InvocationPlugins plugins, Replacements replacements) {
@@ -1542,6 +1575,8 @@ public class StandardGraphBuilderPlugins {
                 return true;
             }
         };
+        // The purpose of this plugin is to help Blackhole.consume function mostly correctly even if
+        // it's been inlined.
         String[] names = {"org.openjdk.jmh.infra.Blackhole", "org.openjdk.jmh.logic.BlackHole"};
         for (String name : names) {
             Registration r = new Registration(plugins, name, replacements);

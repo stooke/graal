@@ -38,6 +38,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.espresso.EspressoLanguage;
 import com.oracle.truffle.espresso.bytecode.BytecodeStream;
 import com.oracle.truffle.espresso.descriptors.Symbol;
@@ -70,6 +71,8 @@ import com.oracle.truffle.espresso.meta.Meta;
 import com.oracle.truffle.espresso.nodes.EspressoInstrumentableNode;
 import com.oracle.truffle.espresso.nodes.EspressoRootNode;
 import com.oracle.truffle.espresso.nodes.quick.QuickNode;
+import com.oracle.truffle.espresso.nodes.quick.interop.ForeignArrayUtils;
+import com.oracle.truffle.espresso.runtime.dispatch.EspressoInterop;
 import com.oracle.truffle.espresso.substitutions.Target_java_lang_Thread;
 
 public final class JDWPContextImpl implements JDWPContext {
@@ -269,7 +272,7 @@ public final class JDWPContextImpl implements JDWPContext {
     public String getStringValue(Object object) {
         if (object instanceof StaticObject) {
             StaticObject staticObject = (StaticObject) object;
-            return (String) staticObject.toDisplayString(false);
+            return (String) EspressoInterop.toDisplayString(staticObject, false);
         }
         return object.toString();
     }
@@ -470,16 +473,22 @@ public final class JDWPContextImpl implements JDWPContext {
     public Object getArrayValue(Object array, int index) {
         StaticObject arrayRef = (StaticObject) array;
         Object value;
-        ArrayKlass arrayKlass = (ArrayKlass) arrayRef.getKlass();
-        if (arrayKlass.getComponentType().isPrimitive()) {
-            // primitive array type needs wrapping
-            if (arrayKlass == context.getMeta()._boolean_array) {
-                byte[] byteArray = getUnboxedArray(array);
-                value = byteArray[index] != 0;
-            } else {
-                Object boxedArray = getUnboxedArray(array);
-                value = Array.get(boxedArray, index);
+        if (arrayRef.isForeignObject()) {
+            value = ForeignArrayUtils.readForeignArrayElement(arrayRef, index, InteropLibrary.getUncached(), context.getMeta(), BranchProfile.create());
+            if (!(value instanceof StaticObject)) {
+                // For JDWP we have to have a ref type, so here we have to create a copy
+                // value when possible as a StaticObject based on the foreign type.
+                // Note: we only support Host String conversion for now
+                if (String.class.isInstance(value)) {
+                    return context.getMeta().toGuestString((String) value);
+                } else {
+                    throw new IllegalStateException("foreign object conversion not supported");
+                }
             }
+        } else if (((ArrayKlass) arrayRef.getKlass()).getComponentType().isPrimitive()) {
+            // primitive array type needs wrapping
+            Object boxedArray = getUnboxedArray(array);
+            value = Array.get(boxedArray, index);
         } else {
             value = arrayRef.get(index);
         }
@@ -685,6 +694,16 @@ public final class JDWPContextImpl implements JDWPContext {
             }
         }
         return null;
+    }
+
+    @Override
+    public long getBCI(Node rawNode, Frame frame) {
+        Node node = getInstrumentableNode(rawNode);
+        if (node == null) {
+            return -1;
+        }
+        EspressoInstrumentableNode instrumentableNode = (EspressoInstrumentableNode) node;
+        return instrumentableNode.getCurrentBCI(frame);
     }
 
     @Override

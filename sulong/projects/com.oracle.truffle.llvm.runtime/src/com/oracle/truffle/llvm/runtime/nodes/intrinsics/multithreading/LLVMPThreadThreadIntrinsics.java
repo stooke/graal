@@ -60,7 +60,7 @@ public final class LLVMPThreadThreadIntrinsics {
         protected int doIntrinsic(LLVMPointer thread, LLVMPointer startRoutine, LLVMPointer arg,
                         @Cached LLVMI64StoreNode store,
                         @CachedContext(LLVMLanguage.class) LLVMContext context) {
-            LLVMPThreadStart.LLVMPThreadRunnable init = new LLVMPThreadStart.LLVMPThreadRunnable(startRoutine, arg, context, true);
+            LLVMPThreadStart.LLVMPThreadRunnable init = new LLVMPThreadStart.LLVMPThreadRunnable(startRoutine, arg, context);
             final Thread t = context.getpThreadContext().createThread(init);
             if (t == null) {
                 return LLVMAMD64Error.EAGAIN;
@@ -174,6 +174,11 @@ public final class LLVMPThreadThreadIntrinsics {
 
         @TruffleBoundary
         protected byte[] getThreadNameAsBytes(Thread thread) {
+            if (thread == null) {
+                throw new IllegalStateException("The thread is null");
+            } else if (thread.getName() == null) {
+                throw new IllegalStateException("The thread's name is null");
+            }
             return thread.getName().getBytes();
         }
     }

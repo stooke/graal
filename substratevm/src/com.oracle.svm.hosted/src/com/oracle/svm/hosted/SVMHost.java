@@ -46,7 +46,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ForkJoinPool;
 import java.util.function.BiConsumer;
 
-import com.oracle.svm.core.heap.StoredContinuation;
 import org.graalvm.compiler.core.common.spi.ForeignCallDescriptor;
 import org.graalvm.compiler.core.common.spi.ForeignCallsProvider;
 import org.graalvm.compiler.graph.Node;
@@ -68,6 +67,7 @@ import com.oracle.graal.pointsto.BigBang;
 import com.oracle.graal.pointsto.api.HostVM;
 import com.oracle.graal.pointsto.api.PointstoOptions;
 import com.oracle.graal.pointsto.constraints.UnsupportedFeatureException;
+import com.oracle.graal.pointsto.flow.AnalysisParsedGraph;
 import com.oracle.graal.pointsto.infrastructure.OriginalClassProvider;
 import com.oracle.graal.pointsto.meta.AnalysisField;
 import com.oracle.graal.pointsto.meta.AnalysisMethod;
@@ -83,6 +83,7 @@ import com.oracle.svm.core.classinitialization.EnsureClassInitializedNode;
 import com.oracle.svm.core.graal.meta.SubstrateForeignCallLinkage;
 import com.oracle.svm.core.graal.meta.SubstrateForeignCallsProvider;
 import com.oracle.svm.core.graal.stackvalue.StackValueNode;
+import com.oracle.svm.core.heap.StoredContinuation;
 import com.oracle.svm.core.heap.Target_java_lang_ref_Reference;
 import com.oracle.svm.core.hub.DynamicHub;
 import com.oracle.svm.core.hub.HubType;
@@ -97,6 +98,8 @@ import com.oracle.svm.hosted.classinitialization.ClassInitializationSupport;
 import com.oracle.svm.hosted.code.InliningUtilities;
 import com.oracle.svm.hosted.meta.HostedType;
 import com.oracle.svm.hosted.phases.AnalysisGraphBuilderPhase;
+import com.oracle.svm.hosted.phases.IntrinsifyMethodHandlesInvocationPlugin.IntrinsificationRegistry;
+import com.oracle.svm.hosted.snippets.ReflectionPlugins.ReflectionPluginRegistry;
 import com.oracle.svm.hosted.substitute.UnsafeAutomaticSubstitutionProcessor;
 import com.oracle.svm.util.ReflectionUtil;
 
@@ -377,12 +380,27 @@ public final class SVMHost implements HostVM {
         boolean isRecord = RecordSupport.singleton().isRecord(javaClass);
         boolean assertionStatus = RuntimeAssertionsSupport.singleton().desiredAssertionStatus(javaClass);
 
-        final DynamicHub dynamicHub = new DynamicHub(javaClass, className, computeHubType(type), computeReferenceType(type), type.isLocal(), isAnonymousClass(javaClass), superHub, componentHub,
-                        sourceFileName, modifiers, hubClassLoader, isHidden, isRecord, nestHost, assertionStatus);
+        final DynamicHub dynamicHub = new DynamicHub(javaClass, className, computeHubType(type), computeReferenceType(type),
+                        isLocalClass(javaClass), isAnonymousClass(javaClass), superHub, componentHub, sourceFileName,
+                        modifiers, hubClassLoader, isHidden, isRecord, nestHost, assertionStatus);
         if (JavaVersionUtil.JAVA_SPEC > 8) {
             ModuleAccess.extractAndSetModule(dynamicHub, javaClass);
         }
         return dynamicHub;
+    }
+
+    private static Object isLocalClass(Class<?> javaClass) {
+        try {
+            return javaClass.isLocalClass();
+        } catch (InternalError e) {
+            return e;
+        } catch (LinkageError e) {
+            if (NativeImageOptions.AllowIncompleteClasspath.getValue()) {
+                return e;
+            } else {
+                return unsupportedMethod(javaClass, "isLocalClass");
+            }
+        }
     }
 
     /**
@@ -398,13 +416,17 @@ public final class SVMHost implements HostVM {
             if (NativeImageOptions.AllowIncompleteClasspath.getValue()) {
                 return e;
             } else {
-                String message = "Discovered a type for which isAnonymousClass can't be called: " + javaClass.getTypeName() +
-                                ". To avoid this issue at build time use the " +
-                                SubstrateOptionsParser.commandArgument(NativeImageOptions.AllowIncompleteClasspath, "+") +
-                                " option. The LinkageError will then be reported at run time when this method is called for the first time.";
-                throw new UnsupportedFeatureException(message);
+                return unsupportedMethod(javaClass, "isAnonymousClass");
             }
         }
+    }
+
+    private static Object unsupportedMethod(Class<?> javaClass, String methodName) {
+        String message = "Discovered a type for which " + methodName + " can't be called: " + javaClass.getTypeName() +
+                        ". To avoid this issue at build time use the " +
+                        SubstrateOptionsParser.commandArgument(NativeImageOptions.AllowIncompleteClasspath, "+") +
+                        " option. The LinkageError will then be reported at run time when this method is called for the first time.";
+        throw new UnsupportedFeatureException(message);
     }
 
     public static boolean isUnknownClass(ResolvedJavaType resolvedJavaType) {
@@ -630,5 +652,20 @@ public final class SVMHost implements HostVM {
 
     public boolean isAnalysisTrivialMethod(AnalysisMethod method) {
         return analysisTrivialMethods.containsKey(method);
+    }
+
+    @Override
+    @SuppressWarnings("try")
+    public AnalysisParsedGraph parseBytecode(BigBang bb, AnalysisMethod analysisMethod) {
+        /*
+         * Temporarily pause the thread local registries. The results of parsing need to be
+         * persistent.
+         */
+        try (AutoCloseable ignored1 = ReflectionPluginRegistry.pauseThreadLocalRegistry();
+                        AutoCloseable ignored2 = IntrinsificationRegistry.pauseThreadLocalRegistry()) {
+            return AnalysisParsedGraph.parseBytecode(bb, analysisMethod);
+        } catch (Throwable e) {
+            throw bb.getDebug().handle(e);
+        }
     }
 }

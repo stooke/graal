@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -33,6 +33,7 @@ import static org.graalvm.compiler.core.common.GraalOptions.TrackNodeSourcePosit
 import static org.graalvm.compiler.debug.DebugOptions.Dump;
 import static org.graalvm.compiler.debug.DebugOptions.DumpPath;
 import static org.graalvm.compiler.debug.DebugOptions.MethodFilter;
+import static org.graalvm.compiler.debug.DebugOptions.PrintBackendCFG;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -327,6 +328,7 @@ public abstract class CompilationWrapper<T> {
                             Dump, ":" + DebugOptions.DiagnoseDumpLevel.getValue(initialOptions),
                             MethodFilter, null,
                             DumpPath, dumpPath.getPath(),
+                            PrintBackendCFG, true,
                             TrackNodeSourcePosition, true);
 
             ByteArrayOutputStream logBaos = new ByteArrayOutputStream();

@@ -230,6 +230,7 @@ import static com.oracle.truffle.espresso.bytecode.Bytecodes.TABLESWITCH;
 import static com.oracle.truffle.espresso.bytecode.Bytecodes.WIDE;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
@@ -328,6 +329,7 @@ import com.oracle.truffle.espresso.nodes.quick.invoke.InvokeInterfaceNodeGen;
 import com.oracle.truffle.espresso.nodes.quick.invoke.InvokeSpecialNode;
 import com.oracle.truffle.espresso.nodes.quick.invoke.InvokeStaticNode;
 import com.oracle.truffle.espresso.nodes.quick.invoke.InvokeVirtualNodeGen;
+import com.oracle.truffle.espresso.perf.DebugCounter;
 import com.oracle.truffle.espresso.runtime.EspressoContext;
 import com.oracle.truffle.espresso.runtime.EspressoException;
 import com.oracle.truffle.espresso.runtime.EspressoExitException;
@@ -335,7 +337,6 @@ import com.oracle.truffle.espresso.runtime.ReturnAddress;
 import com.oracle.truffle.espresso.runtime.StaticObject;
 import com.oracle.truffle.espresso.substitutions.Target_java_lang_Thread;
 import com.oracle.truffle.espresso.vm.InterpreterToVM;
-import com.oracle.truffle.espresso.perf.DebugCounter;
 
 /**
  * Bytecode interpreter loop.
@@ -1025,12 +1026,12 @@ public final class BytecodeNode extends EspressoMethodNode {
                         continue loop;
                     }
                     // @formatter:off
-                    case IRETURN: return notifyReturn(frame, statementIndex, exitMethodAndReturn(popInt(primitives, top - 1)));
-                    case LRETURN: return notifyReturn(frame, statementIndex, exitMethodAndReturnObject(popLong(primitives, top - 1)));
-                    case FRETURN: return notifyReturn(frame, statementIndex, exitMethodAndReturnObject(popFloat(primitives, top - 1)));
-                    case DRETURN: return notifyReturn(frame, statementIndex, exitMethodAndReturnObject(popDouble(primitives, top - 1)));
-                    case ARETURN: return notifyReturn(frame, statementIndex, exitMethodAndReturnObject(popObject(refs, top - 1)));
-                    case RETURN : return notifyReturn(frame, statementIndex, exitMethodAndReturn());
+                    case IRETURN: return notifyReturn(frame, statementIndex, exitMethodAndReturn(popInt(primitives, top - 1)), loopCount[0]);
+                    case LRETURN: return notifyReturn(frame, statementIndex, exitMethodAndReturnObject(popLong(primitives, top - 1)), loopCount[0]);
+                    case FRETURN: return notifyReturn(frame, statementIndex, exitMethodAndReturnObject(popFloat(primitives, top - 1)), loopCount[0]);
+                    case DRETURN: return notifyReturn(frame, statementIndex, exitMethodAndReturnObject(popDouble(primitives, top - 1)), loopCount[0]);
+                    case ARETURN: return notifyReturn(frame, statementIndex, exitMethodAndReturnObject(popObject(refs, top - 1)), loopCount[0]);
+                    case RETURN : return notifyReturn(frame, statementIndex, exitMethodAndReturn(), loopCount[0]);
 
                     // TODO(peterssen): Order shuffled.
                     case GETSTATIC : // fall through
@@ -1149,6 +1150,9 @@ public final class BytecodeNode extends EspressoMethodNode {
                     if (instrument != null) {
                         instrument.notifyExceptionAt(frame, wrappedStackOverflowError, statementIndex);
                     }
+                    if (loopCount[0] > 0) {
+                        LoopNode.reportLoopCount(this, loopCount[0]);
+                    }
                     throw wrappedStackOverflowError;
 
                 } else /* EspressoException or AbstractTruffleException or OutOfMemoryError */ {
@@ -1194,12 +1198,16 @@ public final class BytecodeNode extends EspressoMethodNode {
                         if (instrument != null) {
                             instrument.notifyExceptionAt(frame, wrappedException, statementIndex);
                         }
+                        if (loopCount[0] > 0) {
+                            LoopNode.reportLoopCount(this, loopCount[0]);
+                        }
                         throw e;
                     }
                 }
             } catch (EspressoExitException e) {
                 CompilerDirectives.transferToInterpreter();
                 getRoot().abortMonitor(frame);
+                // Tearing down the VM, no need to report loop count.
                 throw e;
             }
             // This check includes newly rewritten QUICK nodes, not just curOpcode == quick
@@ -1267,7 +1275,10 @@ public final class BytecodeNode extends EspressoMethodNode {
         }
     }
 
-    private Object notifyReturn(VirtualFrame frame, int statementIndex, Object toReturn) {
+    private Object notifyReturn(VirtualFrame frame, int statementIndex, Object toReturn, int loopCount) {
+        if (loopCount > 0) {
+            LoopNode.reportLoopCount(this, loopCount);
+        }
         if (instrumentation != null) {
             instrumentation.notifyReturn(frame, statementIndex, toReturn);
         }
@@ -1455,6 +1466,7 @@ public final class BytecodeNode extends EspressoMethodNode {
             checkStopping();
             if ((++loopCount[0] & (REPORT_LOOP_STRIDE - 1)) == 0) {
                 LoopNode.reportLoopCount(this, REPORT_LOOP_STRIDE);
+                loopCount[0] -= REPORT_LOOP_STRIDE;
             }
         }
         if (instrument != null) {
@@ -2504,18 +2516,18 @@ public final class BytecodeNode extends EspressoMethodNode {
             LineNumberTableAttribute table = method.getLineNumberTableAttribute();
 
             if (table != LineNumberTableAttribute.EMPTY) {
-                LineNumberTableAttribute.Entry[] entries = table.getEntries();
+                List<LineNumberTableAttribute.Entry> entries = table.getEntries();
                 // don't allow multiple entries with same line, keep only the first one
                 // reduce the checks needed heavily by keeping track of max seen line number
-                int[] seenLines = new int[entries.length];
+                int[] seenLines = new int[entries.size()];
                 Arrays.fill(seenLines, -1);
                 int maxSeenLine = -1;
 
-                this.statementNodes = new EspressoInstrumentableNode[entries.length];
+                this.statementNodes = new EspressoInstrumentableNode[entries.size()];
                 this.hookBCIToNodeIndex = new MapperBCI(table);
 
-                for (int i = 0; i < entries.length; i++) {
-                    LineNumberTableAttribute.Entry entry = entries[i];
+                for (int i = 0; i < entries.size(); i++) {
+                    LineNumberTableAttribute.Entry entry = entries.get(i);
                     int lineNumber = entry.getLineNumber();
                     boolean seen = false;
                     boolean checkSeen = !(maxSeenLine < lineNumber);

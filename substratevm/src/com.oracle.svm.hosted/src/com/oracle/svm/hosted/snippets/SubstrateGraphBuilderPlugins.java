@@ -36,6 +36,7 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.graalvm.compiler.api.replacements.SnippetReflectionProvider;
@@ -108,6 +109,7 @@ import com.oracle.svm.core.FrameAccess;
 import com.oracle.svm.core.OS;
 import com.oracle.svm.core.ParsingReason;
 import com.oracle.svm.core.RuntimeAssertionsSupport;
+import com.oracle.svm.core.StaticFieldsSupport;
 import com.oracle.svm.core.SubstrateOptions;
 import com.oracle.svm.core.annotate.NeverInline;
 import com.oracle.svm.core.classinitialization.EnsureClassInitializedNode;
@@ -534,7 +536,7 @@ public class SubstrateGraphBuilderPlugins {
                         String fieldName = snippetReflection.asObject(String.class, nameNode.asJavaConstant());
                         try {
                             Field targetField = clazz.getDeclaredField(fieldName);
-                            return processObjectFieldOffset(b, targetField, reason, metaAccess);
+                            return processFieldOffset(b, targetField, reason, metaAccess);
                         } catch (NoSuchFieldException | LinkageError e) {
                             return false;
                         }
@@ -568,13 +570,34 @@ public class SubstrateGraphBuilderPlugins {
         }
     }
 
-    private static void registerUnsafePlugins(MetaAccessProvider metaAccess, Registration r, SnippetReflectionProvider snippetReflection, ParsingReason analysis) {
+    private static void registerUnsafePlugins(MetaAccessProvider metaAccess, Registration r, SnippetReflectionProvider snippetReflection, ParsingReason reason) {
+        r.register2("staticFieldOffset", Receiver.class, Field.class, new InvocationPlugin() {
+            @Override
+            public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod, Receiver receiver, ValueNode fieldNode) {
+                if (fieldNode.isConstant()) {
+                    Field targetField = snippetReflection.asObject(Field.class, fieldNode.asJavaConstant());
+                    return processFieldOffset(b, targetField, reason, metaAccess);
+                }
+                return false;
+            }
+        });
+        r.register2("staticFieldBase", Receiver.class, Field.class, new InvocationPlugin() {
+            @Override
+            public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod, Receiver receiver, ValueNode fieldNode) {
+                if (fieldNode.isConstant()) {
+                    Field targetField = snippetReflection.asObject(Field.class, fieldNode.asJavaConstant());
+                    return processStaticFieldBase(b, targetField, reason, metaAccess);
+                }
+                return false;
+
+            }
+        });
         r.register2("objectFieldOffset", Receiver.class, Field.class, new InvocationPlugin() {
             @Override
             public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod, Receiver receiver, ValueNode fieldNode) {
                 if (fieldNode.isConstant()) {
                     Field targetField = snippetReflection.asObject(Field.class, fieldNode.asJavaConstant());
-                    return processObjectFieldOffset(b, targetField, analysis, metaAccess);
+                    return processFieldOffset(b, targetField, reason, metaAccess);
                 }
                 return false;
             }
@@ -597,7 +620,26 @@ public class SubstrateGraphBuilderPlugins {
         });
     }
 
-    private static boolean processObjectFieldOffset(GraphBuilderContext b, Field targetField, ParsingReason reason, MetaAccessProvider metaAccess) {
+    private static boolean processFieldOffset(GraphBuilderContext b, Field targetField, ParsingReason reason, MetaAccessProvider metaAccess) {
+        return processUnsafeAccessedField(targetField, reason, metaAccess, hostedField -> {
+            assert hostedField.wrapped.isUnsafeAccessed();
+            JavaConstant offsetValue = JavaConstant.forLong(hostedField.getLocation());
+            b.addPush(JavaKind.Long, ConstantNode.forConstant(offsetValue, b.getMetaAccess(), b.getGraph()));
+        });
+    }
+
+    private static boolean processStaticFieldBase(GraphBuilderContext b, Field targetField, ParsingReason reason, MetaAccessProvider metaAccess) {
+        return processUnsafeAccessedField(targetField, reason, metaAccess, hostedField -> {
+            assert hostedField.wrapped.isUnsafeAccessed();
+            Object staticFields = hostedField.getType().isPrimitive()
+                            ? StaticFieldsSupport.getStaticPrimitiveFields()
+                            : StaticFieldsSupport.getStaticObjectFields();
+            JavaConstant baseValue = SubstrateObjectConstant.forObject(staticFields);
+            b.addPush(JavaKind.Object, ConstantNode.forConstant(baseValue, b.getMetaAccess(), b.getGraph()));
+        });
+    }
+
+    private static boolean processUnsafeAccessedField(Field targetField, ParsingReason reason, MetaAccessProvider metaAccess, Consumer<HostedField> invokeReplacer) {
         if (targetField == null) {
             /* A NullPointerException will be thrown at run time for this call. */
             return false;
@@ -613,8 +655,7 @@ public class SubstrateGraphBuilderPlugins {
             HostedMetaAccess hostedMetaAccess = (HostedMetaAccess) metaAccess;
             HostedField hostedField = hostedMetaAccess.lookupJavaField(targetField);
             if (hostedField.wrapped.isUnsafeAccessed()) {
-                JavaConstant offsetValue = JavaConstant.forLong(hostedField.getLocation());
-                b.addPush(JavaKind.Long, ConstantNode.forConstant(offsetValue, b.getMetaAccess(), b.getGraph()));
+                invokeReplacer.accept(hostedField);
                 return true;
             } else {
                 /*
@@ -839,7 +880,7 @@ public class SubstrateGraphBuilderPlugins {
             @Override
             public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod, Receiver receiver, ValueNode sizeNode) {
                 long size = longValue(b, targetMethod, sizeNode, "size");
-                StackSlotIdentity slotIdentity = new StackSlotIdentity(b.getGraph().method().asStackTraceElement(b.bci()).toString());
+                StackSlotIdentity slotIdentity = new StackSlotIdentity(b.getGraph().method().asStackTraceElement(b.bci()).toString(), false);
                 b.addPush(JavaKind.Object, new StackValueNode(1, size, slotIdentity));
                 return true;
             }
@@ -850,7 +891,7 @@ public class SubstrateGraphBuilderPlugins {
             public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod, Receiver unused, ValueNode classNode) {
                 Class<? extends PointerBase> clazz = constantObjectParameter(b, snippetReflection, targetMethod, 0, Class.class, classNode);
                 int size = SizeOf.get(clazz);
-                StackSlotIdentity slotIdentity = new StackSlotIdentity(b.getGraph().method().asStackTraceElement(b.bci()).toString());
+                StackSlotIdentity slotIdentity = new StackSlotIdentity(b.getGraph().method().asStackTraceElement(b.bci()).toString(), false);
                 b.addPush(JavaKind.Object, new StackValueNode(1, size, slotIdentity));
                 return true;
             }
@@ -860,7 +901,7 @@ public class SubstrateGraphBuilderPlugins {
             public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod, Receiver receiver, ValueNode numElementsNode, ValueNode elementSizeNode) {
                 long numElements = longValue(b, targetMethod, numElementsNode, "numElements");
                 long elementSize = longValue(b, targetMethod, elementSizeNode, "elementSize");
-                StackSlotIdentity slotIdentity = new StackSlotIdentity(b.getGraph().method().asStackTraceElement(b.bci()).toString());
+                StackSlotIdentity slotIdentity = new StackSlotIdentity(b.getGraph().method().asStackTraceElement(b.bci()).toString(), false);
                 b.addPush(JavaKind.Object, new StackValueNode(numElements, elementSize, slotIdentity));
                 return true;
             }
@@ -872,7 +913,7 @@ public class SubstrateGraphBuilderPlugins {
                 long numElements = longValue(b, targetMethod, numElementsNode, "numElements");
                 Class<? extends PointerBase> clazz = constantObjectParameter(b, snippetReflection, targetMethod, 0, Class.class, classNode);
                 int size = SizeOf.get(clazz);
-                StackSlotIdentity slotIdentity = new StackSlotIdentity(b.getGraph().method().asStackTraceElement(b.bci()).toString());
+                StackSlotIdentity slotIdentity = new StackSlotIdentity(b.getGraph().method().asStackTraceElement(b.bci()).toString(), false);
                 b.addPush(JavaKind.Object, new StackValueNode(numElements, size, slotIdentity));
                 return true;
             }
