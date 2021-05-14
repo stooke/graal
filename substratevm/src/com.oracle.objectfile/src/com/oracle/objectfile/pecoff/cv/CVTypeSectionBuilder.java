@@ -289,10 +289,10 @@ class CVTypeSectionBuilder {
                     fieldListRecord.add(btype);
                 }
 
-                /* Skip over unmanifested fields. */
+                /* Only define manifested fields. */
                 classEntry.fields().filter(CVTypeSectionBuilder::isManifestedField).forEach(f -> {
                     log("field %s attr=(%s) offset=%d size=%d valuetype=%s", f.fieldName(), f.getModifiersString(), f.getOffset(), f.getSize(), f.getValueType().getTypeName());
-                    CVTypeRecord.CVMemberRecord fieldRecord = buildField(f, false);
+                    CVTypeRecord.FieldRecord fieldRecord = buildField(f, false);
                     log("field %s", fieldRecord);
                     fieldListRecord.add(fieldRecord);
                 });
@@ -333,7 +333,7 @@ class CVTypeSectionBuilder {
 
                         CVTypeRecord.CVTypeMethodListRecord nmlist = addTypeRecord(mlist);
 
-                        // LF_METHOD record
+                        /* LF_METHOD record */
                         CVTypeRecord.CVMemberMethodRecord methodRecord = new CVTypeRecord.CVMemberMethodRecord((short) nmlist.count(), nmlist.getSequenceNumber(), mname);
                         fieldListRecord.add(methodRecord);
                         depth--;
@@ -395,12 +395,12 @@ class CVTypeSectionBuilder {
         /* Model an array as a struct with a pointer, a length and then array of length 0 */
         /* String[] becomes struct String[] : Object { DynamicHub *; int length; String*[0]; } */
 
-        /* build 0 length array */
+        /* Build 0 length array. */
         final TypeEntry elementType = typeEntry.getElementType();
         int elementTypeIndex = getIndexForPointer(elementType, false);
         CVTypeRecord array0record = addTypeRecord(new CVTypeRecord.CVTypeArrayRecord(elementTypeIndex, T_UINT4, 0));
 
-        /* build a field for the 0 length array */
+        /* Build a field for the 0 length array. */
         CVTypeRecord.CVMemberRecord dm = new CVTypeRecord.CVMemberRecord((short) 0x03, array0record.getSequenceNumber(), 0, "data");
 
         CVTypeRecord.CVMemberRecord[] fields = {dm};
@@ -410,7 +410,8 @@ class CVTypeSectionBuilder {
     }
 
     private CVTypeRecord buildStruct(StructureTypeEntry typeEntry, int superTypeIndex, String typeName, CVTypeRecord.CVMemberRecord[] extraFields) {
-        /* create a synthetic class for this object and make java.lang.Object derive from it */
+        /* Create a synthetic class for this object and make java.lang.Object derive from it. */
+        /* Used for arrays, objhdr_ (and perhaps synthetic structs later on).*/
         depth++;
         if (typeName == null) {
             typeName = typeEntry.getTypeName();
@@ -438,7 +439,7 @@ class CVTypeSectionBuilder {
                 FieldEntry f = (FieldEntry) field;
                 if (isManifestedField(f)) {
                     log("field %s attr=(%s) offset=%d size=%d valuetype=%s", f.fieldName(), f.getModifiersString(), f.getOffset(), f.getSize(), f.getValueType().getTypeName());
-                    CVTypeRecord.CVMemberRecord fieldRecord = buildField(f, true);
+                    CVTypeRecord.FieldRecord fieldRecord = buildField(f, true);
                     log("field %s", fieldRecord);
                     fieldListRecord.add(fieldRecord);
                     totalHeaderFieldSize = Math.max(totalHeaderFieldSize, f.getOffset() + f.getSize());
@@ -505,11 +506,15 @@ class CVTypeSectionBuilder {
     }
      */
 
-    private CVTypeRecord.CVMemberRecord buildField(FieldEntry fieldEntry, boolean onlyForwardReference) {
+    private CVTypeRecord.FieldRecord buildField(FieldEntry fieldEntry, boolean onlyForwardReference) {
         TypeEntry valueType = fieldEntry.getValueType();
         int vtIndex = getIndexForPointer(valueType, onlyForwardReference);
         short attr = (short) (Modifier.isPublic(fieldEntry.getModifiers()) ? 0x03 : (Modifier.isPrivate(fieldEntry.getModifiers())) ? 0x01 : 0x02);
-        return new CVTypeRecord.CVMemberRecord(attr, vtIndex, fieldEntry.getOffset(), fieldEntry.fieldName());
+        if (Modifier.isStatic(fieldEntry.getModifiers())) {
+            return new CVTypeRecord.CVStaticMemberRecord(attr, vtIndex, fieldEntry.fieldName());
+        } else {
+            return new CVTypeRecord.CVMemberRecord(attr, vtIndex, fieldEntry.getOffset(), fieldEntry.fieldName());
+        }
     }
 
     private CVTypeRecord.CVOneMethodRecord buildMethod(ClassEntry classEntry, MethodEntry methodEntry) {

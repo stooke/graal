@@ -75,6 +75,7 @@ abstract class CVTypeConstants {
     static final short LF_UNION = 0x1506;
     static final short LF_ENUM = 0x1507;
     static final short LF_MEMBER = 0x150d;
+    static final short LF_STMEMBER = 0x150e;
     static final short LF_METHOD = 0x150f;
     static final short LF_NESTTYPE    = 0x1510;
     static final short LF_ONEMETHOD   = 0x1511;

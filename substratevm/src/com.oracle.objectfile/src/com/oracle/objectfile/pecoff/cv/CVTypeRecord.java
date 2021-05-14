@@ -52,6 +52,7 @@ import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_PAD2;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_PAD3;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_POINTER;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_PROCEDURE;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_STMEMBER;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_STRING_ID;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_STRUCTURE;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_TYPESERVER2;
@@ -718,7 +719,7 @@ abstract class CVTypeRecord {
         }
     }
 
-    private static abstract class FieldRecord {
+    static abstract class FieldRecord {
 
         final short type;
         final short attrs; /* property attribute field (prop_t) */
@@ -728,10 +729,6 @@ abstract class CVTypeRecord {
             this.type = leafType;
             this.attrs = attrs;
             this.name = name;
-        }
-
-        public int computeSize(int initialPos) {
-            return computeContents(null, initialPos);
         }
 
         abstract public int computeContents(byte[] buffer, int initialPos);
@@ -866,6 +863,47 @@ abstract class CVTypeRecord {
             }
             CVMemberRecord other = (CVMemberRecord) obj;
             return this.offset == other.offset && this.underlyingTypeIndex == other.underlyingTypeIndex;
+        }
+    }
+
+
+    static final class CVStaticMemberRecord extends FieldRecord {
+
+        final int underlyingTypeIndex; /* type index of member type */;
+
+        CVStaticMemberRecord(short attrs, int underlyingTypeIndex,  String name) {
+            super(LF_STMEMBER, attrs, name);
+            this.underlyingTypeIndex = underlyingTypeIndex;
+        }
+
+        @Override
+        public int computeContents(byte[] buffer, int initialPos) {
+            int pos = CVUtil.putShort(type, buffer, initialPos);
+            pos = CVUtil.putShort(attrs, buffer, pos);
+            pos = CVUtil.putInt(underlyingTypeIndex, buffer, pos);
+            pos = CVUtil.putUTF8StringBytes(name, buffer, pos);
+            return pos;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("LF_STMEMBER(0x%04x) attr=0x%x(%s) t=0x%x %s", type, attrs, attrString(), underlyingTypeIndex, name);
+        }
+
+        @Override
+        public int hashCode() {
+            int h = super.hashCode();
+            h = 31 * h + underlyingTypeIndex;
+            return h;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (!super.equals(obj)) {
+                return false;
+            }
+            CVStaticMemberRecord other = (CVStaticMemberRecord) obj;
+            return this.underlyingTypeIndex == other.underlyingTypeIndex;
         }
     }
 
@@ -1176,14 +1214,14 @@ abstract class CVTypeRecord {
 
         static int pad42(byte[] buffer, int initialPos) {
             int pos = initialPos;
-            int pad = (initialPos + 2) & 0x3;
-            if (pad > 2) {
-                pos = CVUtil.putByte(LF_PAD3, buffer, pos);
-            }
-            if (pad > 1) {
-                pos = CVUtil.putByte(LF_PAD2, buffer, pos);
-            }
+            int pad = initialPos & 0x3;
             if (pad > 0) {
+                if (pad < 2) {
+                    pos = CVUtil.putByte(LF_PAD3, buffer, pos);
+                }
+                if (pad < 3) {
+                    pos = CVUtil.putByte(LF_PAD2, buffer, pos);
+                }
                 pos = CVUtil.putByte(LF_PAD1, buffer, pos);
             }
             return pos;
