@@ -374,7 +374,7 @@ class CVTypeSectionBuilder {
 
             /* Add a UDT record (if we have the information) */
             /* Try to find a line number - if none, don't bother to create the record. */
-            int line = classEntry.getPrimaryEntries().isEmpty() ? 0 : classEntry.getPrimaryEntries().getFirst().getPrimary().getLine();
+            int line = classEntry.getPrimaryEntries().isEmpty() ? 0 : classEntry.getPrimaryEntries().get(0).getPrimary().getLine();
             if (line > 0) {
                 int idIdx = typeSection.getStringId(classEntry.getFileName()).getSequenceNumber();
                 CVTypeRecord.CVUdtTypeLineRecord udt = new CVTypeRecord.CVUdtTypeLineRecord(classRecord.getSequenceNumber(), idIdx, line);
