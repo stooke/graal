@@ -558,16 +558,17 @@ class CVTypeSectionBuilder {
         /* currently this builds ugly class records for arrays, so cheat by returning Object */
         int returnTypeIndex = primary.getMethodReturnTypeName().endsWith("[]") ? getIndexForPointer(JAVA_LANG_OBJECT) : getIndexForPointer(primary.getMethodReturnTypeName());
 
-        /* Build arglist type record. */
+        /* Build arglist record. */
         CVTypeRecord.CVTypeArglistRecord argListType = new CVTypeRecord.CVTypeArglistRecord();
-        /* TODO - build correct arg list from real types */
-        argListType.add(T_VOID);
+        for (TypeEntry paramType : primary.getParamTypes()) {
+            argListType.add(getIndexForPointer(paramType, false));
+        }
         argListType = addTypeRecord(argListType);
 
         /* Build actual type record */
         CVTypeRecord funcType = addTypeRecord(new CVTypeRecord.CVTypeProcedureRecord().returnType(returnTypeIndex).argList(argListType));
         depth--;
-        log("build prinmary end:" + primary.getFullMethodNameWithParams());
+        log("build primary end:" + primary.getFullMethodNameWithParams());
         return funcType;
     }
 
