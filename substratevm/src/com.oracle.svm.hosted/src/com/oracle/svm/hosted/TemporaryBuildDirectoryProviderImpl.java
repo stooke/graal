@@ -46,8 +46,8 @@ public class TemporaryBuildDirectoryProviderImpl implements TemporaryBuildDirect
             try {
                 String tempName = NativeImageOptions.TempDirectory.getValue();
                 if (tempName == null || tempName.isEmpty()) {
-                    tempDirectory = Files.createTempDirectory("SVM-");
-                    deleteTempDirectory = true;
+                    tempDirectory = FileSystems.getDefault().getPath("/tmp/build-1/tmp/").resolve("SVM-" + 1);
+                    deleteTempDirectory = false;
                 } else {
                     tempDirectory = FileSystems.getDefault().getPath(tempName).resolve("SVM-" + 0);
                     assert !Files.exists(tempDirectory);

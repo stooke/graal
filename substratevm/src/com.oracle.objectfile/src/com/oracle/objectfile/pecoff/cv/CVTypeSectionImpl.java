@@ -173,6 +173,10 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
         return therecord;
     }
 
+    int getIndexForPointer(TypeEntry typeEntry) {
+        return builder.getIndexForPointer(typeEntry, false);
+    }
+
     void definePrimitiveType(String typename, short typeId, int length) {
         CVTypeRecord record = new CVTypeRecord.CVTypePrimitive(typeId, length);
         typeNameMap.put(typename, record);

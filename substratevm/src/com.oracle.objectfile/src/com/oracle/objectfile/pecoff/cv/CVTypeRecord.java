@@ -189,7 +189,7 @@ abstract class CVTypeRecord {
 
     static final class CVTypePointerRecord extends CVTypeRecord {
 
-        /* standard 64-bit absulute pointer type */
+        /* Standard 64-bit absolute pointer type. */
         static final int NORMAL_64 = 0x100c;
 
         final int pointsTo;
@@ -249,7 +249,7 @@ abstract class CVTypeRecord {
                 return false;
             }
             CVTypePointerRecord other = (CVTypePointerRecord) obj;
-            return this.pointsTo == other.pointsTo;
+            return this.pointsTo == other.pointsTo && this.attrs == other.attrs;
         }
     }
 
@@ -1025,7 +1025,7 @@ abstract class CVTypeRecord {
         public int computeContents(byte[] buffer, int initialPos) {
             int pos = CVUtil.putShort(propertyAttributes, buffer, initialPos);
             pos = CVUtil.putInt(fieldIndex, buffer, pos);
-            // TODO
+            // TODO4
             return pos;
         }
 
@@ -1212,28 +1212,13 @@ abstract class CVTypeRecord {
             return members.size();
         }
 
-        static int pad42(byte[] buffer, int initialPos) {
-            int pos = initialPos;
-            int pad = initialPos & 0x3;
-            if (pad > 0) {
-                if (pad < 2) {
-                    pos = CVUtil.putByte(LF_PAD3, buffer, pos);
-                }
-                if (pad < 3) {
-                    pos = CVUtil.putByte(LF_PAD2, buffer, pos);
-                }
-                pos = CVUtil.putByte(LF_PAD1, buffer, pos);
-            }
-            return pos;
-        }
-
         @Override
         protected int computeContents(byte[] buffer, int initialPos) {
             int pos = initialPos;
             for (FieldRecord field : members) {
                 pos = field.computeContents(buffer, pos);
-                pos = pad42(buffer, pos);
-                /* Align on 4-byte boundary */
+                /* Align on 4-byte boundary. */
+                pos = CVTypeRecord.alignPadded4(buffer, pos);
             }
             return pos;
         }
@@ -1284,7 +1269,6 @@ abstract class CVTypeRecord {
         public int computeContents(byte[] buffer, int initialPos) {
             int pos = CVUtil.putShort(type, buffer, initialPos);
             pos = CVUtil.putShort(attrs, buffer, pos);
-            //System.out.format("XXXX enumerate %s offset=%d 0x%x\n", name, value, value & 0xffff);
             pos = CVUtil.putLfNumeric(value, buffer, pos);
             pos = CVUtil.putUTF8StringBytes(name, buffer, pos);
             return pos;

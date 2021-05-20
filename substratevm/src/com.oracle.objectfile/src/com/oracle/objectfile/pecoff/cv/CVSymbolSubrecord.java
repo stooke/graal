@@ -32,6 +32,9 @@ import com.oracle.objectfile.debugentry.ClassEntry;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.oracle.objectfile.pecoff.cv.CVDebugConstants.S_LDATA32;
+import static com.oracle.objectfile.pecoff.cv.CVDebugConstants.S_REGREL32;
+
 /*
  * A CVSymbolSubrecord is a record in a DEBUG_S_SYMBOL record within a .debug$S section within a PECOFF file.
  */
@@ -123,20 +126,20 @@ abstract class CVSymbolSubrecord {
         private static final byte HAS_DEBUG_FLAG = 0;
         @SuppressWarnings("unused") private static final byte HAS_NO_DEBUG_FLAG = (byte) 0x80;
 
-        private byte language;
-        private byte cf1;
-        private byte cf2;
-        private byte padding;
-        private short machine;
-        private short feMajor;
-        private short feMinor;
-        private short feBuild;
-        private short feQFE;
-        private short beMajor;
-        private short beMinor;
-        private short beBuild;
-        private short beQFE;
-        private String compiler;
+        private final byte language;
+        private final byte cf1;
+        private final byte cf2;
+        private final byte padding;
+        private final short machine;
+        private final short feMajor;
+        private final short feMinor;
+        private final short feBuild;
+        private final short feQFE;
+        private final short beMajor;
+        private final short beMinor;
+        private final short beBuild;
+        private final short beQFE;
+        private final String compiler;
 
         CVCompile3Record(CVDebugInfo cvDebugInfo) {
             super(cvDebugInfo, CVDebugConstants.S_COMPILE3);
@@ -185,7 +188,7 @@ abstract class CVSymbolSubrecord {
 
         private static final int ENVMAP_INITIAL_CAPACITY = 10;
 
-        private Map<String, String> map = new HashMap<>(ENVMAP_INITIAL_CAPACITY);
+        private final Map<String, String> map = new HashMap<>(ENVMAP_INITIAL_CAPACITY);
 
         /*-
          * Example contents of the environment block:
@@ -246,6 +249,113 @@ abstract class CVSymbolSubrecord {
         }
     }
 
+    public static class CVSymbolGData32Record extends CVSymbolSubrecord {
+
+        int typeIndex;
+        int offset;
+        short segment;
+        String name;
+        String relativeTo;
+
+        CVSymbolGData32Record(CVDebugInfo cvDebugInfo, short cmd, String name, String relativeTo, int typeIndex, int offset, short segment) {
+            super(cvDebugInfo, cmd);
+            this.name = name;
+            this.relativeTo = relativeTo;
+            this.typeIndex = typeIndex;
+            this.offset = offset;
+            this.segment = segment;
+        }
+
+        CVSymbolGData32Record(CVDebugInfo cvDebugInfo, String name, int typeIndex, int offset, short segment) {
+            this(cvDebugInfo, CVDebugConstants.S_GDATA32, name, null, typeIndex, offset, segment);
+        }
+
+        CVSymbolGData32Record(CVDebugInfo cvDebugInfo, String name, String relativeTo, int typeIndex, int offset, short segment) {
+            this(cvDebugInfo, CVDebugConstants.S_GDATA32, name, relativeTo, typeIndex, offset, segment);
+        }
+
+        @Override
+        protected int computeContents(byte[] buffer, int initialPos) {
+            int pos = CVUtil.putInt(typeIndex, buffer, initialPos);
+            if (relativeTo == null) {
+                if (buffer != null) {
+                    cvDebugInfo.getCVSymbolSection().markRelocationSite(pos, ObjectFile.RelocationKind.SECREL_4, name, false, (long) offset);
+                }
+                /* Placeholder for offset. */
+                pos = CVUtil.putInt(offset, buffer, pos);
+                if (buffer != null) {
+                    cvDebugInfo.getCVSymbolSection().markRelocationSite(pos, ObjectFile.RelocationKind.SECTION_2, name, false, null);
+                }
+                /* Placeholder for segment. */
+                pos = CVUtil.putShort((short) 0, buffer, pos);
+            } else {
+                if (buffer != null) {
+                    cvDebugInfo.getCVSymbolSection().markRelocationSite(pos, cvDebugInfo.oopReferenceSize() == 8 ? ObjectFile.RelocationKind.DIRECT_8 : ObjectFile.RelocationKind.DIRECT_4, relativeTo, false, (long) offset);
+                }
+                /* Placeholder for offset. */
+                if (cvDebugInfo.oopReferenceSize() == 8) {
+                    pos = CVUtil.putLong(0, buffer, pos);
+                } else {
+                    pos = CVUtil.putInt(0, buffer, pos);
+                }
+                if (buffer != null) {
+                    cvDebugInfo.getCVSymbolSection().markRelocationSite(pos, ObjectFile.RelocationKind.SECTION_2, relativeTo, true, null);
+                }
+                /* Placeholder for segment. */
+                pos = CVUtil.putShort((short) 0, buffer, pos);
+            }
+            pos = CVUtil.putUTF8StringBytes(name, buffer, pos);
+            return pos;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("S_GDATA32   name=%s  offset=0x%x type=0x%x)", name, offset, typeIndex);
+        }
+    }
+
+    public static class CVSymbolLData32Record extends CVSymbolGData32Record {
+
+        CVSymbolLData32Record(CVDebugInfo cvDebugInfo, String name, int typeIndex, int offset, short segment) {
+            super(cvDebugInfo, S_LDATA32, name, null, typeIndex, offset, segment);
+        }
+
+        @Override
+        public String toString() {
+            return String.format("S_LDATA32   name=%s offset=0x%x type=0x%x)", name, offset, typeIndex);
+        }
+    }
+
+    public static class CVSymbolRegRel32Record extends CVSymbolSubrecord {
+
+        String name;
+        int typeIndex;
+        int offset;
+        short register;
+
+        CVSymbolRegRel32Record(CVDebugInfo debugInfo, String name, int typeIndex, int offset, short register) {
+            super(debugInfo, S_REGREL32);
+            this.name = name;
+            this.typeIndex = typeIndex;
+            this.offset = offset;
+            this.register = register;
+        }
+
+        @Override
+        protected int computeContents(byte[] buffer, int initialPos) {
+            int pos = CVUtil.putInt(offset, buffer, initialPos);
+            pos = CVUtil.putInt(typeIndex, buffer, pos);
+            pos = CVUtil.putShort(register, buffer, pos);
+            pos = CVUtil.putUTF8StringBytes(name, buffer, pos);
+            return pos;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("S_REGREL32   name=%s  offset=(r%d + 0x%x) type=0x%x)",  name, register, offset, typeIndex);
+        }
+    }
+
     /*
      * Creating a proc32 record has a side effect: two relocation entries are added to the section
      * relocation table; they refer back to the global symbol.
@@ -297,11 +407,11 @@ abstract class CVSymbolSubrecord {
             pos = CVUtil.putInt(debugEnd, buffer, pos);
             pos = CVUtil.putInt(typeIndex, buffer, pos);
             if (buffer != null) {
-                cvDebugInfo.getCVSymbolSection().markRelocationSite(pos, ObjectFile.RelocationKind.SECREL_4, externalName, false, 1L);
+                cvDebugInfo.getCVSymbolSection().markRelocationSite(pos, ObjectFile.RelocationKind.SECREL_4, externalName, false, 0L);
             }
             pos = CVUtil.putInt(0, buffer, pos);
             if (buffer != null) {
-                cvDebugInfo.getCVSymbolSection().markRelocationSite(pos, ObjectFile.RelocationKind.SECTION_2, externalName, false, 1L);
+                cvDebugInfo.getCVSymbolSection().markRelocationSite(pos, ObjectFile.RelocationKind.SECTION_2, externalName, false, 0L);
             }
             pos = CVUtil.putShort((short) 0, buffer, pos);
             pos = CVUtil.putByte(flags, buffer, pos);
@@ -358,7 +468,6 @@ abstract class CVSymbolSubrecord {
             return String.format("S_FRAMEPROC len=0x%x padlen=0x%x paddOffset=0x%x regCount=%d flags=0x%x ", framelen, padLen, padOffset, saveRegsCount, flags);
         }
     }
-
 
     public static final class CVSymbolUDTRecord extends CVSymbolSubrecord {
 

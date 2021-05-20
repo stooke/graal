@@ -27,6 +27,8 @@
 package com.oracle.objectfile.pecoff.cv;
 
 import com.oracle.objectfile.debugentry.DebugInfoBase;
+import com.oracle.objectfile.pecoff.PECoffMachine;
+import org.graalvm.compiler.debug.GraalError;
 
 import java.nio.ByteOrder;
 
@@ -39,10 +41,31 @@ public final class CVDebugInfo extends DebugInfoBase {
     private CVSymbolSectionImpl cvSymbolSection;
     private CVTypeSectionImpl cvTypeSection;
 
-    public CVDebugInfo(ByteOrder byteOrder) {
+    /* Register constants for Windows x86_64 */
+    /* See AMD64ReservedRegisters.java. */
+    public static final byte rheapbase_x86 = (byte) 14;
+    public static final byte rthread_x86 = (byte) 15;
+
+    /**
+     * Register used to hold the heap base.
+     */
+    private byte heapbaseRegister;
+    /**
+     * Register used to hold the current thread.
+     */
+    private byte threadRegister;
+
+    public CVDebugInfo(PECoffMachine machine, ByteOrder byteOrder) {
         super(byteOrder);
         cvSymbolSection = new CVSymbolSectionImpl(this);
         cvTypeSection = new CVTypeSectionImpl();
+        if (machine == PECoffMachine.X86_64) {
+            this.heapbaseRegister = rheapbase_x86;
+            this.threadRegister = rthread_x86;
+        } else {
+            /* room for future aach64 port */
+            throw GraalError.shouldNotReachHere("Unsupported architecture on Windows");
+        }
     }
 
     public CVSymbolSectionImpl getCVSymbolSection() {
@@ -53,4 +76,11 @@ public final class CVDebugInfo extends DebugInfoBase {
         return cvTypeSection;
     }
 
+    public byte getHeapbaseRegister() {
+        return heapbaseRegister;
+    }
+
+    public byte getThreadRegister() {
+        return threadRegister;
+    }
 }

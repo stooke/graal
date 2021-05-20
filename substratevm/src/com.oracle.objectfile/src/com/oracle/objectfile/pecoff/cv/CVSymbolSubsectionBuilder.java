@@ -27,10 +27,13 @@
 package com.oracle.objectfile.pecoff.cv;
 
 import com.oracle.objectfile.debugentry.ClassEntry;
+import com.oracle.objectfile.debugentry.FieldEntry;
 import com.oracle.objectfile.debugentry.PrimaryEntry;
 import com.oracle.objectfile.debugentry.Range;
 import com.oracle.objectfile.debugentry.TypeEntry;
 import org.graalvm.compiler.debug.DebugContext;
+
+import java.lang.reflect.Modifier;
 
 final class CVSymbolSubsectionBuilder {
 
@@ -77,6 +80,20 @@ final class CVSymbolSubsectionBuilder {
         for (PrimaryEntry primaryEntry : classEntry.getPrimaryEntries()) {
             build(primaryEntry);
         }
+        /* Add manifested static fields. */
+        classEntry.fields().filter(CVSymbolSubsectionBuilder::isManifestedStaticField).forEach(f -> {
+            int typeIndex = cvDebugInfo.getCVTypeSection().getIndexForPointer(f.getValueType());
+            if (cvDebugInfo.useHeapBase()) {
+                /* REL32 offset from heap base register. */
+                addToSymbolSubsection(new CVSymbolSubrecord.CVSymbolRegRel32Record(cvDebugInfo, f.fieldName(), typeIndex, f.getOffset(), cvDebugInfo.getHeapbaseRegister()));
+            } else {
+                addToSymbolSubsection(new CVSymbolSubrecord.CVSymbolGData32Record(cvDebugInfo, f.fieldName(), typeIndex, f.getOffset(), (short) 0));
+            }
+        });
+    }
+
+    private static boolean isManifestedStaticField(FieldEntry fieldEntry) {
+        return Modifier.isStatic(fieldEntry.getModifiers()) && fieldEntry.getOffset() >= 0;
     }
 
     /**
@@ -169,10 +186,10 @@ final class CVSymbolSubsectionBuilder {
 
     /**
      * Add type records for a class and all its members
-     * @param classEntry class to add records for
+     * @param typeEntry class to add records for
      */
-    private void addTypeRecords(TypeEntry classEntry) {
-        cvDebugInfo.getCVTypeSection().addTypeRecords(classEntry);
+    private void addTypeRecords(TypeEntry typeEntry) {
+        cvDebugInfo.getCVTypeSection().addTypeRecords(typeEntry);
     }
     /**
      * Add type records for function.

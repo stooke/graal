@@ -38,8 +38,9 @@ public abstract class CVDebugConstants {
     static final short S_FRAMEPROC = 0x1012;
     static final short S_OBJNAME = 0x1101;
     static final short S_UDT = 0x1108;
-    static final short S_GDATA32 = 0x110d;
-    static final short S_GPROC32 = 0x1110;
+    static final short S_LDATA32 = 0x110c; /* Local static. */
+    static final short S_GDATA32 = 0x110d; /* Global static. */
+    static final short S_GPROC32 = 0x1110; /* Global procedure. */
     static final short S_REGREL32 = 0x1111;
     static final short S_COMPILE3 = 0x113c;
     static final short S_ENVBLOCK = 0x113d;

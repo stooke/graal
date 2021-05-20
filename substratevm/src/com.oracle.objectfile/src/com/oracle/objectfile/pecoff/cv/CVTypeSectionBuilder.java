@@ -68,7 +68,7 @@ class CVTypeSectionBuilder {
     private int objectHeaderRecordIndex;
     private int javaLangObjectRecordIndex;
 
-    private CVTypeSectionImpl typeSection;
+    private final CVTypeSectionImpl typeSection;
     private DebugContext debugContext;
     private HeaderTypeEntry globalHeaderEntry;
     private int depth = 0;
@@ -84,7 +84,7 @@ class CVTypeSectionBuilder {
 
     /* A map of type names to type records.  Only forward references are stored here, and only until they are defined. */
     private static final int MAX_FORWARD_REFS = 100;
-    private Map<String, TypeInfo> typeInfoMap = new HashMap<>(MAX_FORWARD_REFS);
+    private final Map<String, TypeInfo> typeInfoMap = new HashMap<>(MAX_FORWARD_REFS);
 
     CVTypeSectionBuilder(CVTypeSectionImpl typeSection) {
         this.typeSection = typeSection;
@@ -126,15 +126,15 @@ class CVTypeSectionBuilder {
 
     private static final int IN_PROCESS_DEPTH = 10;
 
-    /* if a typename appears in this map, it is currently being constructed.
+    /* Ff a typename appears in this map, it is currently being constructed.
      * if it is referenced elsewhere while being constructed, a LF_CLASS with a
      * forward ref and a LF_POINTER are emitted, and the forward ref is used.
      */
-    private Map<String, TypeEntry> inProcessMap = new HashMap<>(IN_PROCESS_DEPTH);
+    private final Map<String, TypeEntry> inProcessMap = new HashMap<>(IN_PROCESS_DEPTH);
 
     CVTypeRecord buildType(TypeEntry typeEntry) {
         depth++;
-        CVTypeRecord typeRecord = null;
+        CVTypeRecord typeRecord;
         TypeEntry inProcessType = inProcessMap.get(typeEntry.getTypeName());
         if (typeEntry.getTypeName().contains("[]") && typeEntry.typeKind() != DebugInfoProvider.DebugTypeInfo.DebugTypeKind.ARRAY) {
             log("rogue array found: %s %s", typeEntry.typeKind().name(), typeEntry.getTypeName());
@@ -198,7 +198,7 @@ class CVTypeSectionBuilder {
         return record;
     }
 
-    private int getIndexForPointer(TypeEntry entry, boolean onlyForwardReference) {
+    int getIndexForPointer(TypeEntry entry, boolean onlyForwardReference) {
         CVTypeRecord ptrRecord = typeSection.getPointerRecordForType(entry.getTypeName());
         if (ptrRecord == null) {
             CVTypeRecord record = typeSection.getType(entry.getTypeName());
@@ -258,8 +258,8 @@ class CVTypeSectionBuilder {
             log("classentry size=%d kind=%s %s", classEntry.getSize(), classEntry.typeKind().name(), classEntry.getTypeName());
             depth++;
             inProcessMap.put(classEntry.getTypeName(), classEntry);
-            /* process super type */
-            int superIdx = 0;
+            /* Process super type. */
+            final int superIdx;
             ClassEntry superClass = classEntry.getSuperClass();
             if (superClass != null) {
                 if (typeSection.hasType(superClass.getTypeName())) {
@@ -364,7 +364,7 @@ class CVTypeSectionBuilder {
             int vshapeIndex = 0; /* type index of vshape table for this class */
             classRecord = new CVTypeRecord.CVClassRecord(LF_CLASS, count, attrs, fieldListIdx, 0, vshapeIndex, classEntry.getSize(), classEntry.getTypeName(), null);
             classRecord = addTypeRecord(classRecord);
-            /* remove any forward refs fromthe todo list */
+            /* remove any forward refs from the to do list */
             typeInfoMap.remove(classEntry.getTypeName());
 
             /* Save this in case we find a class with no superclass */
@@ -573,6 +573,7 @@ class CVTypeSectionBuilder {
     }
 
     private void addPrimitiveTypes() {
+        /* Primitive types are pre-defined and do not get written out to the typeInfo section. */
         typeSection.definePrimitiveType("void", T_VOID, 0);
         typeSection.definePrimitiveType("byte", T_INT1, Byte.BYTES);
         typeSection.definePrimitiveType("boolean", T_UINT1, 1);
