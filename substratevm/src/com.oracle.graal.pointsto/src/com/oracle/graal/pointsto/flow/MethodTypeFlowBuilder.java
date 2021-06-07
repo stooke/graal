@@ -122,7 +122,6 @@ import com.oracle.graal.pointsto.meta.AnalysisField;
 import com.oracle.graal.pointsto.meta.AnalysisMethod;
 import com.oracle.graal.pointsto.meta.AnalysisType;
 import com.oracle.graal.pointsto.nodes.AnalysisArraysCopyOfNode;
-import com.oracle.graal.pointsto.nodes.ConvertUnknownValueNode;
 import com.oracle.graal.pointsto.nodes.UnsafePartitionLoadNode;
 import com.oracle.graal.pointsto.nodes.UnsafePartitionStoreNode;
 import com.oracle.graal.pointsto.typestate.TypeState;
@@ -160,7 +159,15 @@ public class MethodTypeFlowBuilder {
 
     @SuppressWarnings("try")
     private boolean parse() {
-        AnalysisParsedGraph analysisParsedGraph = method.ensureGraphParsed(bb, true);
+        /*
+         * When we intend to strengthen Graal graphs, then the graph needs to be preserved. Type
+         * flow nodes references Graal IR nodes directly as their source position.
+         * 
+         * When we create separate StaticAnalysisResults objects, then Graal graphs are not needed
+         * after static analysis and clearing them reduces memory usage.
+         */
+        boolean clearCache = !bb.strengthenGraalGraphs();
+        AnalysisParsedGraph analysisParsedGraph = method.ensureGraphParsed(bb, clearCache);
 
         if (analysisParsedGraph.isIntrinsic()) {
             method.registerAsIntrinsicMethod();
@@ -178,9 +185,14 @@ public class MethodTypeFlowBuilder {
         DebugContext.Description description = new DebugContext.Description(method, method.getClass().getSimpleName() + ":" + method.getId());
         graph.resetDebug(new DebugContext.Builder(bb.getOptions(), new GraalDebugHandlersFactory(bb.getProviders().getSnippetReflection())).description(description).build());
 
-        // Register used types and fields before canonicalization can optimize them.
-        registerUsedElements(false);
-
+        if (!bb.strengthenGraalGraphs()) {
+            /*
+             * Register used types and fields before canonicalization can optimize them. When
+             * parsing graphs again for compilation, we need to have all types, methods, fields of
+             * the original graph registered properly.
+             */
+            registerUsedElements(false);
+        }
         CanonicalizerPhase.create().apply(graph, bb.getProviders());
 
         // Do it again after canonicalization changed type checks and field accesses.
@@ -331,6 +343,9 @@ public class MethodTypeFlowBuilder {
                     });
                     typeFlowGraphBuilder.checkFormalParameterBuilder(paramBuilder);
                     typeFlows.add(node, paramBuilder);
+                    if (bb.strengthenGraalGraphs()) {
+                        typeFlowGraphBuilder.registerSinkBuilder(paramBuilder);
+                    }
                 }
             } else if (n instanceof BoxNode) {
                 BoxNode node = (BoxNode) n;
@@ -340,7 +355,7 @@ public class MethodTypeFlowBuilder {
 
                 TypeFlowBuilder<?> boxBuilder = TypeFlowBuilder.create(bb, node, BoxTypeFlow.class, () -> {
                     BoxTypeFlow boxFlow = new BoxTypeFlow(node, type, boxSite);
-                    methodFlow.addAllocation(boxFlow);
+                    methodFlow.addMiscEntry(boxFlow);
                     return boxFlow;
                 });
                 typeFlows.add(node, boxBuilder);
@@ -357,7 +372,7 @@ public class MethodTypeFlowBuilder {
                     if (node.asJavaConstant().isNull()) {
                         TypeFlowBuilder<SourceTypeFlow> sourceBuilder = TypeFlowBuilder.create(bb, node, SourceTypeFlow.class, () -> {
                             SourceTypeFlow constantSource = new SourceTypeFlow(node, TypeState.forNull());
-                            methodFlow.addSource(constantSource);
+                            methodFlow.addMiscEntry(constantSource);
                             return constantSource;
                         });
                         typeFlows.add(node, sourceBuilder);
@@ -372,7 +387,7 @@ public class MethodTypeFlowBuilder {
                         assert type.isInstantiated();
                         TypeFlowBuilder<SourceTypeFlow> sourceBuilder = TypeFlowBuilder.create(bb, node, SourceTypeFlow.class, () -> {
                             SourceTypeFlow constantSource = new SourceTypeFlow(node, TypeState.forConstant(this.bb, node.asJavaConstant(), type));
-                            methodFlow.addSource(constantSource);
+                            methodFlow.addMiscEntry(constantSource);
                             return constantSource;
                         });
                         typeFlows.add(node, sourceBuilder);
@@ -456,7 +471,7 @@ public class MethodTypeFlowBuilder {
                      */
                     result = TypeFlowBuilder.create(bb, node, SourceTypeFlow.class, () -> {
                         SourceTypeFlow src = new SourceTypeFlow(node, TypeState.forExactType(bb, (AnalysisType) stamp.type(), !stamp.nonNull()));
-                        methodFlow.addSource(src);
+                        methodFlow.addMiscEntry(src);
                         return src;
                     });
 
@@ -468,9 +483,9 @@ public class MethodTypeFlowBuilder {
                     AnalysisType type = (AnalysisType) (stamp.type() == null ? bb.getObjectType() : stamp.type());
 
                     if (type.isJavaLangObject()) {
-                        /* Return a proxy to the unknown type flow. */
+                        /* Return a proxy to the all-instantiated type flow. */
                         result = TypeFlowBuilder.create(bb, node, ProxyTypeFlow.class, () -> {
-                            ProxyTypeFlow proxy = new ProxyTypeFlow(node, bb.getUnknownTypeFlow());
+                            ProxyTypeFlow proxy = new ProxyTypeFlow(node, bb.getAllInstantiatedTypeFlow());
                             methodFlow.addMiscEntry(proxy);
                             return proxy;
                         });
@@ -607,10 +622,13 @@ public class MethodTypeFlowBuilder {
                 TypeFlowBuilder<?> inputBuilder = state.lookup(object);
                 TypeFlowBuilder<?> nullCheckBuilder = TypeFlowBuilder.create(bb, source, NullCheckTypeFlow.class, () -> {
                     NullCheckTypeFlow nullCheckFlow = new NullCheckTypeFlow(source, inputBuilder.get().getDeclaredType(), !isTrue);
-                    methodFlow.addMiscEntry(nullCheckFlow);
+                    methodFlow.addNodeFlow(bb, source, nullCheckFlow);
                     return nullCheckFlow;
                 });
                 nullCheckBuilder.addUseDependency(inputBuilder);
+                if (bb.strengthenGraalGraphs()) {
+                    typeFlowGraphBuilder.registerSinkBuilder(nullCheckBuilder);
+                }
                 state.update(object, nullCheckBuilder);
 
             } else if (condition instanceof InstanceOfNode) {
@@ -627,11 +645,16 @@ public class MethodTypeFlowBuilder {
                  */
                 TypeFlowBuilder<?> objectBuilder = state.lookup(object);
                 NodeSourcePosition instanceOfPosition = instanceOf.getNodeSourcePosition();
-                if (instanceOfPosition != null && instanceOfPosition.getBCI() >= 0) {
+                if (!bb.strengthenGraalGraphs() && instanceOfPosition != null && instanceOfPosition.getBCI() >= 0) {
                     /*
                      * An InstanceOf with negative BCI is not useful. This can happen for example
                      * for instanceof bytecodes for exception unwind. However, the filtering below
                      * is still useful for other further operations in the exception handler.
+                     * 
+                     * When strengthenGraalGraphs is true, then there is never a need for an
+                     * InstanceOfTypeFlow. The information is taken from the FilterTypeFlow instead,
+                     * i.e., when the filtered type flow of either the true or false successor is
+                     * empty, then that branch is unreachable and the instanceOf will be removed.
                      */
                     TypeFlowBuilder<?> instanceOfBuilder = uniqueInstanceOfFlow(instanceOf, type);
                     instanceOfBuilder.addUseDependency(objectBuilder);
@@ -645,10 +668,13 @@ public class MethodTypeFlowBuilder {
                  */
                 TypeFlowBuilder<?> filterBuilder = TypeFlowBuilder.create(bb, source, FilterTypeFlow.class, () -> {
                     FilterTypeFlow filterFlow = new FilterTypeFlow(source, type, typeReference.isExact(), isTrue, !isTrue ^ instanceOf.allowsNull());
-                    methodFlow.addMiscEntry(filterFlow);
+                    methodFlow.addNodeFlow(bb, source, filterFlow);
                     return filterFlow;
                 });
                 filterBuilder.addUseDependency(objectBuilder);
+                if (bb.strengthenGraalGraphs()) {
+                    typeFlowGraphBuilder.registerSinkBuilder(filterBuilder);
+                }
                 state.update(object, filterBuilder);
             }
         }
@@ -713,7 +739,7 @@ public class MethodTypeFlowBuilder {
 
                 if (pred instanceof IfNode) {
                     IfNode ifNode = (IfNode) pred;
-                    handleCondition(ifNode, ifNode.condition(), node == ifNode.trueSuccessor());
+                    handleCondition(node, ifNode.condition(), node == ifNode.trueSuccessor());
                 }
 
             } else if (n instanceof FixedGuardNode) {
@@ -765,7 +791,7 @@ public class MethodTypeFlowBuilder {
                 BytecodeLocation allocationLabel = bb.analysisPolicy().createAllocationSite(bb, key, method);
                 TypeFlowBuilder<DynamicNewInstanceTypeFlow> dynamicNewInstanceBuilder = TypeFlowBuilder.create(bb, node, DynamicNewInstanceTypeFlow.class, () -> {
                     DynamicNewInstanceTypeFlow newInstanceTypeFlow = new DynamicNewInstanceTypeFlow(instanceTypeBuilder.get(), nonNullInstanceType, node, allocationLabel);
-                    methodFlow.addDynamicAllocation(newInstanceTypeFlow);
+                    methodFlow.addMiscEntry(newInstanceTypeFlow);
                     return newInstanceTypeFlow;
                 });
 
@@ -797,7 +823,7 @@ public class MethodTypeFlowBuilder {
 
                 TypeFlowBuilder<DynamicNewInstanceTypeFlow> dynamicNewArrayBuilder = TypeFlowBuilder.create(bb, node, DynamicNewInstanceTypeFlow.class, () -> {
                     DynamicNewInstanceTypeFlow newArrayTypeFlow = new DynamicNewInstanceTypeFlow(arrayType.getTypeFlow(bb, false), arrayType, node, allocationLabel);
-                    methodFlow.addDynamicAllocation(newArrayTypeFlow);
+                    methodFlow.addMiscEntry(newArrayTypeFlow);
                     return newArrayTypeFlow;
                 });
                 state.add(node, dynamicNewArrayBuilder);
@@ -811,7 +837,7 @@ public class MethodTypeFlowBuilder {
                 BytecodeLocation allocationLabel = bb.analysisPolicy().createAllocationSite(bb, key, method);
                 TypeFlowBuilder<NewInstanceTypeFlow> newArrayBuilder = TypeFlowBuilder.create(bb, node, NewInstanceTypeFlow.class, () -> {
                     NewInstanceTypeFlow newArray = new NewInstanceTypeFlow(node, type, allocationLabel);
-                    methodFlow.addAllocation(newArray);
+                    methodFlow.addMiscEntry(newArray);
                     return newArray;
                 });
 
@@ -827,17 +853,20 @@ public class MethodTypeFlowBuilder {
                         loadFieldBuilder = TypeFlowBuilder.create(bb, node, LoadStaticFieldTypeFlow.class, () -> {
                             FieldTypeFlow fieldFlow = field.getStaticFieldFlow();
                             LoadStaticFieldTypeFlow loadFieldFLow = new LoadStaticFieldTypeFlow(node, fieldFlow);
-                            methodFlow.addFieldLoad(loadFieldFLow);
+                            methodFlow.addNodeFlow(bb, node, loadFieldFLow);
                             return loadFieldFLow;
                         });
                     } else {
                         TypeFlowBuilder<?> objectBuilder = state.lookup(node.object());
                         loadFieldBuilder = TypeFlowBuilder.create(bb, node, LoadInstanceFieldTypeFlow.class, () -> {
                             LoadInstanceFieldTypeFlow loadFieldFLow = new LoadInstanceFieldTypeFlow(node, objectBuilder.get());
-                            methodFlow.addFieldLoad(loadFieldFLow);
+                            methodFlow.addNodeFlow(bb, node, loadFieldFLow);
                             return loadFieldFLow;
                         });
                         loadFieldBuilder.addObserverDependency(objectBuilder);
+                    }
+                    if (bb.strengthenGraalGraphs()) {
+                        typeFlowGraphBuilder.registerSinkBuilder(loadFieldBuilder);
                     }
                     state.add(node, loadFieldBuilder);
                 }
@@ -881,10 +910,13 @@ public class MethodTypeFlowBuilder {
 
                     TypeFlowBuilder<?> loadIndexedBuilder = TypeFlowBuilder.create(bb, node, LoadIndexedTypeFlow.class, () -> {
                         LoadIndexedTypeFlow loadIndexedFlow = new LoadIndexedTypeFlow(node, nonNullArrayType, arrayBuilder.get(), methodFlow);
-                        methodFlow.addIndexedLoad(loadIndexedFlow);
+                        methodFlow.addNodeFlow(bb, node, loadIndexedFlow);
                         return loadIndexedFlow;
                     });
 
+                    if (bb.strengthenGraalGraphs()) {
+                        typeFlowGraphBuilder.registerSinkBuilder(loadIndexedBuilder);
+                    }
                     loadIndexedBuilder.addObserverDependency(arrayBuilder);
                     state.add(node, loadIndexedBuilder);
                 }
@@ -1125,9 +1157,8 @@ public class MethodTypeFlowBuilder {
                 } else {
                     /* Word-to-object: Any object can flow out from a low level memory read. */
                     TypeFlowBuilder<?> wordToObjectBuilder = TypeFlowBuilder.create(bb, node, WordToObjectTypeFlow.class, () -> {
-                        /* Use the unknown type flow. */
-                        TypeFlow<?> unknown = bb.getUnknownTypeFlow();
-                        WordToObjectTypeFlow objectFlow = new WordToObjectTypeFlow(node, unknown);
+                        /* Use the all-instantiated type flow. */
+                        WordToObjectTypeFlow objectFlow = new WordToObjectTypeFlow(node, bb.getAllInstantiatedTypeFlow());
                         methodFlow.addMiscEntry(objectFlow);
                         return objectFlow;
                     });
@@ -1158,7 +1189,7 @@ public class MethodTypeFlowBuilder {
 
                 TypeFlowBuilder<?> cloneBuilder = TypeFlowBuilder.create(bb, node, CloneTypeFlow.class, () -> {
                     CloneTypeFlow cloneFlow = new CloneTypeFlow(node.asNode(), inputType, cloneLabel, inputBuilder.get());
-                    methodFlow.addClone(cloneFlow);
+                    methodFlow.addMiscEntry(cloneFlow);
                     return cloneFlow;
                 });
                 cloneBuilder.addObserverDependency(inputBuilder);
@@ -1170,28 +1201,12 @@ public class MethodTypeFlowBuilder {
 
                 TypeFlowBuilder<?> monitorEntryBuilder = TypeFlowBuilder.create(bb, node, MonitorEnterTypeFlow.class, () -> {
                     MonitorEnterTypeFlow monitorEntryFlow = new MonitorEnterTypeFlow(bb, node, monitorLocation, methodFlow.getMethod());
-                    methodFlow.addMonitorEntryFlow(monitorEntryFlow);
+                    methodFlow.addMiscEntry(monitorEntryFlow);
                     return monitorEntryFlow;
                 });
                 monitorEntryBuilder.addUseDependency(objectBuilder);
                 /* Monitor enters must not be removed. */
                 typeFlowGraphBuilder.registerSinkBuilder(monitorEntryBuilder);
-            } else if (n instanceof ConvertUnknownValueNode) {
-                ConvertUnknownValueNode node = (ConvertUnknownValueNode) n;
-
-                /*
-                 * Wire the all-instantiated type flow, of either the Object type or a more concrete
-                 * sub-type if precise type information is available, to the uses of this node.
-                 */
-                AnalysisType nodeType = (AnalysisType) StampTool.typeOrNull(node);
-                TypeFlowBuilder<?> resultBuilder = TypeFlowBuilder.create(bb, node, ConvertUnknownValueTypeFlow.class, () -> {
-                    ConvertUnknownValueTypeFlow resultFlow = new ConvertUnknownValueTypeFlow(node, nodeType.getTypeFlow(bb, true));
-                    methodFlow.addMiscEntry(resultFlow);
-                    return resultFlow;
-                });
-
-                state.add(node, resultBuilder);
-
             } else if (n instanceof MacroNode) {
                 /*
                  * Macro nodes can either be constant folded during compilation, or lowered back to
@@ -1315,6 +1330,10 @@ public class MethodTypeFlowBuilder {
                     actualReturn.setInvokeFlow(invokeFlow);
                     return actualReturn;
                 });
+
+                if (bb.strengthenGraalGraphs()) {
+                    typeFlowGraphBuilder.registerSinkBuilder(actualReturnBuilder);
+                }
                 state.add(invoke.asNode(), actualReturnBuilder);
             }
 
@@ -1413,7 +1432,11 @@ public class MethodTypeFlowBuilder {
      * method cannot have a BCI. If one substitution has multiple nodes of the same type, then the
      * BCI would not be unique. In the later case the key is a unique object.
      */
-    protected static Object uniqueKey(Node node) {
+    protected Object uniqueKey(Node node) {
+        if (bb.strengthenGraalGraphs()) {
+            return node;
+        }
+
         NodeSourcePosition position = node.getNodeSourcePosition();
         // If the 'position' has a 'caller' then it is inlined, case in which the BCI is
         // probably not unique.
@@ -1435,7 +1458,7 @@ public class MethodTypeFlowBuilder {
         TypeFlowBuilder<?> newInstanceBuilder = TypeFlowBuilder.create(bb, node, NewInstanceTypeFlow.class, () -> {
             NewInstanceTypeFlow newInstance = createNewInstanceTypeFlow(node, type, allocationLabel);
             /* Instance fields of a new object are initialized to null state in AnalysisField. */
-            methodFlow.addAllocation(newInstance);
+            methodFlow.addMiscEntry(newInstance);
             return newInstance;
         });
         state.add(node, newInstanceBuilder);
@@ -1454,7 +1477,7 @@ public class MethodTypeFlowBuilder {
 
         TypeFlowBuilder<?> newArrayBuilder = TypeFlowBuilder.create(bb, node, NewInstanceTypeFlow.class, () -> {
             NewInstanceTypeFlow newArray = createNewArrayTypeFlow(node, type, allocationLabel);
-            methodFlow.addAllocation(newArray);
+            methodFlow.addMiscEntry(newArray);
             return newArray;
         });
         state.add(node, newArrayBuilder);
@@ -1502,7 +1525,7 @@ public class MethodTypeFlowBuilder {
 
         TypeFlowBuilder<?> newArrayBuilder = TypeFlowBuilder.create(bb, node, DynamicNewInstanceTypeFlow.class, () -> {
             DynamicNewInstanceTypeFlow newArrayFlow = new DynamicNewInstanceTypeFlow(newArrayTypeBuilder.get(), bb.getObjectArrayType(), node, newArrayLabel);
-            methodFlow.addDynamicAllocation(newArrayFlow);
+            methodFlow.addMiscEntry(newArrayFlow);
             return newArrayFlow;
         });
 

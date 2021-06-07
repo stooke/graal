@@ -63,7 +63,9 @@ import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 
 import com.oracle.truffle.api.TruffleContext;
 import com.oracle.truffle.api.TruffleLanguage;
@@ -111,21 +113,21 @@ public class CancellationTest {
         }
     }
 
+    @Rule public TestName testNameRule = new TestName();
+
     @After
     public void engineClose() {
         if (engine != null) {
             engine.close();
         }
+        Assert.assertFalse("Interrupted flag was left set by test: " + testNameRule.getMethodName(), Thread.interrupted());
     }
 
     @Test
     public void testInnerContextWorking() {
         setupSingleRun(false, true);
-        try {
-            context.eval(ID, "CONTEXT(DEFINE(foo,STATEMENT),SPAWN(foo),JOIN())");
-        } finally {
-            teardownSingleRun();
-        }
+        context.eval(ID, "CONTEXT(DEFINE(foo,STATEMENT),SPAWN(foo),JOIN())");
+        teardownSingleRun();
     }
 
     @Test
@@ -176,58 +178,55 @@ public class CancellationTest {
     private void testCloseContext(boolean outer, boolean inner, int repeatCount, boolean multiEngine) throws IOException, ExecutionException, InterruptedException {
         for (int i = 0; i < repeatCount; i++) {
             setupSingleRun(multiEngine);
-            try {
-                int nThreads = 1;
-                if (inner) {
-                    nThreads++;
-                }
-                if (outer) {
-                    nThreads++;
-                }
-                context.initialize(ID);
-                Source source = Source.newBuilder(ID, "CONTEXT(LOOP(infinity,STATEMENT))", this.getClass().getSimpleName()).build();
-                CountDownLatch cancelLatch = new CountDownLatch(1);
-                AtomicReference<TruffleContext> innerTruffleContext = new AtomicReference<>();
-                captureInnerContext(cancelLatch, innerTruffleContext);
-                ExecutorService executorService = Executors.newFixedThreadPool(nThreads);
-                List<Future<?>> futures = new ArrayList<>();
-                if (inner) {
-                    futures.add(executorService.submit(() -> {
-                        try {
-                            cancelLatch.await();
-                        } catch (InterruptedException ie) {
-                        }
-                        Context innerCreatorApi = truffleContextToCreatorApi(innerTruffleContext.get());
-                        innerCreatorApi.close(true);
-                    }));
-                }
-                if (outer) {
-                    futures.add(executorService.submit(() -> {
-                        try {
-                            cancelLatch.await();
-                        } catch (InterruptedException ie) {
-                        }
-                        context.close(true);
-                    }));
-                }
+            int nThreads = 1;
+            if (inner) {
+                nThreads++;
+            }
+            if (outer) {
+                nThreads++;
+            }
+            context.initialize(ID);
+            Source source = Source.newBuilder(ID, "CONTEXT(LOOP(infinity,STATEMENT))", this.getClass().getSimpleName()).build();
+            CountDownLatch cancelLatch = new CountDownLatch(1);
+            AtomicReference<TruffleContext> innerTruffleContext = new AtomicReference<>();
+            captureInnerContext(cancelLatch, innerTruffleContext);
+            ExecutorService executorService = Executors.newFixedThreadPool(nThreads);
+            List<Future<?>> futures = new ArrayList<>();
+            if (inner) {
                 futures.add(executorService.submit(() -> {
                     try {
-                        context.eval(source);
-                        Assert.fail();
-                    } catch (PolyglotException e) {
-                        if (!e.isCancelled()) {
-                            throw e;
-                        }
+                        cancelLatch.await();
+                    } catch (InterruptedException ie) {
                     }
+                    Context innerCreatorApi = truffleContextToCreatorApi(innerTruffleContext.get());
+                    innerCreatorApi.close(true);
                 }));
-                for (Future<?> future : futures) {
-                    future.get();
-                }
-                executorService.shutdownNow();
-                executorService.awaitTermination(100, TimeUnit.SECONDS);
-            } finally {
-                teardownSingleRun();
             }
+            if (outer) {
+                futures.add(executorService.submit(() -> {
+                    try {
+                        cancelLatch.await();
+                    } catch (InterruptedException ie) {
+                    }
+                    context.close(true);
+                }));
+            }
+            futures.add(executorService.submit(() -> {
+                try {
+                    context.eval(source);
+                    Assert.fail();
+                } catch (PolyglotException e) {
+                    if (!e.isCancelled()) {
+                        throw e;
+                    }
+                }
+            }));
+            for (Future<?> future : futures) {
+                future.get();
+            }
+            executorService.shutdownNow();
+            executorService.awaitTermination(100, TimeUnit.SECONDS);
+            teardownSingleRun();
         }
     }
 
@@ -256,7 +255,7 @@ public class CancellationTest {
             Field polyglotContextField = tc.getClass().getDeclaredField("polyglotContext");
             polyglotContextField.setAccessible(true);
             Object polyglotContext = polyglotContextField.get(tc);
-            Field creatorApiField = polyglotContext.getClass().getDeclaredField("creatorApi");
+            Field creatorApiField = polyglotContext.getClass().getDeclaredField("api");
             creatorApiField.setAccessible(true);
             return (Context) creatorApiField.get(polyglotContext);
         } catch (NoSuchFieldException | IllegalAccessException e) {
@@ -365,11 +364,12 @@ public class CancellationTest {
     public void testCancelInfiniteCountOfFiniteLoops() throws InterruptedException, ExecutionException {
         try (Engine engn = Engine.create()) {
             Context.Builder builder = Context.newBuilder().engine(engn);
-            ExecutorService executorService = Executors.newFixedThreadPool(10);
+            int nThreads = 10;
+            ExecutorService executorService = Executors.newFixedThreadPool(nThreads);
             List<Future<?>> futures = new ArrayList<>();
-            CountDownLatch cancelLatch = new CountDownLatch(10);
+            CountDownLatch cancelLatch = new CountDownLatch(nThreads);
             List<Context> contextList = new CopyOnWriteArrayList<>();
-            for (int i = 0; i < 10; i++) {
+            for (int i = 0; i < nThreads; i++) {
                 futures.add(executorService.submit(() -> {
                     try (Context c = builder.build()) {
                         contextList.add(c);

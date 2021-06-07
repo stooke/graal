@@ -53,7 +53,6 @@ import org.graalvm.compiler.nodes.AbstractBeginNode;
 import org.graalvm.compiler.nodes.ConstantNode;
 import org.graalvm.compiler.nodes.DynamicPiNode;
 import org.graalvm.compiler.nodes.FixedNode;
-import org.graalvm.compiler.nodes.FixedWithNextNode;
 import org.graalvm.compiler.nodes.FullInfopointNode;
 import org.graalvm.compiler.nodes.LogicNode;
 import org.graalvm.compiler.nodes.NodeView;
@@ -102,7 +101,6 @@ import com.oracle.graal.pointsto.infrastructure.UniverseMetaAccess;
 import com.oracle.graal.pointsto.meta.AnalysisField;
 import com.oracle.graal.pointsto.meta.AnalysisType;
 import com.oracle.graal.pointsto.meta.AnalysisUniverse;
-import com.oracle.graal.pointsto.nodes.ConvertUnknownValueNode;
 import com.oracle.graal.pointsto.nodes.UnsafePartitionLoadNode;
 import com.oracle.graal.pointsto.nodes.UnsafePartitionStoreNode;
 import com.oracle.svm.core.FrameAccess;
@@ -150,7 +148,6 @@ import com.oracle.svm.hosted.meta.HostedMethod;
 import com.oracle.svm.hosted.nodes.DeoptProxyNode;
 import com.oracle.svm.hosted.substitute.AnnotationSubstitutionProcessor;
 
-import jdk.vm.ci.meta.ConstantReflectionProvider;
 import jdk.vm.ci.meta.DeoptimizationAction;
 import jdk.vm.ci.meta.JavaConstant;
 import jdk.vm.ci.meta.JavaKind;
@@ -272,7 +269,7 @@ public class SubstrateGraphBuilderPlugins {
     }
 
     private static void registerProxyPlugins(SnippetReflectionProvider snippetReflection, AnnotationSubstitutionProcessor annotationSubstitutions, InvocationPlugins plugins, ParsingReason reason) {
-        if (reason == ParsingReason.PointsToAnalysis) {
+        if (SubstrateOptions.parseOnce() || reason == ParsingReason.PointsToAnalysis) {
             Registration proxyRegistration = new Registration(plugins, Proxy.class);
             proxyRegistration.register2("getProxyClass", ClassLoader.class, Class[].class, new InvocationPlugin() {
                 @Override
@@ -416,13 +413,17 @@ public class SubstrateGraphBuilderPlugins {
 
     /**
      * Unwrap FullInfopointNode and DeoptEntryNode since they are not important for the Class[]
-     * elements analysis and they can obscure the control flow.
+     * elements analysis.
      */
     private static FixedNode unwrapNode(FixedNode node) {
         FixedNode successor = node;
         while (successor instanceof FullInfopointNode || successor instanceof DeoptEntryNode) {
             assert !(successor instanceof DeoptEntryNode) || ((HostedMethod) successor.graph().method()).isDeoptTarget();
-            successor = ((FixedWithNextNode) successor).next();
+            if (successor instanceof FullInfopointNode) {
+                successor = ((FullInfopointNode) successor).next();
+            } else {
+                successor = ((DeoptEntryNode) successor).next();
+            }
         }
         return successor;
     }
@@ -464,7 +465,7 @@ public class SubstrateGraphBuilderPlugins {
      * them for reflection/unsafe access.
      */
     private static void interceptUpdaterInvoke(MetaAccessProvider metaAccess, SnippetReflectionProvider snippetReflection, ParsingReason reason, ValueNode tclassNode, ValueNode fieldNameNode) {
-        if (reason == ParsingReason.PointsToAnalysis) {
+        if (SubstrateOptions.parseOnce() || reason == ParsingReason.PointsToAnalysis) {
             if (tclassNode.isConstant() && fieldNameNode.isConstant()) {
                 Class<?> tclass = snippetReflection.asObject(Class.class, tclassNode.asJavaConstant());
                 String fieldName = snippetReflection.asObject(String.class, fieldNameNode.asJavaConstant());
@@ -621,7 +622,7 @@ public class SubstrateGraphBuilderPlugins {
             return false;
         }
 
-        if (reason == ParsingReason.PointsToAnalysis) {
+        if (SubstrateOptions.parseOnce() || reason == ParsingReason.PointsToAnalysis) {
             /* Register the field for unsafe access. */
             registerAsUnsafeAccessed(metaAccess, targetField);
 
@@ -700,7 +701,7 @@ public class SubstrateGraphBuilderPlugins {
         r.register2("newInstance", Class.class, int[].class, new InvocationPlugin() {
             @Override
             public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod, Receiver receiver, ValueNode clazzNode, ValueNode dimensionsNode) {
-                if (reason == ParsingReason.PointsToAnalysis) {
+                if (SubstrateOptions.parseOnce() || reason == ParsingReason.PointsToAnalysis) {
                     /*
                      * There is no Graal node for dynamic multi array allocation, and it is also not
                      * necessary for performance reasons. But when the arguments are constant, we
@@ -836,6 +837,10 @@ public class SubstrateGraphBuilderPlugins {
         r.register0("isDeoptimizationTarget", new InvocationPlugin() {
             @Override
             public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod, Receiver receiver) {
+                if (SubstrateOptions.parseOnce()) {
+                    throw VMError.unimplemented("Intrinsification of isDeoptimizationTarget not done yet");
+                }
+
                 if (b.getGraph().method() instanceof SharedMethod) {
                     SharedMethod method = (SharedMethod) b.getGraph().method();
                     if (method.isDeoptTarget()) {
@@ -847,24 +852,6 @@ public class SubstrateGraphBuilderPlugins {
                     // In analysis the value is always true.
                     b.addPush(JavaKind.Boolean, ConstantNode.forBoolean(true));
                 }
-                return true;
-            }
-        });
-
-        r.register2("convertUnknownValue", Object.class, Class.class, new InvocationPlugin() {
-            @Override
-            public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod, Receiver receiver, ValueNode object, ValueNode typeNode) {
-                ResolvedJavaType type = typeValue(b.getConstantReflection(), b, targetMethod, typeNode, "type");
-                TypeReference typeRef = TypeReference.createTrustedWithoutAssumptions(type);
-                Stamp stamp = StampFactory.object(typeRef);
-
-                /* The type cast for Graal optimization phases. */
-                ValueNode piNode = PiNode.create(object, stamp);
-                /*
-                 * The special handling node for static analysis. This node removes itself during
-                 * compilation.
-                 */
-                b.addPush(JavaKind.Object, new ConvertUnknownValueNode(piNode, stamp));
                 return true;
             }
         });
@@ -945,17 +932,6 @@ public class SubstrateGraphBuilderPlugins {
                 return true;
             }
         });
-    }
-
-    private static ResolvedJavaType typeValue(ConstantReflectionProvider constantReflection, GraphBuilderContext b, ResolvedJavaMethod targetMethod, ValueNode typeNode, String name) {
-        if (!typeNode.isConstant()) {
-            throw b.bailout("parameter " + name + " is not a compile time constant for call to " + targetMethod.format("%H.%n(%p)") + " in " + b.getMethod().asStackTraceElement(b.bci()));
-        }
-        ResolvedJavaType type = constantReflection.asJavaType(typeNode.asConstant());
-        if (type == null) {
-            throw b.bailout("parameter " + name + " is null for call to " + targetMethod.format("%H.%n(%p)") + " in " + b.getMethod().asStackTraceElement(b.bci()));
-        }
-        return type;
     }
 
     private static void registerClassPlugins(InvocationPlugins plugins, SnippetReflectionProvider snippetReflection) {
