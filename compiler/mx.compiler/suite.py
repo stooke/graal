@@ -1,10 +1,10 @@
 suite = {
-  "mxversion" : "5.292.5",
+  "mxversion" : "5.302.1",
   "name" : "compiler",
   "sourceinprojectwhitelist" : [],
 
   "groupId" : "org.graalvm.compiler",
-  "version" : "21.2.0",
+  "version" : "21.3.0",
   "release" : False,
   "url" : "http://www.graalvm.org/",
   "developer" : {
@@ -1012,6 +1012,15 @@ suite = {
       "workingSets" : "Graal,LIR",
     },
 
+    "org.graalvm.compiler.lir.processor" : {
+      "subDir" : "src",
+      "sourceDirs" : ["src"],
+      "dependencies" : ["org.graalvm.compiler.processor"],
+      "checkstyle" : "org.graalvm.compiler.graph",
+      "javaCompliance" : "8+",
+      "workingSets" : "Graal,LIR",
+    },
+
     "org.graalvm.compiler.lir.jtt" : {
       "subDir" : "src",
       "sourceDirs" : ["src"],
@@ -1681,7 +1690,7 @@ suite = {
       "javaCompliance" : "11+",
       "checkPackagePrefix" : "false",
       "overlayTarget" : "org.graalvm.compiler.truffle.runtime.serviceprovider",
-      "multiReleaseJarVersion" : "9",
+      "multiReleaseJarVersion" : "11",
       "workingSets" : "Graal,Truffle",
     },
 
@@ -1967,7 +1976,7 @@ suite = {
       "checkstyle" : "org.graalvm.compiler.graph",
       "javaCompliance" : "11+",
       "overlayTarget" : "org.graalvm.compiler.truffle.runtime.hotspot",
-      "multiReleaseJarVersion" : "9",
+      "multiReleaseJarVersion" : "11",
       "workingSets" : "Graal,Truffle",
     },
 
@@ -2134,7 +2143,8 @@ suite = {
         "org.graalvm.compiler.serviceprovider.processor",
         "org.graalvm.compiler.nodeinfo.processor",
         "org.graalvm.compiler.replacements.processor",
-        "org.graalvm.compiler.core.match.processor"
+        "org.graalvm.compiler.core.match.processor",
+        "org.graalvm.compiler.lir.processor",
        ],
       "maven": False,
     },

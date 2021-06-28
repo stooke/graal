@@ -1,5 +1,5 @@
 suite = {
-  "mxversion" : "5.287.0",
+  "mxversion" : "5.301.0",
   "name": "java-benchmarks",
 
   "javac.lint.overrides": "none",
@@ -327,7 +327,6 @@ suite = {
       "sourceDirs" : ["src"],
       "dependencies" : [
         "mx:JMH_1_21",
-        "SCALAFMT"
       ],
       "javaCompliance" : "8+",
       "checkPackagePrefix" : "false",
@@ -346,6 +345,17 @@ suite = {
       "checkPackagePrefix" : "false",
       "annotationProcessors" : ["mx:JMH_1_21"],
       "spotbugsIgnoresGenerated" : True,
+      "workingSets" : "Graal,Bench",
+      "testProject" : True,
+    },
+    "org.graalvm.bench.console" : {
+      "subDir" : "java",
+      "sourceDirs" : ["src"],
+      "dependencies" : [
+        "SCALAFMT"
+      ],
+      "javaCompliance" : "8+",
+      "checkPackagePrefix" : "false",
       "workingSets" : "Graal,Bench",
       "testProject" : True,
     },
@@ -370,6 +380,12 @@ suite = {
     "GRAAL_BENCH_SHOOTOUT" : {
       "subDir" : "java",
       "dependencies" : ["org.graalvm.bench.shootouts"],
+      "testDistribution" : True,
+      "maven": False,
+    },
+    "GRAAL_BENCH_CONSOLE" : {
+      "subDir" : "java",
+      "dependencies" : ["org.graalvm.bench.console"],
       "testDistribution" : True,
       "maven": False,
     }

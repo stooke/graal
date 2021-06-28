@@ -2774,7 +2774,7 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
              */
             ValueNode receiver = graph.start().stateAfter().localAt(0);
             assert receiver != null && receiver.getStackKind() == JavaKind.Object;
-            if (RegisterFinalizerNode.mayHaveFinalizer(receiver, graph.getAssumptions())) {
+            if (RegisterFinalizerNode.mayHaveFinalizer(receiver, getMetaAccess(), graph.getAssumptions())) {
                 RegisterFinalizerNode regFin = new RegisterFinalizerNode(receiver);
                 append(regFin);
                 regFin.setStateAfter(graph.start().stateAfter());
@@ -2797,7 +2797,7 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
     }
 
     protected void genMonitorEnter(ValueNode x, int bci) {
-        MonitorIdNode monitorId = graph.add(new MonitorIdNode(frameState.lockDepth(true)));
+        MonitorIdNode monitorId = graph.add(new MonitorIdNode(frameState.lockDepth(true), bci()));
         ValueNode object = maybeEmitExplicitNullCheck(x);
         MonitorEnterNode monitorEnter = append(createMonitorEnterNode(object, monitorId));
         frameState.pushLock(object, monitorId);
@@ -2810,10 +2810,13 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
         }
         MonitorIdNode monitorId = frameState.peekMonitorId();
         ValueNode lockedObject = frameState.popLock();
-        ValueNode originalLockedObject = GraphUtil.originalValue(lockedObject, false);
-        ValueNode originalX = GraphUtil.originalValue(x, false);
-        if (originalLockedObject != originalX) {
-            throw bailout(String.format("unbalanced monitors: mismatch at monitorexit, %s != %s", originalLockedObject, originalX));
+        // if we merged two monitor ids we trust the merging logic checked the correct enter bcis
+        if (!monitorId.isMultipleEntry()) {
+            ValueNode originalLockedObject = GraphUtil.originalValue(lockedObject, false);
+            ValueNode originalX = GraphUtil.originalValue(x, false);
+            if (originalLockedObject != originalX) {
+                throw bailout(String.format("unbalanced monitors: mismatch at monitorexit, %s != %s", originalLockedObject, originalX));
+            }
         }
         MonitorExitNode monitorExit = append(new MonitorExitNode(lockedObject, monitorId, escapedValue));
         monitorExit.setStateAfter(createFrameState(bci, monitorExit));
@@ -3426,6 +3429,9 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
                 }
 
                 processBytecode(bci, opcode);
+                if (BytecodeParserOptions.DumpAfterEveryBCI.getValue(options)) {
+                    graph.getDebug().dump(DebugContext.VERY_DETAILED_LEVEL, graph, "After processing bci %d", bci);
+                }
             } catch (BailoutException e) {
                 // Don't wrap bailouts as parser errors
                 throw e;

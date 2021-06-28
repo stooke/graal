@@ -542,7 +542,7 @@ public class SubstrateOptions {
     public static final RuntimeOptionKey<Integer> ActiveProcessorCount = new RuntimeOptionKey<>(-1);
 
     @Option(help = "For internal purposes only. Disables type id result verification even when running with assertions enabled.", stability = OptionStability.EXPERIMENTAL, type = Debug)//
-    public static final HostedOptionKey<Boolean> DisableTypeIdResultVerification = new HostedOptionKey<>(false);
+    public static final HostedOptionKey<Boolean> DisableTypeIdResultVerification = new HostedOptionKey<>(true);
 
     public static boolean areMethodHandlesSupported() {
         return JavaVersionUtil.JAVA_SPEC >= 11;
@@ -563,4 +563,13 @@ public class SubstrateOptions {
             return getValueOrDefault(values.getMap());
         }
     };
+
+    @Option(help = "Enable Java Flight Recorder.")//
+    public static final RuntimeOptionKey<Boolean> FlightRecorder = new RuntimeOptionKey<>(false);
+
+    @Option(help = "Start flight recording with options.")//
+    public static final RuntimeOptionKey<String> StartFlightRecording = new RuntimeOptionKey<>("");
+
+    @Option(help = "file:doc-files/FlightRecorderLoggingHelp.txt")//
+    public static final RuntimeOptionKey<String> FlightRecorderLogging = new RuntimeOptionKey<>("all=warning");
 }

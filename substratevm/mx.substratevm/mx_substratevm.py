@@ -34,8 +34,7 @@ import tempfile
 from glob import glob
 from contextlib import contextmanager
 from distutils.dir_util import mkpath, remove_tree  # pylint: disable=no-name-in-module
-from os.path import join, exists, basename, dirname
-from shutil import move
+from os.path import join, exists, dirname
 import pipes
 from xml.dom.minidom import parse
 from argparse import ArgumentParser
@@ -419,6 +418,7 @@ def native_unittests_task():
     additional_build_args = [
         '-H:AdditionalSecurityProviders=com.oracle.svm.test.SecurityServiceTest$NoOpProvider',
         '-H:AdditionalSecurityServiceTypes=com.oracle.svm.test.SecurityServiceTest$JCACompliantNoOpService',
+        '-H:+AllowVMInspection'
     ]
 
     native_unittest(['--build-args', _native_unittest_features] + additional_build_args)
@@ -445,29 +445,24 @@ def _native_junit(native_image, unittest_args, build_args=None, run_args=None, b
     run_args = run_args or ['--verbose']
     junit_native_dir = join(svmbuild_dir(), platform_name(), 'junit')
     mkpath(junit_native_dir)
-    junit_tmp_dir = tempfile.mkdtemp(dir=junit_native_dir)
+    junit_test_dir = junit_native_dir if preserve_image else tempfile.mkdtemp(dir=junit_native_dir)
     try:
         unittest_deps = []
         def dummy_harness(test_deps, vm_launcher, vm_args):
             unittest_deps.extend(test_deps)
-        unittest_file = join(junit_tmp_dir, 'svmjunit.tests')
+        unittest_file = join(junit_test_dir, 'svmjunit.tests')
         _run_tests(unittest_args, dummy_harness, _VMLauncher('dummy_launcher', None, mx_compiler.jdk), ['@Test', '@Parameters'], unittest_file, blacklist, whitelist, None, None)
         if not exists(unittest_file):
             mx.abort('No matching unit tests found. Skip image build and execution.')
         with open(unittest_file, 'r') as f:
             mx.log('Building junit image for matching: ' + ' '.join(l.rstrip() for l in f))
         extra_image_args = mx.get_runtime_jvm_args(unittest_deps, jdk=mx_compiler.jdk)
-        unittest_image = native_image(build_args + extra_image_args + ['--macro:junit=' + unittest_file, '-H:Path=' + junit_tmp_dir])
-        if preserve_image:
-            build_dir = join(svmbuild_dir(), 'junit')
-            mkpath(build_dir)
-            unittest_image_dst = join(build_dir, basename(unittest_image))
-            move(unittest_image, unittest_image_dst)
-            unittest_image = unittest_image_dst
+        unittest_image = native_image(build_args + extra_image_args + ['--macro:junit=' + unittest_file, '-H:Path=' + junit_test_dir])
         mx.log('Running: ' + ' '.join(map(pipes.quote, [unittest_image] + run_args)))
         mx.run([unittest_image] + run_args)
     finally:
-        remove_tree(junit_tmp_dir)
+        if not preserve_image:
+            remove_tree(junit_test_dir)
 
 _mask_str = '#'
 
@@ -511,7 +506,7 @@ def _native_unittest(native_image, cmdline_args):
         except IOError:
             mx.log('warning: could not read blacklist: ' + blacklist)
 
-    unittest_args = unmask(pargs.unittest_args) if unmask(pargs.unittest_args) else ['com.oracle.svm.test']
+    unittest_args = unmask(pargs.unittest_args) if unmask(pargs.unittest_args) else ['com.oracle.svm.test', 'com.oracle.svm.configure.test']
     _native_junit(native_image, unittest_args, unmask(pargs.build_args), unmask(pargs.run_args), blacklist, whitelist, pargs.preserve_image)
 
 
@@ -853,7 +848,8 @@ mx_sdk_vm.register_graalvm_component(mx_sdk_vm.GraalVmJreComponent(
                 'substratevm:SVM_AGENT',
             ],
             build_args=[
-                '--features=com.oracle.svm.agent.NativeImageAgent$RegistrationFeature'
+                '--features=com.oracle.svm.agent.NativeImageAgent$RegistrationFeature',
+                '--enable-url-protocols=jar',
             ],
         ),
         mx_sdk_vm.LibraryConfig(
@@ -1127,26 +1123,35 @@ def clinittest(args):
 
         # Build and run the example
         native_image(
-            ['-H:Path=' + build_dir, '-cp', test_cp, '-H:Class=com.oracle.svm.test.TestClassInitializationMustBeSafe',
-             '-H:Features=com.oracle.svm.test.TestClassInitializationMustBeSafeFeature',
+            ['-H:Path=' + build_dir, '-cp', test_cp, '-H:Class=com.oracle.svm.test.clinit.TestClassInitializationMustBeSafeEarly',
+             '-H:Features=com.oracle.svm.test.clinit.TestClassInitializationMustBeSafeEarlyFeature',
              '-H:+PrintClassInitialization', '-H:Name=clinittest', '-H:+ReportExceptionStackTraces'] + args)
         mx.run([join(build_dir, 'clinittest')])
 
         # Check the reports for initialized classes
-        def check_class_initialization(classes_file_name, marker, prefix=''):
+        def check_class_initialization(classes_file_name):
             classes_file = os.path.join(build_dir, 'reports', classes_file_name)
+            wrongly_initialized_lines = []
+
+            def checkLine(line, marker, init_kind, msg, wrongly_initialized_lines):
+                if marker + "," in line and not ((init_kind + ",") in line and msg in line):
+                    wrongly_initialized_lines += [(line,
+                                                   "Classes marked with " + marker + " must have init kind " + init_kind + " and message " + msg)]
             with open(classes_file) as f:
-                wrongly_initialized_classes = [line.strip() for line in f if line.strip().startswith(prefix) and marker not in line.strip()]
-                if len(wrongly_initialized_classes) > 0:
-                    mx.abort("Only classes with marker " + marker + " must be in file " + classes_file + ". Found:\n" +
-                             str(wrongly_initialized_classes))
+                for line in f:
+                    checkLine(line, "MustBeDelayed", "RUN_TIME", "classes are initialized at run time by default", wrongly_initialized_lines)
+                    checkLine(line, "MustBeSafeEarly", "BUILD_TIME", "class proven as side-effect free before analysis", wrongly_initialized_lines)
+                    checkLine(line, "MustBeSafeLate", "BUILD_TIME", "class proven as side-effect free after analysis", wrongly_initialized_lines)
+                if len(wrongly_initialized_lines) > 0:
+                    msg = ""
+                    for (line, error) in wrongly_initialized_lines:
+                        msg += "In line \n" + line + error + "\n"
+                    mx.abort("Error in initialization reporting:\n" + msg)
 
         reports = os.listdir(os.path.join(build_dir, 'reports'))
-        delayed_classes = next(report for report in reports if report.startswith('run_time_classes'))
-        safe_classes = next(report for report in reports if report.startswith('safe_classes'))
+        all_classes_file = next(report for report in reports if report.startswith('class_initialization_report'))
 
-        check_class_initialization(delayed_classes, 'MustBeDelayed', prefix='com.oracle.svm.test')
-        check_class_initialization(safe_classes, 'MustBeSafe')
+        check_class_initialization(all_classes_file)
 
     native_image_context_run(build_and_test_clinittest_image, args)
 
