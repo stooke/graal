@@ -66,7 +66,6 @@ import org.graalvm.compiler.debug.GraalError;
 import org.graalvm.compiler.lir.LIRFrameState;
 import org.graalvm.compiler.lir.LIRInstruction;
 import org.graalvm.compiler.lir.LabelRef;
-import org.graalvm.compiler.lir.StandardOp;
 import org.graalvm.compiler.lir.Variable;
 import org.graalvm.compiler.lir.VirtualStackSlot;
 import org.graalvm.compiler.lir.gen.ArithmeticLIRGeneratorTool;
@@ -1365,17 +1364,17 @@ public class LLVMGenerator implements LIRGeneratorTool, SubstrateLIRGenerator {
     }
 
     @Override
-    public StandardOp.ZapRegistersOp createZapRegisters(Register[] zappedRegisters, JavaConstant[] zapValues) {
+    public LIRInstruction createZapRegisters(Register[] zappedRegisters, JavaConstant[] zapValues) {
         throw unimplemented("the LLVM backend doesn't support diagnostic operations");
     }
 
     @Override
-    public StandardOp.ZapRegistersOp createZapRegisters(Register[] zappedRegisters) {
+    public LIRInstruction createZapRegisters(Register[] zappedRegisters) {
         throw unimplemented("the LLVM backend doesn't support diagnostic operations");
     }
 
     @Override
-    public StandardOp.ZapRegistersOp createZapRegisters() {
+    public LIRInstruction createZapRegisters() {
         throw unimplemented("the LLVM backend doesn't support diagnostic operations");
     }
 
@@ -1613,6 +1612,18 @@ public class LLVMGenerator implements LIRGeneratorTool, SubstrateLIRGenerator {
         public Value emitMathSqrt(Value input) {
             LLVMValueRef sqrt = builder.buildSqrt(getVal(input));
             return new LLVMVariable(sqrt);
+        }
+
+        @Override
+        public Value emitMathSignum(Value input) {
+            LLVMValueRef val = getVal(input);
+            LLVMTypeRef type = typeOf(val);
+            assert LLVMIRBuilder.isFloatType(type) || LLVMIRBuilder.isDoubleType(type);
+
+            LLVMValueRef zero = LLVMIRBuilder.isFloatType(type) ? builder.constantFloat(0.0f) : builder.constantDouble(0.0d);
+            LLVMValueRef one = LLVMIRBuilder.isFloatType(type) ? builder.constantFloat(1.0f) : builder.constantDouble(1.0d);
+            LLVMValueRef signum = builder.buildSelect(builder.buildCompare(Condition.EQ, val, zero, true), val, builder.buildCopysign(one, val));
+            return new LLVMVariable(signum);
         }
 
         @Override
