@@ -58,8 +58,16 @@ import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_STRUCTURE;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_TYPESERVER2;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_UDT_MOD_SRC_LINE;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_UDT_SRC_LINE;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_ABSTRACT;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_COMPGENX;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_FINAL_CLASS;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_FINAL_METHOD;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_IVIRTUAL;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_PPP_MASK;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_PSEUDO;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_STATIC;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_VIRTUAL;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_VSF_MASK;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_UINT8;
 
 /*
@@ -615,7 +623,7 @@ abstract class CVTypeRecord {
 
         @Override
         public String toString() {
-            return String.format("LF_MFUNCTION 0x%04x ret=0x%04x this=0x%04x *this=0x%04x+%d ctype=0x%x attr=0x%x(%s), argcount=0x%04x ", getSequenceNumber(), returnType, classType, thisType, thisAdjust, callType, funcAttr, "?",  argList.getSequenceNumber());
+            return String.format("LF_MFUNCTION 0x%04x ret=0x%04x this=0x%04x *this=0x%04x+%d calltype=0x%x attr=0x%x(%s), argcount=0x%04x ", getSequenceNumber(), returnType, classType, thisType, thisAdjust, callType, funcAttr, attrString(funcAttr),  argList.getSequenceNumber());
         }
 
         @Override
@@ -719,6 +727,38 @@ abstract class CVTypeRecord {
         }
     }
 
+
+    static String attrString(short attrs) {
+        StringBuilder sb = new StringBuilder();
+
+        /* Low byte. */
+        if ((attrs & MPROP_PPP_MASK) != 0) {
+            String[] aStr = {"", "private", "protected", "public"};
+            sb.append(aStr[attrs & MPROP_PPP_MASK]);
+        }
+        if ((attrs & MPROP_VSF_MASK) != 0) {
+            int p = (attrs & MPROP_VSF_MASK) >> 2;
+            String[] pStr = {"", " virtual", " static", " friend", " intro", " pure", " intro-pure", " (*7*)"};
+            sb.append(pStr[p]);
+        }
+        if ((attrs & MPROP_PSEUDO) != 0) {
+            sb.append(" pseudo");
+        }
+        if ((attrs & MPROP_FINAL_CLASS) != 0) {
+            sb.append(" final-class");
+        }
+        if ((attrs & MPROP_ABSTRACT) != 0) {
+            sb.append(" abstract");
+        }
+        if ((attrs & MPROP_COMPGENX) != 0) {
+            sb.append(" compgenx");
+        }
+        if ((attrs & MPROP_FINAL_METHOD) != 0) {
+            sb.append(" final-method");
+        }
+        return sb.toString();
+    }
+
     static abstract class FieldRecord {
 
         final short type;
@@ -739,37 +779,6 @@ abstract class CVTypeRecord {
             h = 31 * h + attrs;
             h = 31 * h + name.hashCode();
             return h;
-        }
-
-        String attrString() {
-            StringBuilder sb = new StringBuilder();
-
-            /* Low byte. */
-            if ((attrs & 0x0003) != 0) {
-                String[] aStr = {"", "private", "protected", "public"};
-                sb.append(aStr[attrs & 0x0003]);
-            }
-            if ((attrs & 0x001c) != 0) {
-                int p = (attrs & 0x001c) >> 2;
-                String[] pStr = {"", " virtual", " static", " friend", " intro", " pure", " intro-pure", " (*7*)"};
-                sb.append(pStr[p]);
-            }
-            if ((attrs & 0x0020) != 0) {
-                sb.append(" pseudo");
-            }
-            if ((attrs & 0x0040) != 0) {
-                sb.append(" final-class");
-            }
-            if ((attrs & 0x0080) != 0) {
-                sb.append(" abstract");
-            }
-            if ((attrs & 0x0100) != 0) {
-                sb.append(" compgenx");
-            }
-            if ((attrs & 0x0200) != 0) {
-                sb.append(" final-method");
-            }
-            return sb.toString();
         }
 
         @Override
@@ -845,7 +854,7 @@ abstract class CVTypeRecord {
 
         @Override
         public String toString() {
-            return String.format("LF_MEMBER(0x%04x) attr=0x%x(%s) t=0x%x off=%d 0x%x %s", type, attrs, attrString(), underlyingTypeIndex, offset, offset & 0xffff, name);
+            return String.format("LF_MEMBER(0x%04x) attr=0x%x(%s) t=0x%x off=%d 0x%x %s", type, attrs, attrString(attrs), underlyingTypeIndex, offset, offset & 0xffff, name);
         }
 
         @Override
@@ -872,7 +881,7 @@ abstract class CVTypeRecord {
         final int underlyingTypeIndex; /* type index of member type */;
 
         CVStaticMemberRecord(short attrs, int underlyingTypeIndex,  String name) {
-            super(LF_STMEMBER, attrs, name);
+            super(LF_STMEMBER, (short)(attrs + MPROP_STATIC), name);
             this.underlyingTypeIndex = underlyingTypeIndex;
         }
 
@@ -887,7 +896,7 @@ abstract class CVTypeRecord {
 
         @Override
         public String toString() {
-            return String.format("LF_STMEMBER(0x%04x) attr=0x%x(%s) t=0x%x %s", type, attrs, attrString(), underlyingTypeIndex, name);
+            return String.format("LF_STMEMBER(0x%04x) attr=0x%x(%s) t=0x%x %s", type, attrs, attrString(attrs), underlyingTypeIndex, name);
         }
 
         @Override
@@ -935,7 +944,7 @@ abstract class CVTypeRecord {
 
         @Override
         public String toString() {
-            return String.format("LF_ONEMETHOD(0x%04x) attr=0x%x(%s) funcIdx=0x%x off=0x%x %s", type, attrs, attrString(), funcIdx, vtbleOffset, name);
+            return String.format("LF_ONEMETHOD(0x%04x) attr=0x%x(%s) funcIdx=0x%x off=0x%x %s", type, attrs, attrString(attrs), funcIdx, vtbleOffset, name);
         }
 
         @Override
@@ -978,7 +987,7 @@ abstract class CVTypeRecord {
 
         @Override
         public String toString() {
-            return String.format("LF_BCLASS(0x%04x) attr=0x%04x (%s) baseIdx=0x%04x offset=0x%x", LF_BCLASS, attrs, attrString(), basetypeIndex, offset);
+            return String.format("LF_BCLASS(0x%04x) attr=0x%04x(%s ?) baseIdx=0x%04x offset=0x%x", LF_BCLASS, attrs, attrString(attrs), basetypeIndex, offset);
         }
 
         @Override
@@ -1030,7 +1039,7 @@ abstract class CVTypeRecord {
         }
 
         protected String toString(String leafStr) {
-            return String.format("%s 0x%04x attr=0x%04x fld=0x%x", leafStr, getSequenceNumber(), propertyAttributes, fieldIndex);
+            return String.format("%s 0x%04x attr=0x%04x(%s) fld=0x%x", leafStr, getSequenceNumber(), propertyAttributes, propertyString(propertyAttributes), fieldIndex);
         }
 
         @Override
@@ -1276,7 +1285,7 @@ abstract class CVTypeRecord {
 
         @Override
         public String toString() {
-            return String.format("LF_ENUMERATE 0x%04x attr=0x%x(%s) val=0x%x %s", type, attrs, attrString(), value, name);
+            return String.format("LF_ENUMERATE 0x%04x attr=0x%x(%s) val=0x%x %s", type, attrs, attrString(attrs), value, name);
         }
 
         @Override

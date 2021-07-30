@@ -28,6 +28,8 @@ package com.oracle.objectfile.pecoff.cv;
 
 abstract class CVTypeConstants {
 
+    static final int ADDRESS_BITS = 64;
+
     /*
      * Type table. Constants below 0x1000 are 'hardcoded', above are new type entries in the type
      * section.
@@ -53,6 +55,16 @@ abstract class CVTypeConstants {
     static final short T_UINT2 = 0x0073; /* 16 bit unsigned int */
     static final short T_UINT4 = 0x0075; /* 32 bit unsigned int */
     static final short T_UINT8 = 0x0077; /* 64 bit unsigned int */
+
+    static final short T_64PVOID       = 0x0603;
+    static final short T_64PCHAR       = 0x0610;
+    static final short T_64PUCHAR      = 0x0620;
+    static final short T_64PWCHAR      = 0x0671;
+    static final short T_64PUINT1      = 0x0669;
+    static final short T_64PREAL32     = 0x0640;
+    static final short T_64PREAL64     = 0x0641;
+
+
 
     // static final short T_POINTER_BITS = 0x0700;
     // static final short T_POINTER32 = 0x0400; /* 32 bit pointer */
@@ -139,9 +151,25 @@ abstract class CVTypeConstants {
     static final byte LF_PAD15 = (byte) 0xff;
     */
 
-    static final int MPROP_VANILLA   = 0;
-    static final int MPROP_VIRTUAL   = (1 << 2);  // redefinition
-    static final int MPROP_STATIC    = (2 << 2);
-    static final int MPROP_FRIEND    = (3 << 2);
-    static final int MPROP_IVIRTUAL  = (4 << 2);
+    static final short MPROP_VANILLA   = 0;
+    static final short MPROP_PRIVATE   = 1;
+    static final short MPROP_PROTECTED = 2;
+    static final short MPROP_PUBLIC    = 3;
+    static final short MPROP_PPP_MASK  = 0x03;
+
+    static final short MPROP_VIRTUAL   = (1 << 2);  // redefinition
+    static final short MPROP_STATIC    = (2 << 2);
+    static final short MPROP_FRIEND    = (3 << 2);
+    static final short MPROP_IVIRTUAL  = (4 << 2);
+    static final short MPROP_VSF_MASK  = 0x1c;
+
+    static final short MPROP_PSEUDO = 0x20;
+    static final short MPROP_FINAL_CLASS = 0x40;
+    static final short MPROP_ABSTRACT = 0x80;
+    static final short MPROP_COMPGENX = 0x100;
+    static final short MPROP_FINAL_METHOD = 0x200;
+
+    static final int CV_CALL_TYPE_C = 0x01;
+    static final int CV_CALL_TYPE_THISCALL = 0x0b;
+
 }

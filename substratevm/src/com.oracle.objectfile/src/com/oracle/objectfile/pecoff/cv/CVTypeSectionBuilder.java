@@ -31,6 +31,7 @@ import com.oracle.objectfile.debugentry.ClassEntry;
 import com.oracle.objectfile.debugentry.FieldEntry;
 import com.oracle.objectfile.debugentry.HeaderTypeEntry;
 import com.oracle.objectfile.debugentry.InterfaceClassEntry;
+import com.oracle.objectfile.debugentry.MemberEntry;
 import com.oracle.objectfile.debugentry.MethodEntry;
 import com.oracle.objectfile.debugentry.PrimaryEntry;
 import com.oracle.objectfile.debugentry.Range;
@@ -45,8 +46,24 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.CV_CALL_TYPE_C;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.CV_CALL_TYPE_THISCALL;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_CLASS;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MAX_PRIMITIVE;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_PRIVATE;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_PROTECTED;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_PUBLIC;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_STATIC;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_VIRTUAL;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_64PINT1;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_64PINT2;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_64PINT4;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_64PINT8;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_64PREAL32;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_64PREAL64;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_64PUINT1;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_64PVOID;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_64PWCHAR;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_INT1;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_INT2;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_INT4;
@@ -198,7 +215,21 @@ class CVTypeSectionBuilder {
         return record;
     }
 
-    int getIndexForPointer(TypeEntry entry, boolean onlyForwardReference) {
+    /**
+     * Return a CV type index for a pointer to a java type, or the type itself if a primitive.
+     * @param entry The java type to return a typeindex for.
+     * @param onlyForwardReference If true, and the type has not previously been seen,
+     *                             do not attempt to generate a record for the typeitself,
+     *                             only generate a forward reference at this time.
+     *                             This is used to avoid infinite recursion when processing self-referencing types.
+     * @return The index for the typeentry for a pointer to the type.
+     */
+    int getIndexForPointerOrPrimitive(TypeEntry entry, boolean onlyForwardReference) {
+        if (entry.isPrimitive()) {
+            CVTypeRecord record = typeSection.getType(entry.getTypeName());
+            assert record != null;
+            return record.getSequenceNumber();
+        }
         CVTypeRecord ptrRecord = typeSection.getPointerRecordForType(entry.getTypeName());
         if (ptrRecord == null) {
             CVTypeRecord record = typeSection.getType(entry.getTypeName());
@@ -224,23 +255,23 @@ class CVTypeSectionBuilder {
     /**
      * If the type of the pointee is a primitive type, return it directly.
      * Otherwise, create (if needed) and return a record representing a pointer to class.
-     */
+     *
     private int getIndexForPointer(String typeName) {
         CVTypeRecord ptrRecord = typeSection.getPointerRecordForType(typeName);
         if (ptrRecord == null) {
             CVTypeRecord clsRecord = typeSection.getType(typeName);
             if (clsRecord == null) {
-                /* we've never heard of this class (but it may be in process) */
+                /* we've never heard of this class (but it may be in process) *
                 clsRecord = addTypeRecord(new CVTypeRecord.CVClassRecord((short) ATTR_FORWARD_REF, typeName, null));
                 typeInfoMap.put(typeName, new TypeInfo(clsRecord, null));
             } else if (clsRecord.getSequenceNumber() <= MAX_PRIMITIVE) {
                 return clsRecord.getSequenceNumber();
             }
-            /* We now have a class record but must create a pointer record. */
+            /* We now have a class record but must create a pointer record. *
             ptrRecord = addTypeRecord(new CVTypeRecord.CVTypePointerRecord(clsRecord.getSequenceNumber(), CVTypeRecord.CVTypePointerRecord.NORMAL_64));
         }
         return ptrRecord.getSequenceNumber();
-    }
+    }*/
 
     private int getIndexForType(TypeEntry entry) {
         CVTypeRecord clsRecord = typeSection.getType(entry.getTypeName());
@@ -340,7 +371,7 @@ class CVTypeSectionBuilder {
                     });
 
                     classEntry.methods().filter(methodEntry -> !overloaded.contains(methodEntry.methodName())).forEach(m -> {
-                        log("unique method %s(%s) attr=(%s) valuetype=%s", m.fieldName(), m.methodName(), m.getModifiersString(), m.getValueType().getTypeName());
+                        log("`unique method %s %s %s(...)", m.fieldName(), m.methodName(), m.getModifiersString(), m.getValueType().getTypeName(), m.methodName());
                         CVTypeRecord.CVOneMethodRecord method = buildMethod(classEntry, m);
                         log("    unique method %s", method);
                         fieldListRecord.add(method);
@@ -397,7 +428,7 @@ class CVTypeSectionBuilder {
 
         /* Build 0 length array. */
         final TypeEntry elementType = typeEntry.getElementType();
-        int elementTypeIndex = getIndexForPointer(elementType, false);
+        int elementTypeIndex = getIndexForPointerOrPrimitive(elementType, false);
         CVTypeRecord array0record = addTypeRecord(new CVTypeRecord.CVTypeArrayRecord(elementTypeIndex, T_UINT4, 0));
 
         /* Build a field for the 0 length array. */
@@ -508,8 +539,8 @@ class CVTypeSectionBuilder {
 
     private CVTypeRecord.FieldRecord buildField(FieldEntry fieldEntry, boolean onlyForwardReference) {
         TypeEntry valueType = fieldEntry.getValueType();
-        int vtIndex = getIndexForPointer(valueType, onlyForwardReference);
-        short attr = (short) (Modifier.isPublic(fieldEntry.getModifiers()) ? 0x03 : (Modifier.isPrivate(fieldEntry.getModifiers())) ? 0x01 : 0x02);
+        int vtIndex = getIndexForPointerOrPrimitive(valueType, onlyForwardReference);
+        short attr = modifiersToAttr(fieldEntry);
         if (Modifier.isStatic(fieldEntry.getModifiers())) {
             return new CVTypeRecord.CVStaticMemberRecord(attr, vtIndex, fieldEntry.fieldName());
         } else {
@@ -517,24 +548,30 @@ class CVTypeSectionBuilder {
         }
     }
 
+    private short modifiersToAttr(MemberEntry member) {
+        short attr = (short) (Modifier.isPublic(member.getModifiers()) ? MPROP_PUBLIC : (Modifier.isPrivate(member.getModifiers())) ? MPROP_PRIVATE : MPROP_PROTECTED);
+        attr += Modifier.isStatic(member.getModifiers()) ? MPROP_STATIC : MPROP_VIRTUAL; // TODO_ this may need to be IVIRTUAL if this is initial
+        return attr;
+    }
+
     private CVTypeRecord.CVOneMethodRecord buildMethod(ClassEntry classEntry, MethodEntry methodEntry) {
-        short attr = (short) (Modifier.isPublic(methodEntry.getModifiers()) ? 0x03 : (Modifier.isPrivate(methodEntry.getModifiers())) ? 0x01 : 0x02);
-        int offset = 0x999999; /* TODO */
         CVTypeRecord.CVTypeMFunctionRecord funcRecord = buildMemberFunction(classEntry, methodEntry);
+        short attr = modifiersToAttr(methodEntry);
+        int offset = 0; /* TODO */
         return new CVTypeRecord.CVOneMethodRecord(attr, funcRecord.getSequenceNumber(), offset, methodEntry.methodName());
     }
 
     private CVTypeRecord.CVTypeMFunctionRecord buildMemberFunction(ClassEntry classEntry, MethodEntry methodEntry) {
         CVTypeRecord.CVTypeMFunctionRecord mFunctionRecord = new CVTypeRecord.CVTypeMFunctionRecord();
         mFunctionRecord.setClassType(getIndexForType(classEntry));
-        mFunctionRecord.setThisType(getIndexForPointer(classEntry, false));
-        mFunctionRecord.setCallType((byte) 0);
-        short attr = (short) (Modifier.isPublic(methodEntry.getModifiers()) ? 0x03 : (Modifier.isPrivate(methodEntry.getModifiers())) ? 0x01 : 0x02);
+        mFunctionRecord.setThisType(getIndexForPointerOrPrimitive(classEntry, false));
+        mFunctionRecord.setCallType((byte) (Modifier.isStatic(methodEntry.getModifiers()) ? CV_CALL_TYPE_C : CV_CALL_TYPE_THISCALL));
+        short attr = modifiersToAttr(methodEntry);
         mFunctionRecord.setFuncAttr((byte) attr);
-        mFunctionRecord.setReturnType(getIndexForPointer(methodEntry.getValueType(), false));
+        mFunctionRecord.setReturnType(getIndexForPointerOrPrimitive(methodEntry.getValueType(), false));
         CVTypeRecord.CVTypeArglistRecord argListType = new CVTypeRecord.CVTypeArglistRecord();
         for (int i = 0; i < methodEntry.getParamCount(); i++) {
-            argListType.add(getIndexForPointer(methodEntry.getParamType(i), false));
+            argListType.add(getIndexForPointerOrPrimitive(methodEntry.getParamType(i), false));
         }
         argListType = addTypeRecord(argListType);
         mFunctionRecord.setArgList(argListType);
@@ -556,12 +593,14 @@ class CVTypeSectionBuilder {
         /* Build return type records. */
         /* TODO - build from proper type instead of name */
         /* currently this builds ugly class records for arrays, so cheat by returning Object */
-        int returnTypeIndex = primary.getMethodReturnTypeName().endsWith("[]") ? getIndexForPointer(JAVA_LANG_OBJECT) : getIndexForPointer(primary.getMethodReturnTypeName());
+       // TypeEntry foo = primary.getMethodEntry().getValueType();
+        //int returnTypeIndex = primary.getMethodEntry().getValueType().getTypeName().endsWith("[]") ? getIndexForPointer(JAVA_LANG_OBJECT) : getIndexForPointer(primary.getMethodEntry().getValueType().getTypeName());
+        int returnTypeIndex = getIndexForPointerOrPrimitive(primary.getMethodEntry().getValueType(), false);
 
         /* Build arglist record. */
         CVTypeRecord.CVTypeArglistRecord argListType = new CVTypeRecord.CVTypeArglistRecord();
-        for (TypeEntry paramType : primary.getParamTypes()) {
-            argListType.add(getIndexForPointer(paramType, false));
+        for (TypeEntry paramType : primary.getMethodEntry().getParamTypes()) {
+            argListType.add(getIndexForPointerOrPrimitive(paramType, false));
         }
         argListType = addTypeRecord(argListType);
 
@@ -574,15 +613,15 @@ class CVTypeSectionBuilder {
 
     private void addPrimitiveTypes() {
         /* Primitive types are pre-defined and do not get written out to the typeInfo section. */
-        typeSection.definePrimitiveType("void", T_VOID, 0);
-        typeSection.definePrimitiveType("byte", T_INT1, Byte.BYTES);
-        typeSection.definePrimitiveType("boolean", T_UINT1, 1);
-        typeSection.definePrimitiveType("char", T_WCHAR, Character.BYTES);
-        typeSection.definePrimitiveType("short", T_INT2, Short.BYTES);
-        typeSection.definePrimitiveType("int", T_INT4, Integer.BYTES);
-        typeSection.definePrimitiveType("long", T_INT8, Long.BYTES);
-        typeSection.definePrimitiveType("float", T_REAL32, Float.BYTES);
-        typeSection.definePrimitiveType("double", T_REAL64, Double.BYTES);
+        typeSection.definePrimitiveType("void", T_VOID, 0, T_64PVOID);
+        typeSection.definePrimitiveType("byte", T_INT1, Byte.BYTES, T_64PINT1);
+        typeSection.definePrimitiveType("boolean", T_UINT1, 1, T_64PUINT1);
+        typeSection.definePrimitiveType("char", T_WCHAR, Character.BYTES, T_64PWCHAR);
+        typeSection.definePrimitiveType("short", T_INT2, Short.BYTES, T_64PINT2);
+        typeSection.definePrimitiveType("int", T_INT4, Integer.BYTES, T_64PINT4);
+        typeSection.definePrimitiveType("long", T_INT8, Long.BYTES, T_64PINT8);
+        typeSection.definePrimitiveType("float", T_REAL32, Float.BYTES, T_64PREAL32);
+        typeSection.definePrimitiveType("double", T_REAL64, Double.BYTES, T_64PREAL64);
     }
 
     private <T extends CVTypeRecord> T addTypeRecord(T record) {

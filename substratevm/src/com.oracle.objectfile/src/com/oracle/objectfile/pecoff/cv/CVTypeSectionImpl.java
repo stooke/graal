@@ -43,6 +43,7 @@ import java.util.Set;
 import static com.oracle.objectfile.pecoff.cv.CVConstants.CV_SIGNATURE_C13;
 import static com.oracle.objectfile.pecoff.cv.CVConstants.CV_SYMBOL_SECTION_NAME;
 import static com.oracle.objectfile.pecoff.cv.CVConstants.CV_TYPE_SECTION_NAME;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.ADDRESS_BITS;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_CLASS;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_POINTER;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_STRUCTURE;
@@ -67,7 +68,7 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
 
     /* For convenience, quick lookup of pointer type indices given class type index */
     /* Could have saved this in typenameMap. */
-    private Map<Integer, CVTypeRecord.CVTypePointerRecord> typePointerMap = new HashMap<>(CV_TYPENAME_INITIAL_CAPACITY);
+    private Map<Integer, CVTypeRecord> typePointerMap = new HashMap<>(CV_TYPENAME_INITIAL_CAPACITY);
 
     private CVTypeSectionBuilder builder;
 
@@ -153,9 +154,9 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
     CVTypeRecord getPointerRecordForType(String typeName) {
         CVTypeRecord t = getType(typeName);
         if (t != null) {
-            /* While pointers to primitives are allowed, they are not implemented yet. */
-            /* TODO: if we see a primitive type here, look for the pointer and create one if it doesn't exist already. */
-            assert t.getSequenceNumber() > MAX_PRIMITIVE;
+            if (t.getSequenceNumber() <= MAX_PRIMITIVE) {
+                System.out.format("XXXXX primitive pointer requested for %s\n", typeName);
+            }
             return typePointerMap.get(t.getSequenceNumber());
         } else {
             return null;
@@ -174,12 +175,16 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
     }
 
     int getIndexForPointer(TypeEntry typeEntry) {
-        return builder.getIndexForPointer(typeEntry, false);
+        return builder.getIndexForPointerOrPrimitive(typeEntry, false);
     }
 
-    void definePrimitiveType(String typename, short typeId, int length) {
+    void definePrimitiveType(String typename, short typeId, int length, short pointerTypeId) {
         CVTypeRecord record = new CVTypeRecord.CVTypePrimitive(typeId, length);
         typeNameMap.put(typename, record);
+        if (pointerTypeId != 0) {
+            CVTypeRecord pointerRecord = new CVTypeRecord.CVTypePrimitive(pointerTypeId, ADDRESS_BITS);
+            typePointerMap.put((int)typeId, pointerRecord);
+        }
     }
 
     /**
