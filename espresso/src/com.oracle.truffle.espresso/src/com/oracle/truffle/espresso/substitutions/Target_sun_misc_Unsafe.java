@@ -31,6 +31,8 @@ import java.util.concurrent.locks.LockSupport;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.Bind;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -178,7 +180,7 @@ public final class Target_sun_misc_Unsafe {
      * use the most significant 32 bits. It is hard to imagine a JVM technology which needs more
      * than a few bits to encode an offset within a non-array object, However, for consistency with
      * other methods in this class, this method reports its result as a long value.
-     * 
+     *
      * @see #getInt
      */
     @Substitution(hasReceiver = true, nameProvider = SharedUnsafeAppend0.class)
@@ -307,10 +309,10 @@ public final class Target_sun_misc_Unsafe {
     /*
      * The following three methods are there to enable atomic operations on sub-word fields, which
      * would be impossible due to the safety checks in the static object model.
-     * 
+     *
      * All sub-word CAE operations route to `compareAndExchangeInt` in Java code, which, if left
      * as-is would access, for example, byte fields as ints, which is forbidden by the object model.
-     * 
+     *
      * As a workaround, create a substitution for sub-words CAE operations (to which CAS are routed
      * in Java code), and check the field kind to call the corresponding static property method.
      */
@@ -680,42 +682,107 @@ public final class Target_sun_misc_Unsafe {
     // region get*(long offset)
 
     @Substitution(hasReceiver = true)
-    public static byte getByte(@SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self, long offset, @InjectMeta Meta meta) {
-        return UnsafeAccess.getIfAllowed(meta).getByte(offset);
+    abstract static class GetByte extends SubstitutionNode {
+
+        abstract byte execute(@SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self, long address);
+
+        @Specialization
+        byte doCached(
+                        @SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self,
+                        long address,
+                        @Bind("getContext()") EspressoContext context) {
+            return UnsafeAccess.getIfAllowed(context).getByte(address);
+        }
     }
 
     @Substitution(hasReceiver = true)
-    public static char getChar(@SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self, long offset, @InjectMeta Meta meta) {
-        return UnsafeAccess.getIfAllowed(meta).getChar(offset);
+    abstract static class GetChar extends SubstitutionNode {
+
+        abstract char execute(@SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self, long address);
+
+        @Specialization
+        char doCached(
+                        @SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self,
+                        long address,
+                        @Bind("getContext()") EspressoContext context) {
+            return UnsafeAccess.getIfAllowed(context).getChar(address);
+        }
     }
 
     @Substitution(hasReceiver = true)
-    public static short getShort(@SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self, long offset, @InjectMeta Meta meta) {
-        return UnsafeAccess.getIfAllowed(meta).getShort(offset);
+    abstract static class GetShort extends SubstitutionNode {
+
+        abstract short execute(@SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self, long address);
+
+        @Specialization
+        short doCached(
+                        @SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self,
+                        long address,
+                        @Bind("getContext()") EspressoContext context) {
+            return UnsafeAccess.getIfAllowed(context).getShort(address);
+        }
     }
 
     @Substitution(hasReceiver = true)
-    public static int getInt(@SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self, long offset, @InjectMeta Meta meta) {
-        return UnsafeAccess.getIfAllowed(meta).getInt(offset);
+    abstract static class GetInt extends SubstitutionNode {
+
+        abstract int execute(@SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self, long address);
+
+        @Specialization
+        int doCached(
+                        @SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self,
+                        long address,
+                        @Bind("getContext()") EspressoContext context) {
+            return UnsafeAccess.getIfAllowed(context).getInt(address);
+        }
     }
 
     @Substitution(hasReceiver = true)
-    public static float getFloat(@SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self, long offset, @InjectMeta Meta meta) {
-        return UnsafeAccess.getIfAllowed(meta).getFloat(offset);
+    abstract static class GetFloat extends SubstitutionNode {
+
+        abstract float execute(@SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self, long address);
+
+        @Specialization
+        float doCached(
+                        @SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self,
+                        long address,
+                        @Bind("getContext()") EspressoContext context) {
+            return UnsafeAccess.getIfAllowed(context).getFloat(address);
+        }
     }
 
     @Substitution(hasReceiver = true)
-    public static long getLong(@SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self, long offset, @InjectMeta Meta meta) {
-        return UnsafeAccess.getIfAllowed(meta).getLong(offset);
+    abstract static class GetDouble extends SubstitutionNode {
+
+        abstract double execute(@SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self, long address);
+
+        @Specialization
+        double doCached(
+                        @SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self,
+                        long address,
+                        @Bind("getContext()") EspressoContext context) {
+            return UnsafeAccess.getIfAllowed(context).getDouble(address);
+        }
     }
 
     @Substitution(hasReceiver = true)
-    public static double getDouble(@SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self, long offset, @InjectMeta Meta meta) {
-        return UnsafeAccess.getIfAllowed(meta).getDouble(offset);
+    abstract static class GetLong extends SubstitutionNode {
+
+        abstract long execute(@SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self, long address);
+
+        @Specialization
+        long doCached(
+                        @SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self,
+                        long address,
+                        @Bind("getContext()") EspressoContext context) {
+            return UnsafeAccess.getIfAllowed(context).getLong(address);
+        }
     }
+
     // endregion get*(long offset)
 
     // region put*Volatile(Object holder, long offset)
+
     @TruffleBoundary(allowInlining = true)
     @Substitution(hasReceiver = true, nameProvider = SharedUnsafeObjectAccessToReference.class)
     public static void putObjectVolatile(@SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self, @JavaType(Object.class) StaticObject holder, long offset,
@@ -899,38 +966,108 @@ public final class Target_sun_misc_Unsafe {
      * @see #getByte
      */
     @Substitution(hasReceiver = true)
-    public static void putByte(@SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self, long offset, byte value, @InjectMeta Meta meta) {
-        UnsafeAccess.getIfAllowed(meta).putByte(offset, value);
+    abstract static class PutByte extends SubstitutionNode {
+
+        abstract void execute(@SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self, long address, byte value);
+
+        @Specialization
+        void doCached(
+                        @SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self,
+                        long address,
+                        byte value,
+                        @Bind("getContext()") EspressoContext context) {
+            UnsafeAccess.getIfAllowed(context).putByte(address, value);
+        }
     }
 
     @Substitution(hasReceiver = true)
-    public static void putChar(@SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self, long offset, char value, @InjectMeta Meta meta) {
-        UnsafeAccess.getIfAllowed(meta).putChar(offset, value);
+    abstract static class PutChar extends SubstitutionNode {
+
+        abstract void execute(@SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self, long address, char value);
+
+        @Specialization
+        void doCached(
+                        @SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self,
+                        long address,
+                        char value,
+                        @Bind("getContext()") EspressoContext context) {
+            UnsafeAccess.getIfAllowed(context).putChar(address, value);
+        }
     }
 
     @Substitution(hasReceiver = true)
-    public static void putShort(@SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self, long offset, short value, @InjectMeta Meta meta) {
-        UnsafeAccess.getIfAllowed(meta).putShort(offset, value);
+    abstract static class PutShort extends SubstitutionNode {
+
+        abstract void execute(@SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self, long address, short value);
+
+        @Specialization
+        void doCached(
+                        @SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self,
+                        long address,
+                        short value,
+                        @Bind("getContext()") EspressoContext context) {
+            UnsafeAccess.getIfAllowed(context).putShort(address, value);
+        }
     }
 
     @Substitution(hasReceiver = true)
-    public static void putInt(@SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self, long offset, int value, @InjectMeta Meta meta) {
-        UnsafeAccess.getIfAllowed(meta).putInt(offset, value);
+    abstract static class PutInt extends SubstitutionNode {
+
+        abstract void execute(@SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self, long address, int value);
+
+        @Specialization
+        void doCached(
+                        @SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self,
+                        long address,
+                        int value,
+                        @Bind("getContext()") EspressoContext context) {
+            UnsafeAccess.getIfAllowed(context).putInt(address, value);
+        }
     }
 
     @Substitution(hasReceiver = true)
-    public static void putFloat(@SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self, long offset, float value, @InjectMeta Meta meta) {
-        UnsafeAccess.getIfAllowed(meta).putFloat(offset, value);
+    abstract static class PutFloat extends SubstitutionNode {
+
+        abstract void execute(@SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self, long address, float value);
+
+        @Specialization
+        void doCached(
+                        @SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self,
+                        long address,
+                        float value,
+                        @Bind("getContext()") EspressoContext context) {
+            UnsafeAccess.getIfAllowed(context).putFloat(address, value);
+        }
     }
 
     @Substitution(hasReceiver = true)
-    public static void putDouble(@SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self, long offset, double value, @InjectMeta Meta meta) {
-        UnsafeAccess.getIfAllowed(meta).putDouble(offset, value);
+    abstract static class PutDouble extends SubstitutionNode {
+
+        abstract void execute(@SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self, long address, double value);
+
+        @Specialization
+        void doCached(
+                        @SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self,
+                        long address,
+                        double value,
+                        @Bind("getContext()") EspressoContext context) {
+            UnsafeAccess.getIfAllowed(context).putDouble(address, value);
+        }
     }
 
     @Substitution(hasReceiver = true)
-    public static void putLong(@SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self, long offset, long x, @InjectMeta Meta meta) {
-        UnsafeAccess.getIfAllowed(meta).putLong(offset, x);
+    abstract static class PutLong extends SubstitutionNode {
+
+        abstract void execute(@SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self, long address, long value);
+
+        @Specialization
+        void doCached(
+                        @SuppressWarnings("unused") @JavaType(Unsafe.class) StaticObject self,
+                        long address,
+                        long value,
+                        @Bind("getContext()") EspressoContext context) {
+            UnsafeAccess.getIfAllowed(context).putLong(address, value);
+        }
     }
 
     // endregion put*(long offset, * value)
@@ -1160,7 +1297,7 @@ public final class Target_sun_misc_Unsafe {
      * absolute addresses can use long offsets and null base pointers to express the field locations
      * in a form usable by {@link #getInt}. Therefore, code which will be ported to such JVMs on
      * 64-bit platforms must preserve all bits of static field offsets.
-     * 
+     *
      * @see #getInt
      */
     @Substitution(hasReceiver = true, nameProvider = SharedUnsafeAppend0.class)
@@ -1262,7 +1399,7 @@ public final class Target_sun_misc_Unsafe {
      * special is usually required to ensure this when called from Java (in which there will
      * ordinarily be a live reference to the thread) but this is not nearly-automatically so when
      * calling from native code.
-     * 
+     *
      * @param thread the thread to unpark.
      *
      */
@@ -1308,7 +1445,7 @@ public final class Target_sun_misc_Unsafe {
 
     /**
      * Ensures lack of reordering of loads before the fence with loads or stores after the fence.
-     * 
+     *
      * @since 1.8
      */
     @Substitution(hasReceiver = true)
@@ -1318,7 +1455,7 @@ public final class Target_sun_misc_Unsafe {
 
     /**
      * Ensures lack of reordering of stores before the fence with loads or stores after the fence.
-     * 
+     *
      * @since 1.8
      */
     @Substitution(hasReceiver = true)
@@ -1329,7 +1466,7 @@ public final class Target_sun_misc_Unsafe {
     /**
      * Ensures lack of reordering of loads or stores before the fence with loads or stores after the
      * fence.
-     * 
+     *
      * @since 1.8
      */
     @Substitution(hasReceiver = true)

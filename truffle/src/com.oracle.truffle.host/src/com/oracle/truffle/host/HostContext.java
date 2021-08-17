@@ -59,6 +59,7 @@ import org.graalvm.polyglot.proxy.Proxy;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.TruffleLanguage.ContextReference;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleOptions;
@@ -87,7 +88,7 @@ final class HostContext {
     private Predicate<String> classFilter;
     private boolean hostClassLoadingAllowed;
     private boolean hostLookupAllowed;
-
+    final TruffleLanguage.Env env;
     final AbstractHostAccess access;
 
     @SuppressWarnings("serial") final HostException stackoverflowError = new HostException(new StackOverflowError() {
@@ -105,9 +106,10 @@ final class HostContext {
         }
     };
 
-    HostContext(HostLanguage hostLanguage) {
+    HostContext(HostLanguage hostLanguage, TruffleLanguage.Env env) {
         this.language = hostLanguage;
         this.access = hostLanguage.access;
+        this.env = env;
     }
 
     /*
@@ -260,8 +262,8 @@ final class HostContext {
         return HostObject.forClass(receiver, this);
     }
 
-    Object toGuestValue(Node parentNode, Object hostValue) {
-        Object result = language.access.toGuestValue(internalContext, parentNode, hostValue);
+    Object toGuestValue(Object hostValue) {
+        Object result = language.access.toGuestValue(internalContext, hostValue);
         if (result != null) {
             return result;
         } else if (isGuestPrimitive(hostValue)) {
@@ -289,6 +291,12 @@ final class HostContext {
                         || receiver instanceof String;
     }
 
+    private static final ContextReference<HostContext> REFERENCE = ContextReference.create(HostLanguage.class);
+
+    static HostContext get(Node node) {
+        return REFERENCE.get(node);
+    }
+
     @GenerateUncached
     abstract static class ToGuestValueNode extends Node {
 
@@ -296,18 +304,18 @@ final class HostContext {
 
         @Specialization(guards = "receiver == null")
         Object doNull(HostContext context, @SuppressWarnings("unused") Object receiver) {
-            return context.toGuestValue(this, receiver);
+            return context.toGuestValue(receiver);
         }
 
         @Specialization(guards = {"receiver != null", "receiver.getClass() == cachedReceiver"}, limit = "3")
         Object doCached(HostContext context, Object receiver, @Cached("receiver.getClass()") Class<?> cachedReceiver) {
-            return context.toGuestValue(this, cachedReceiver.cast(receiver));
+            return context.toGuestValue(cachedReceiver.cast(receiver));
         }
 
         @Specialization(replaces = "doCached")
         @TruffleBoundary
         Object doUncached(HostContext context, Object receiver) {
-            return context.toGuestValue(this, receiver);
+            return context.toGuestValue(receiver);
         }
     }
 

@@ -40,41 +40,46 @@
  */
 package org.graalvm.wasm.api;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.graalvm.collections.Pair;
+import org.graalvm.wasm.WasmContext;
+import org.graalvm.wasm.WasmFunction;
+import org.graalvm.wasm.WasmFunctionInstance;
+import org.graalvm.wasm.WasmInstance;
+import org.graalvm.wasm.WasmModule;
+import org.graalvm.wasm.WasmTable;
+import org.graalvm.wasm.exception.Failure;
+import org.graalvm.wasm.exception.WasmException;
+import org.graalvm.wasm.exception.WasmJsApiException;
+import org.graalvm.wasm.exception.WasmJsApiException.Kind;
+import org.graalvm.wasm.globals.ExportedWasmGlobal;
+import org.graalvm.wasm.globals.WasmGlobal;
+import org.graalvm.wasm.memory.WasmMemory;
+
 import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleContext;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import org.graalvm.collections.Pair;
-import org.graalvm.wasm.WasmContext;
-import org.graalvm.wasm.WasmFunction;
-import org.graalvm.wasm.WasmFunctionInstance;
-import org.graalvm.wasm.WasmInstance;
-import org.graalvm.wasm.WasmTable;
-import org.graalvm.wasm.exception.Failure;
-import org.graalvm.wasm.exception.WasmException;
-import org.graalvm.wasm.exception.WasmJsApiException;
-import org.graalvm.wasm.exception.WasmJsApiException.Kind;
-import org.graalvm.wasm.memory.WasmMemory;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class Instance extends Dictionary {
     private final TruffleContext truffleContext;
-    private final Module module;
+    private final WasmModule module;
     private final WasmInstance instance;
     private final Object importObject;
     private final Dictionary exportObject;
 
     @CompilerDirectives.TruffleBoundary
-    public Instance(TruffleContext truffleContext, Module module, Object importObject) {
+    public Instance(TruffleContext truffleContext, WasmModule module, Object importObject) {
         this.truffleContext = truffleContext;
         this.module = module;
         this.importObject = importObject;
-        final WasmContext instanceContext = WasmContext.getCurrent();
+        final WasmContext instanceContext = WasmContext.get(null);
         this.instance = instantiateModule(instanceContext);
         instanceContext.linker().tryLink(instance);
         this.exportObject = initializeExports(instanceContext);
@@ -103,7 +108,8 @@ public class Instance extends Dictionary {
     }
 
     private HashMap<String, ImportModule> readImportModules() {
-        final Sequence<ModuleImportDescriptor> imports = module.imports();
+        CompilerAsserts.neverPartOfCompilation();
+        final Sequence<ModuleImportDescriptor> imports = WebAssembly.moduleImports(module);
         if (imports.getArraySize() != 0 && importObject == null) {
             throw new WasmJsApiException(Kind.TypeError, "Module requires imports, but import object is undefined.");
         }
@@ -112,8 +118,8 @@ public class Instance extends Dictionary {
         final InteropLibrary lib = InteropLibrary.getUncached();
         try {
             int i = 0;
-            while (i < module.imports().getArraySize()) {
-                final ModuleImportDescriptor d = (ModuleImportDescriptor) module.imports().readArrayElement(i);
+            while (i < WebAssembly.moduleImports(module).getArraySize()) {
+                final ModuleImportDescriptor d = (ModuleImportDescriptor) WebAssembly.moduleImports(module).readArrayElement(i);
                 final Object importedModule = getMember(importObject, d.module());
                 final Object member = getMember(importedModule, d.name());
                 switch (d.kind()) {
@@ -121,115 +127,40 @@ public class Instance extends Dictionary {
                         if (!lib.isExecutable(member)) {
                             throw new WasmJsApiException(Kind.LinkError, "Member " + member + " is not callable.");
                         }
-                        WasmFunction f = module.wasmModule().importedFunction(d.name());
+                        WasmFunction f = module.importedFunction(d.name());
                         ensureImportModule(importModules, d.module()).addFunction(d.name(), Pair.create(f, member));
                         break;
                     case memory:
-                        if (!isMemory(lib, member)) {
+                        if (!(member instanceof WasmMemory)) {
                             throw new WasmJsApiException(Kind.LinkError, "Member " + member + " is not a valid memory.");
                         }
                         // TODO: Use the Interop API to access the memory.
-                        ensureImportModule(importModules, d.module()).addMemory(d.name(), (Memory) member);
+                        ensureImportModule(importModules, d.module()).addMemory(d.name(), (WasmMemory) member);
                         break;
                     case table:
-                        if (!isTable(lib, member)) {
+                        if (!(member instanceof WasmTable)) {
                             throw new WasmJsApiException(Kind.LinkError, "Member " + member + " is not a valid table.");
                         }
                         // TODO: Use the Interop API to access the table.
-                        ensureImportModule(importModules, d.module()).addTable(d.name(), (Table) member);
+                        ensureImportModule(importModules, d.module()).addTable(d.name(), (WasmTable) member);
                         break;
                     case global:
-                        if (!isGlobal(lib, member)) {
+                        if (!(member instanceof WasmGlobal)) {
                             throw new WasmJsApiException(Kind.LinkError, "Member " + member + " is not a valid global.");
                         }
-                        ensureImportModule(importModules, d.module()).addGlobal(d.name(), member);
+                        ensureImportModule(importModules, d.module()).addGlobal(d.name(), (WasmGlobal) member);
                         break;
                     default:
-                        CompilerDirectives.transferToInterpreter();
                         throw WasmException.create(Failure.UNSPECIFIED_INTERNAL, "Unimplemented case: " + d.kind());
                 }
 
                 i += 1;
             }
         } catch (InvalidArrayIndexException | UnknownIdentifierException | ClassCastException | UnsupportedMessageException e) {
-            CompilerDirectives.transferToInterpreter();
             throw WasmException.create(Failure.UNSPECIFIED_INTERNAL, "Unexpected state.");
         }
 
         return importModules;
-    }
-
-    private static boolean isMemory(InteropLibrary lib, Object memory) throws UnknownIdentifierException, UnsupportedMessageException {
-        if (!lib.isMemberReadable(memory, "descriptor")) {
-            return false;
-        }
-        final Object descriptor = lib.readMember(memory, "descriptor");
-        if (!(lib.isMemberReadable(descriptor, "initial") && lib.isNumber(lib.readMember(descriptor, "initial")))) {
-            return false;
-        }
-        if (!(lib.isMemberReadable(descriptor, "maximum") && lib.isNumber(lib.readMember(descriptor, "maximum")))) {
-            return false;
-        }
-        if (!(lib.isMemberReadable(memory, "grow") && lib.isExecutable(lib.readMember(memory, "grow")))) {
-            return false;
-        }
-        if (!(lib.isMemberReadable(memory, "buffer"))) {
-            return false;
-        }
-        return true;
-    }
-
-    private static boolean isTable(InteropLibrary lib, Object table) throws UnknownIdentifierException, UnsupportedMessageException {
-        if (!lib.isMemberReadable(table, "descriptor")) {
-            return false;
-        }
-        final Object descriptor = lib.readMember(table, "descriptor");
-        if (!(lib.isMemberReadable(descriptor, "initial") && lib.isNumber(lib.readMember(descriptor, "initial")))) {
-            return false;
-        }
-        if (!(lib.isMemberReadable(descriptor, "maximum") && lib.isNumber(lib.readMember(descriptor, "maximum")))) {
-            return false;
-        }
-        if (!lib.isMemberReadable(descriptor, "element")) {
-            return false;
-        }
-        final Object element = lib.readMember(descriptor, "element");
-        if (!(lib.isString(element) && lib.asString(element).equals(TableKind.anyfunc.name()))) {
-            return false;
-        }
-        if (!(lib.isMemberReadable(table, "grow") && lib.isExecutable(lib.readMember(table, "grow")))) {
-            return false;
-        }
-        if (!(lib.isMemberReadable(table, "get") && lib.isExecutable(lib.readMember(table, "get")))) {
-            return false;
-        }
-        if (!(lib.isMemberReadable(table, "set") && lib.isExecutable(lib.readMember(table, "set")))) {
-            return false;
-        }
-        if (!(lib.isMemberReadable(table, "length") && lib.isNumber(lib.readMember(table, "length")))) {
-            return false;
-        }
-        return true;
-    }
-
-    private static boolean isGlobal(InteropLibrary lib, Object table) throws UnknownIdentifierException, UnsupportedMessageException {
-        if (!lib.isMemberReadable(table, "descriptor")) {
-            return false;
-        }
-        final Object descriptor = lib.readMember(table, "descriptor");
-        if (!(lib.isMemberReadable(descriptor, "value") && lib.isString(lib.readMember(descriptor, "value")))) {
-            return false;
-        }
-        if (!(lib.isMemberReadable(descriptor, "mutable") && lib.isBoolean(lib.readMember(descriptor, "mutable")))) {
-            return false;
-        }
-        if (!(lib.isMemberReadable(table, "valueOf") && lib.isExecutable(lib.readMember(table, "valueOf")))) {
-            return false;
-        }
-        if (!(lib.isMemberReadable(table, "value") && lib.isNumber(lib.readMember(table, "value")))) {
-            return false;
-        }
-        return true;
     }
 
     private WasmInstance instantiateCore(WasmContext context, HashMap<String, ImportModule> importModules) {
@@ -239,10 +170,11 @@ public class Instance extends Dictionary {
             final WasmInstance importedInstance = importModule.createInstance(context.language(), context, name);
             context.register(importedInstance);
         }
-        return context.readInstance(module.wasmModule());
+        return context.readInstance(module);
     }
 
     private Dictionary initializeExports(WasmContext context) {
+        CompilerAsserts.neverPartOfCompilation();
         Dictionary e = new Dictionary();
         for (String name : instance.module().exportedSymbols()) {
             WasmFunction function = instance.module().exportedFunctions().get(name);
@@ -255,21 +187,20 @@ public class Instance extends Dictionary {
                 final int index = globalIndex;
                 final int address = instance.globalAddress(index);
                 if (address < 0) {
-                    Object global = context.globals().externalGlobal(address);
+                    WasmGlobal global = context.globals().externalGlobal(address);
                     e.addMember(name, global);
                 } else {
                     final ValueType valueType = ValueType.fromByteValue(instance.symbolTable().globalValueType(index));
                     final boolean mutable = instance.symbolTable().isGlobalMutable(index);
-                    e.addMember(name, new ProxyGlobal(new GlobalDescriptor(valueType.name(), mutable), context.globals(), address));
+                    e.addMember(name, new ExportedWasmGlobal(valueType, mutable, context.globals(), address));
                 }
             } else if (instance.module().exportedMemoryNames().contains(name)) {
                 final WasmMemory memory = instance.memory();
-                e.addMember(name, new Memory(memory));
+                e.addMember(name, memory);
             } else if (instance.module().exportedTableNames().contains(name)) {
                 final WasmTable table = instance.table();
-                e.addMember(name, new Table(table));
+                e.addMember(name, table);
             } else {
-                CompilerDirectives.transferToInterpreter();
                 throw WasmException.create(Failure.UNSPECIFIED_INTERNAL, "Exported symbol list does not match the actual exports.");
             }
         }

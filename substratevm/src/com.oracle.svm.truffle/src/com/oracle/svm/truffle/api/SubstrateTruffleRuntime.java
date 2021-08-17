@@ -63,6 +63,7 @@ import com.oracle.svm.core.stack.SubstrateStackIntrospection;
 import com.oracle.svm.hosted.c.GraalAccess;
 import com.oracle.svm.truffle.TruffleSupport;
 import com.oracle.truffle.api.CompilerAsserts;
+import com.oracle.truffle.api.impl.AbstractFastThreadLocal;
 import com.oracle.truffle.api.impl.ThreadLocalHandshake;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.utilities.TriState;
@@ -125,15 +126,17 @@ public final class SubstrateTruffleRuntime extends GraalTruffleRuntime {
         return SubstrateThreadLocalHandshake.SINGLETON;
     }
 
+    @Override
+    protected AbstractFastThreadLocal getFastThreadLocalImpl() {
+        return SubstrateFastThreadLocal.SINGLETON;
+    }
+
     private void initializeAtRuntime(OptimizedCallTarget callTarget) {
         truffleCompiler.initialize(getOptionsForCompiler(callTarget), callTarget, true);
         if (SubstrateTruffleOptions.isMultiThreaded()) {
             compileQueue = TruffleSupport.singleton().createBackgroundCompileQueue(this);
         }
         if (callTarget.engine.traceTransferToInterpreter) {
-            if (!SubstrateOptions.IncludeNodeSourcePositions.getValue()) {
-                Log.log().string("Warning: TraceTruffleTransferToInterpreter cannot print stack traces. Build image with -H:+IncludeNodeSourcePositions to enable stack traces.").newline();
-            }
             RuntimeOptionValues.singleton().update(Deoptimizer.Options.TraceDeoptimization, true);
         }
         installDefaultListeners();
@@ -415,4 +418,5 @@ public final class SubstrateTruffleRuntime extends GraalTruffleRuntime {
         }
 
     }
+
 }

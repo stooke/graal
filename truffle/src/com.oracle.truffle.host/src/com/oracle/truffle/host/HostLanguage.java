@@ -87,7 +87,7 @@ final class HostLanguage extends TruffleLanguage<HostContext> {
     @Override
     protected HostContext createContext(com.oracle.truffle.api.TruffleLanguage.Env env) {
         env.registerService(service);
-        return new HostContext(this);
+        return new HostContext(this, env);
     }
 
     @Override
@@ -155,16 +155,9 @@ final class HostLanguage extends TruffleLanguage<HostContext> {
         String sourceString = request.getSource().getCharacters().toString();
         return Truffle.getRuntime().createCallTarget(new RootNode(this) {
 
-            @CompilationFinal ContextReference<HostContext> contextRef;
-
             @Override
             public Object execute(VirtualFrame frame) {
-                if (contextRef == null) {
-                    CompilerDirectives.transferToInterpreterAndInvalidate();
-                    contextRef = lookupContextReference(HostLanguage.class);
-                }
-                HostContext context = contextRef.get();
-                return service.findDynamicClass(context, sourceString);
+                return service.findDynamicClass(HostContext.get(this), sourceString);
             }
         });
     }

@@ -229,8 +229,6 @@ public abstract class Accessor {
 
         public abstract void checkInteropType(Object result);
 
-        public abstract boolean isInteropType(Object result);
-
         public abstract boolean isExecutableObject(Object value);
 
         public abstract Object createDefaultNodeObject(Node node);
@@ -279,6 +277,9 @@ public abstract class Accessor {
 
         public abstract boolean isPrimitiveTarget(Class<?> c);
 
+        public abstract boolean isGuestToHostRootNode(RootNode root);
+
+        public abstract boolean isHostLanguage(Class<?> languageClass);
     }
 
     public abstract static class EngineSupport extends Support {
@@ -329,8 +330,6 @@ public abstract class Accessor {
 
         public abstract boolean hasCurrentContext();
 
-        public abstract ContextReference<Object> getCurrentContextReference(Object polyglotLanguage);
-
         public abstract boolean isDisposed(Object polyglotLanguageContext);
 
         public abstract Map<String, LanguageInfo> getInternalLanguages(Object polyglotObject);
@@ -367,11 +366,13 @@ public abstract class Accessor {
 
         public abstract boolean inContextPreInitialization(Object polyglotObject);
 
-        public abstract TruffleContext createInternalContext(Object sourcePolyglotLanguageContext, Map<String, Object> config);
+        public abstract TruffleContext createInternalContext(Object sourcePolyglotLanguageContext, Map<String, Object> config, boolean initializeCreatorContext);
 
         public abstract Object enterInternalContext(Node node, Object polyglotContext);
 
         public abstract void leaveInternalContext(Node node, Object polyglotContext, Object prev);
+
+        public abstract Object evalInternalContext(Node node, Object polyglotContext, Source source, boolean allowInternal);
 
         public abstract void closeContext(Object polyglotContext, boolean force, Node closeLocation, boolean resourceExhaused, String resourceExhausedReason);
 
@@ -467,13 +468,9 @@ public abstract class Accessor {
 
         public abstract <S> S lookupService(Object polyglotLanguageContext, LanguageInfo language, LanguageInfo accessingLanguage, Class<S> type);
 
-        public abstract <T extends TruffleLanguage<?>> LanguageReference<T> lookupLanguageReference(Object polyglotEngine, TruffleLanguage<?> sourceLanguage, Class<T> targetLanguageClass);
+        public abstract <T extends TruffleLanguage<C>, C> ContextReference<C> createContextReference(Node node, Class<T> languageClass);
 
-        public abstract <T extends TruffleLanguage<?>> LanguageReference<T> getDirectLanguageReference(Object polyglotEngine, TruffleLanguage<?> sourceLanguage, Class<T> targetLanguageClass);
-
-        public abstract <T extends TruffleLanguage<C>, C> ContextReference<C> lookupContextReference(Object polyglotEngine, TruffleLanguage<?> language, Class<T> languageClass);
-
-        public abstract <T extends TruffleLanguage<C>, C> ContextReference<C> getDirectContextReference(Object polyglotEngine, TruffleLanguage<?> language, Class<T> languageClass);
+        public abstract <T extends TruffleLanguage<?>> LanguageReference<T> createLanguageReference(Node node, Class<T> targetLanguageClass);
 
         public abstract FileSystem getFileSystem(Object polyglotContext);
 
@@ -615,6 +612,9 @@ public abstract class Accessor {
         public abstract boolean areStaticObjectSafetyChecksRelaxed(Object polyglotLanguageInstance);
 
         public abstract String getStaticObjectStorageStrategy(Object polyglotLanguageInstance);
+
+        public abstract Object getHostContext(Object valueContext);
+
     }
 
     public abstract static class LanguageSupport extends Support {
@@ -715,13 +715,15 @@ public abstract class Accessor {
 
         public abstract Object getDefaultLoggers();
 
-        public abstract Object createEngineLoggers(Object spi, Map<String, Level> logLevels);
+        public abstract Object createEngineLoggers(Object spi);
 
         public abstract Object getLoggersSPI(Object loggerCache);
 
         public abstract void closeEngineLoggers(Object loggers);
 
         public abstract TruffleLogger getLogger(String id, String loggerName, Object loggers);
+
+        public abstract Object getLoggerCache(TruffleLogger logger);
 
         public abstract TruffleLanguage<?> getLanguage(Env env);
 
@@ -764,6 +766,7 @@ public abstract class Accessor {
         public abstract boolean isSideEffectingTLAction(ThreadLocalAction action);
 
         public abstract void performTLAction(ThreadLocalAction action, ThreadLocalAction.Access access);
+
     }
 
     public abstract static class InstrumentSupport extends Support {
@@ -1030,6 +1033,10 @@ public abstract class Accessor {
         public abstract Object[] getNonPrimitiveResolvedFields(Class<?> type);
 
         public abstract Object getFieldValue(Object resolvedJavaField, Object obj);
+
+        public AbstractFastThreadLocal getContextThreadLocal() {
+            return DefaultContextThreadLocal.SINGLETON;
+        }
     }
 
     public static final class JDKSupport {
@@ -1233,7 +1240,7 @@ public abstract class Accessor {
     /**
      * Returns a {@link TVMCI} obtained from {@link TruffleRuntime}.
      *
-     * NOTE: this method is called reflectively by {@code TruffleFeature} to initialize
+     * NOTE: this method is called reflectively by {@code TruffleBaseFeature} to initialize
      * {@code tvmci} instance.
      */
     private static TVMCI getTVMCI() {
