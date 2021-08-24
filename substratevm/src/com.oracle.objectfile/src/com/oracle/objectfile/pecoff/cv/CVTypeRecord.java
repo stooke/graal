@@ -197,10 +197,13 @@ abstract class CVTypeRecord {
 
     static final class CVTypePointerRecord extends CVTypeRecord {
 
-        /* Standard 64-bit absolute pointer type. */
-        static final int NORMAL_64 = 0x100c;
+        static final int KIND_64 = 0x0000c;
+        static final int SIZE_8 = 8 << 13;
 
-        final int pointsTo;
+        /* Standard 64-bit absolute pointer type. */
+        static final int NORMAL_64 = KIND_64 | SIZE_8;
+
+        private final int pointsTo;
 
         /*
         int kind      =  attributes & 0x00001f;
@@ -209,12 +212,16 @@ abstract class CVTypeRecord {
         int size      = (attributes & 0x07e000) >> 13;
         int flags     = (attributes & 0x380000) >> 19;
         */
-        final int attrs;
+        private final int attrs;
 
         CVTypePointerRecord(int pointTo, int attrs) {
             super(LF_POINTER);
             this.pointsTo = pointTo;
             this.attrs = attrs;
+        }
+
+        int getPointsTo() {
+            return pointsTo;
         }
 
         @Override
@@ -420,7 +427,7 @@ abstract class CVTypeRecord {
             boolean isConst     = (attrs & 0x0001) == 0x0001;
             boolean isVolatile  = (attrs & 0x0002) == 0x0002;
             boolean isUnaligned = (attrs & 0x0004) == 0x0004;
-            return String.format("LF_POINTER 0x%04x attr=0x%x%s%s%s pointTo=0x%04x", getSequenceNumber(), attrs, isConst ? " const" : "", isVolatile ? " volatile" : "", isUnaligned ? " unaligned" : "", typeIndex);
+            return String.format("LF_MODIFIER 0x%04x attr=0x%x%s%s%s pointTo=0x%04x", getSequenceNumber(), attrs, isConst ? " const" : "", isVolatile ? " volatile" : "", isUnaligned ? " unaligned" : "", typeIndex);
         }
 
         @Override

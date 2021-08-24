@@ -59,18 +59,18 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
 
     /* A sequential map of type records, starting at 1000 */
     /* This map is used to implement deduplication. */
-    private Map<CVTypeRecord, CVTypeRecord> typeMap = new LinkedHashMap<>(CV_RECORD_INITIAL_CAPACITY);
+    private final Map<CVTypeRecord, CVTypeRecord> typeMap = new LinkedHashMap<>(CV_RECORD_INITIAL_CAPACITY);
 
     /* A map of type names to type records - more than one name can map to a record */
-    private Map<String, CVTypeRecord> typeNameMap = new HashMap<>(CV_TYPENAME_INITIAL_CAPACITY);
+    private final Map<String, CVTypeRecord> typeNameMap = new HashMap<>(CV_TYPENAME_INITIAL_CAPACITY);
 
    // private Map<TypeEntry, CVTypeRecord> typeEntryMap = new HashMap<>(CV_TYPENAME_INITIAL_CAPACITY);
 
     /* For convenience, quick lookup of pointer type indices given class type index */
     /* Could have saved this in typenameMap. */
-    private Map<Integer, CVTypeRecord> typePointerMap = new HashMap<>(CV_TYPENAME_INITIAL_CAPACITY);
+    private final Map<Integer, CVTypeRecord> typePointerMap = new HashMap<>(CV_TYPENAME_INITIAL_CAPACITY);
 
-    private CVTypeSectionBuilder builder;
+    private final CVTypeSectionBuilder builder;
 
     CVTypeSectionImpl() {
         builder = new CVTypeSectionBuilder(this);
@@ -157,6 +157,7 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
             if (t.getSequenceNumber() <= MAX_PRIMITIVE) {
                 System.out.format("XXXXX primitive pointer requested for %s\n", typeName);
             }
+            assert t.getSequenceNumber() > MAX_PRIMITIVE;
             return typePointerMap.get(t.getSequenceNumber());
         } else {
             return null;
@@ -168,11 +169,12 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
         return addOrReference(r);
     }
 
+    /*
     <T extends CVTypeRecord> T defineType(String typename, T record) {
         final T therecord = addOrReference(record);
         typeNameMap.put(typename, therecord);
         return therecord;
-    }
+    }*/
 
     int getIndexForPointer(TypeEntry typeEntry) {
         return builder.getIndexForPointerOrPrimitive(typeEntry, false);
@@ -206,9 +208,6 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
             record = (T) typeMap.get(newRecord);
         } else if (isInstance) {
             CVTypeRecord.CVClassRecord cr = (CVTypeRecord.CVClassRecord) newRecord;
-            if (cr.className.equals("java.io.BufferedWriter")) {
-                cr = cr;
-            }
             /* TODO should we use uniquename here? */
             /* Save off the class definition (or forward reference) */
             CVTypeRecord.CVClassRecord oldRecord = (CVTypeRecord.CVClassRecord) typeNameMap.get(cr.className);
@@ -227,7 +226,7 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
             if (newRecord.type == LF_POINTER) {
                 /* convenience to find associated pointer records */
                 CVTypeRecord.CVTypePointerRecord pr = (CVTypeRecord.CVTypePointerRecord) newRecord;
-                typePointerMap.put(pr.pointsTo, pr);
+                typePointerMap.put(pr.getPointsTo(), pr);
             }
         }
         return record;

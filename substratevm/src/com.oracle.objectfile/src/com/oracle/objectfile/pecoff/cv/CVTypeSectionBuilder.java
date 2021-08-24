@@ -78,8 +78,8 @@ import static com.oracle.objectfile.pecoff.cv.CVTypeRecord.CVClassRecord.ATTR_FO
 
 class CVTypeSectionBuilder {
 
-    private static final String MAGIC_OBJECT_HEADER_TYPE = "_objhdr";
-    private static final String JAVA_LANG_CLASS = "java.lang.Class";
+   // private static final String MAGIC_OBJECT_HEADER_TYPE = "_objhdr";
+   // private static final String JAVA_LANG_CLASS = "java.lang.Class";
     private static final String JAVA_LANG_OBJECT = "java.lang.Object";
 
     private int objectHeaderRecordIndex;
@@ -549,7 +549,7 @@ class CVTypeSectionBuilder {
     }
 
     private short modifiersToAttr(MemberEntry member) {
-        short attr = (short) (Modifier.isPublic(member.getModifiers()) ? MPROP_PUBLIC : (Modifier.isPrivate(member.getModifiers())) ? MPROP_PRIVATE : MPROP_PROTECTED);
+        short attr = Modifier.isPublic(member.getModifiers()) ? MPROP_PUBLIC : (Modifier.isPrivate(member.getModifiers())) ? MPROP_PRIVATE : MPROP_PROTECTED;
         attr += Modifier.isStatic(member.getModifiers()) ? MPROP_STATIC : MPROP_VIRTUAL; // TODO_ this may need to be IVIRTUAL if this is initial
         return attr;
     }
@@ -633,10 +633,11 @@ class CVTypeSectionBuilder {
     }
 
     private void log(String fmt, Object... args) {
-        char[] blanks = new char[depth];
-        Arrays.fill(blanks, ' ');
-        String indent = new String(blanks);
-        System.out.format(indent + fmt + "\n", args);
+        if (debugContext != null) {
+            debugContext.logv(DebugContext.INFO_LEVEL, fmt, args);
+        } else {
+            System.out.format(fmt + "\n", args);
+        }
     }
 }
 

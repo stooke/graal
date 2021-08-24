@@ -284,7 +284,7 @@ abstract class CVSymbolSubrecord {
                 /* Placeholder for offset. */
                 pos = CVUtil.putInt(offset, buffer, pos);
                 if (buffer != null) {
-                    cvDebugInfo.getCVSymbolSection().markRelocationSite(pos, ObjectFile.RelocationKind.SECTION_2, name, false, null);
+                    cvDebugInfo.getCVSymbolSection().markRelocationSite(pos, ObjectFile.RelocationKind.SECTION_2, name, true, null);
                 }
                 /* Placeholder for segment. */
                 pos = CVUtil.putShort((short) 0, buffer, pos);
