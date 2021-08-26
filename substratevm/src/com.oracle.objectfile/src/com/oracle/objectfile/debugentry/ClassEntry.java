@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import org.graalvm.compiler.debug.DebugContext;
 
@@ -113,6 +114,10 @@ public class ClassEntry extends StructureTypeEntry {
                 localDirsIndex.put(dirEntry, localDirs.size());
             }
         }
+    }
+
+    public Stream<MethodEntry> methods() {
+        return methods.stream();
     }
 
     @Override

@@ -27,12 +27,13 @@
 package com.oracle.objectfile.pecoff.cv;
 
 import com.oracle.objectfile.debugentry.ClassEntry;
+import com.oracle.objectfile.debugentry.FieldEntry;
 import com.oracle.objectfile.debugentry.PrimaryEntry;
 import com.oracle.objectfile.debugentry.Range;
+import com.oracle.objectfile.debugentry.TypeEntry;
 import org.graalvm.compiler.debug.DebugContext;
 
-import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_NOTYPE;
-import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_VOID;
+import java.lang.reflect.Modifier;
 
 final class CVSymbolSubsectionBuilder {
 
@@ -59,8 +60,12 @@ final class CVSymbolSubsectionBuilder {
         this.debugContext = theDebugContext;
         this.lineRecordBuilder = new CVLineRecordBuilder(debugContext, cvDebugInfo);
         /* loop over all classes defined in this module. */
-        for (ClassEntry classEntry : cvDebugInfo.getPrimaryClasses()) {
-            build(classEntry);
+        for (TypeEntry typeEntry : cvDebugInfo.getTypes()) {
+            /* add type records for the class, it's superclass, and instance variables */
+            addTypeRecords(typeEntry);
+            if (typeEntry.isClass()) {
+                build((ClassEntry) typeEntry);
+            }
         }
         cvDebugInfo.getCVSymbolSection().addRecord(cvSymbolSubsection);
     }
@@ -75,6 +80,20 @@ final class CVSymbolSubsectionBuilder {
         for (PrimaryEntry primaryEntry : classEntry.getPrimaryEntries()) {
             build(primaryEntry);
         }
+        /* Add manifested static fields. */
+        classEntry.fields().filter(CVSymbolSubsectionBuilder::isManifestedStaticField).forEach(f -> {
+            int typeIndex = cvDebugInfo.getCVTypeSection().getIndexForPointer(f.getValueType());
+            if (cvDebugInfo.useHeapBase()) {
+                /* REL32 offset from heap base register. */
+                addToSymbolSubsection(new CVSymbolSubrecord.CVSymbolRegRel32Record(cvDebugInfo, f.fieldName(), typeIndex, f.getOffset(), cvDebugInfo.getHeapbaseRegister()));
+            } else {
+                addToSymbolSubsection(new CVSymbolSubrecord.CVSymbolGData32Record(cvDebugInfo, f.fieldName(), typeIndex, f.getOffset(), (short) 0));
+            }
+        });
+    }
+
+    private static boolean isManifestedStaticField(FieldEntry fieldEntry) {
+        return Modifier.isStatic(fieldEntry.getModifiers()) && fieldEntry.getOffset() >= 0;
     }
 
     /**
@@ -101,7 +120,7 @@ final class CVSymbolSubsectionBuilder {
 
         /* S_FRAMEPROC add frame definitions. */
         int asynceh = 1 << 9; /* Async exception handling (vc++ uses 1, clang uses 0). */
-        int localBP = 1 << 14; /* Local base pointer = SP (0=none, 1=sp, 2=bp 3=r13). */
+        int localBP = 1 << 14; /* Local base pointer = SP (0=none, 1=sp, 2=bp 3=r13). */  /* TODO: THIS MAY CHANGE FOR TYPEINFO in the presence of isolates. */
         int paramBP = 1 << 16; /* Param base pointer = SP. */
         int frameFlags = asynceh + localBP + paramBP; /* NB: LLVM uses 0x14000. */
         addToSymbolSubsection(new CVSymbolSubrecord.CVSymbolFrameProcRecord(cvDebugInfo, primaryEntry.getFrameSize(), frameFlags));
@@ -166,18 +185,19 @@ final class CVSymbolSubsectionBuilder {
     }
 
     /**
-     * Add type records for function. (later add arglist, and return type and local types).
+     * Add type records for a class and all its members
+     * @param typeEntry class to add records for
+     */
+    private void addTypeRecords(TypeEntry typeEntry) {
+        cvDebugInfo.getCVTypeSection().addTypeRecords(typeEntry);
+    }
+    /**
+     * Add type records for function.
      *
-     * @param entry primaryEntry containing entities whoses type records must be added
+     * @param entry primaryEntry containing entities whose type records must be added
      * @return type index of function type
      */
-    private int addTypeRecords(@SuppressWarnings("unused") PrimaryEntry entry) {
-        CVTypeRecord.CVTypeArglistRecord argListType = addTypeRecord(new CVTypeRecord.CVTypeArglistRecord().add(T_NOTYPE));
-        CVTypeRecord funcType = addTypeRecord(new CVTypeRecord.CVTypeProcedureRecord().returnType(T_VOID).argList(argListType));
-        return funcType.getSequenceNumber();
-    }
-
-    private <T extends CVTypeRecord> T addTypeRecord(T record) {
-        return cvDebugInfo.getCVTypeSection().addOrReference(record);
+    private int addTypeRecords(PrimaryEntry entry) {
+        return cvDebugInfo.getCVTypeSection().addTypeRecords(entry).getSequenceNumber();
     }
 }
