@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2020, 2020, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2020, 2020, Red Hat Inc. All rights reserved.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2021, Red Hat Inc. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,9 +30,12 @@ import com.oracle.objectfile.BuildDependency;
 import com.oracle.objectfile.LayoutDecision;
 import com.oracle.objectfile.LayoutDecisionMap;
 import com.oracle.objectfile.ObjectFile;
+import com.oracle.objectfile.debugentry.PrimaryEntry;
+import com.oracle.objectfile.debugentry.TypeEntry;
 import com.oracle.objectfile.pecoff.PECoffObjectFile;
 import org.graalvm.compiler.debug.DebugContext;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -40,18 +43,35 @@ import java.util.Set;
 import static com.oracle.objectfile.pecoff.cv.CVConstants.CV_SIGNATURE_C13;
 import static com.oracle.objectfile.pecoff.cv.CVConstants.CV_SYMBOL_SECTION_NAME;
 import static com.oracle.objectfile.pecoff.cv.CVConstants.CV_TYPE_SECTION_NAME;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.ADDRESS_BITS;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_CLASS;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_POINTER;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_STRUCTURE;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MAX_PRIMITIVE;
 
 public final class CVTypeSectionImpl extends CVSectionImpl {
 
     private static final int CV_RECORD_INITIAL_CAPACITY = 200;
+    private static final int CV_TYPENAME_INITIAL_CAPACITY = 20000;
 
     /* CodeView 4 type records below 1000 are pre-defined. */
     private int sequenceCounter = 0x1000;
 
     /* A sequential map of type records, starting at 1000 */
-    private Map<CVTypeRecord, CVTypeRecord> typeMap = new LinkedHashMap<>(CV_RECORD_INITIAL_CAPACITY);
+    /* This map is used to implement deduplication. */
+    private final Map<CVTypeRecord, CVTypeRecord> typeMap = new LinkedHashMap<>(CV_RECORD_INITIAL_CAPACITY);
+
+    /* A map of type names to type records - more than one name can map to a record */
+    private final Map<String, CVTypeRecord> typeNameMap = new HashMap<>(CV_TYPENAME_INITIAL_CAPACITY);
+
+    /* For convenience, quick lookup of pointer type indices given class type index */
+    /* Could have saved this in typenameMap. */
+    private final Map<Integer, CVTypeRecord> typePointerMap = new HashMap<>(CV_TYPENAME_INITIAL_CAPACITY);
+
+    private final CVTypeSectionBuilder builder;
 
     CVTypeSectionImpl() {
+        builder = new CVTypeSectionBuilder(this);
     }
 
     @Override
@@ -63,12 +83,14 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
     public void createContent(DebugContext debugContext) {
         int pos = 0;
         enableLog(debugContext);
+        builder.setDebugContext(debugContext);
         log(debugContext, "CVTypeSectionImpl.createContent() adding records");
         addRecords();
         log(debugContext, "CVTypeSectionImpl.createContent() start");
         pos = CVUtil.putInt(CV_SIGNATURE_C13, null, pos);
         for (CVTypeRecord record : typeMap.values()) {
             pos = record.computeFullSize(pos);
+            pos = CVUtil.pad4(null, pos);
         }
         byte[] buffer = new byte[pos];
         super.setContent(buffer);
@@ -86,6 +108,7 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
         for (CVTypeRecord record : typeMap.values()) {
             verboseLog(debugContext, "  [0x%08x] 0x%06x %s", pos, record.getSequenceNumber(), record.toString());
             pos = record.computeFullContents(buffer, pos);
+            pos = CVUtil.pad4(buffer, pos);
         }
         verboseLog(debugContext, "CVTypeSectionImpl.writeContent() end");
     }
@@ -96,6 +119,65 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
     private void addRecords() {
         /* if an external PDB file is generated, add CVTypeServer2Record */
         /* for each class, add all members, types, etc */
+        builder.buildRemainingRecords();
+    }
+
+    /**
+     * Call builder to build all type records for function.
+     *
+     * @param entry primaryEntry containing entities whose type records must be added
+     * @return type index of function type
+     */
+    CVTypeRecord addTypeRecords(PrimaryEntry entry) {
+        return builder.buildFunction(entry);
+    }
+
+    /**
+     * Call builder to build all type records and types referenced by that type.
+     *
+     * @param entry primaryEntry containing entities whose type records must be added
+     */
+    void addTypeRecords(TypeEntry entry) {
+        builder.buildType(entry);
+    }
+
+    boolean hasType(String typename) {
+        return typeNameMap.containsKey(typename);
+    }
+
+    CVTypeRecord getType(String typename) {
+        return typeNameMap.get(typename);
+    }
+
+    CVTypeRecord getPointerRecordForType(DebugContext debugContext, String typeName) {
+        CVTypeRecord t = getType(typeName);
+        if (t != null) {
+            if (t.getSequenceNumber() <= MAX_PRIMITIVE) {
+                verboseLog(debugContext, "Primitive pointer requested for %s", typeName);
+            }
+            assert t.getSequenceNumber() > MAX_PRIMITIVE;
+            return typePointerMap.get(t.getSequenceNumber());
+        } else {
+            return null;
+        }
+    }
+
+    CVTypeRecord.CVTypeStringIdRecord getStringId(String string) {
+        CVTypeRecord.CVTypeStringIdRecord r = new CVTypeRecord.CVTypeStringIdRecord(string);
+        return addOrReference(r);
+    }
+
+    int getIndexForPointer(TypeEntry typeEntry) {
+        return builder.getIndexForPointerOrPrimitive(typeEntry, false);
+    }
+
+    void definePrimitiveType(String typename, short typeId, int length, short pointerTypeId) {
+        CVTypeRecord record = new CVTypeRecord.CVTypePrimitive(typeId, length);
+        typeNameMap.put(typename, record);
+        if (pointerTypeId != 0) {
+            CVTypeRecord pointerRecord = new CVTypeRecord.CVTypePrimitive(pointerTypeId, ADDRESS_BITS);
+            typePointerMap.put((int) typeId, pointerRecord);
+        }
     }
 
     /**
@@ -107,14 +189,37 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
      * @return the record (if previously unseen) or old record
      */
     @SuppressWarnings("unchecked")
-    public <T extends CVTypeRecord> T addOrReference(T newRecord) {
+    <T extends CVTypeRecord> T addOrReference(T newRecord) {
         final T record;
+        final boolean isInstance = newRecord.type == LF_CLASS || newRecord.type == LF_STRUCTURE;
+        /*
+         * Currently the hashes for identical class records do not always match. Until this is
+         * tracked down, use type name.
+         */
         if (typeMap.containsKey(newRecord)) {
             record = (T) typeMap.get(newRecord);
+        } else if (isInstance) {
+            CVTypeRecord.CVClassRecord cr = (CVTypeRecord.CVClassRecord) newRecord;
+            /* TODO should we use uniquename here? */
+            /* Save off the class definition (or forward reference) */
+            CVTypeRecord.CVClassRecord oldRecord = (CVTypeRecord.CVClassRecord) typeNameMap.get(cr.getClassName());
+            if (oldRecord == null || (oldRecord.isForwardRef() && !cr.isForwardRef())) {
+                newRecord.setSequenceNumber(sequenceCounter++);
+                typeMap.put(newRecord, newRecord);
+                record = newRecord;
+                typeNameMap.put(cr.getClassName(), cr);
+            } else {
+                record = (T) oldRecord;
+            }
         } else {
             newRecord.setSequenceNumber(sequenceCounter++);
             typeMap.put(newRecord, newRecord);
             record = newRecord;
+            if (newRecord.type == LF_POINTER) {
+                /* convenience to find associated pointer records */
+                CVTypeRecord.CVTypePointerRecord pr = (CVTypeRecord.CVTypePointerRecord) newRecord;
+                typePointerMap.put(pr.getPointsTo(), pr);
+            }
         }
         return record;
     }

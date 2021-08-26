@@ -28,6 +28,15 @@ package com.oracle.objectfile.pecoff.cv;
 
 import com.oracle.objectfile.io.Utf8;
 
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_CHAR;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_LONG;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_PAD1;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_PAD2;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_PAD3;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_QUADWORD;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_SHORT;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_ULONG;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_USHORT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 abstract class CVUtil {
@@ -61,6 +70,30 @@ abstract class CVUtil {
         buffer[pos++] = (byte) ((i >> 16) & 0xff);
         buffer[pos++] = (byte) ((i >> 24) & 0xff);
         return pos;
+    }
+
+    static int putLfNumeric(long i, byte[] buffer, int initialPos) {
+        if (0 <= i && i < 0x8000) {
+            return putShort((short) i, buffer, initialPos);
+        } else if (Byte.MIN_VALUE <= i && i <= Byte.MAX_VALUE) {
+            int pos = putShort(LF_CHAR, buffer, initialPos);
+            return putByte((byte) i, buffer, pos);
+        } else if (Short.MIN_VALUE <= i && i <= Short.MAX_VALUE) {
+            int pos = putShort(LF_SHORT, buffer, initialPos);
+            return putShort((short) i, buffer, pos);
+        } else if (0 <= i && i <= 0xffff) {
+            int pos = putShort(LF_USHORT, buffer, initialPos);
+            return putShort((short) i, buffer, pos);
+        } else if (Integer.MIN_VALUE <= i && i <= Integer.MAX_VALUE) {
+            int pos = putShort(LF_LONG, buffer, initialPos);
+            return putInt((int) i, buffer, pos);
+        } else if (0 <= i && i <= 0xffffffffL) {
+            int pos = putShort(LF_ULONG, buffer, initialPos);
+            return putInt((int) i, buffer, pos);
+        } else {
+            int pos = putShort(LF_QUADWORD, buffer, initialPos);
+            return putLong(i, buffer, pos);
+        }
     }
 
     @SuppressWarnings("unused")
@@ -112,6 +145,21 @@ abstract class CVUtil {
         int pos = initialPos;
         while ((pos & 0x3) != 0) {
             pos++;
+        }
+        return pos;
+    }
+
+    static int pad4(byte[] buffer, int initialPos) {
+        int pos = initialPos;
+        int pad = initialPos & 0x3;
+        if (pad > 2) {
+            pos = CVUtil.putByte(LF_PAD3, buffer, pos);
+        }
+        if (pad > 1) {
+            pos = CVUtil.putByte(LF_PAD2, buffer, pos);
+        }
+        if (pad > 0) {
+            pos = CVUtil.putByte(LF_PAD1, buffer, pos);
         }
         return pos;
     }
