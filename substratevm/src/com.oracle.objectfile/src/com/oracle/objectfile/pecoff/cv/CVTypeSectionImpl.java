@@ -64,8 +64,6 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
     /* A map of type names to type records - more than one name can map to a record */
     private final Map<String, CVTypeRecord> typeNameMap = new HashMap<>(CV_TYPENAME_INITIAL_CAPACITY);
 
-   // private Map<TypeEntry, CVTypeRecord> typeEntryMap = new HashMap<>(CV_TYPENAME_INITIAL_CAPACITY);
-
     /* For convenience, quick lookup of pointer type indices given class type index */
     /* Could have saved this in typenameMap. */
     private final Map<Integer, CVTypeRecord> typePointerMap = new HashMap<>(CV_TYPENAME_INITIAL_CAPACITY);
@@ -151,11 +149,11 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
         return typeNameMap.get(typename);
     }
 
-    CVTypeRecord getPointerRecordForType(String typeName) {
+    CVTypeRecord getPointerRecordForType(DebugContext debugContext, String typeName) {
         CVTypeRecord t = getType(typeName);
         if (t != null) {
             if (t.getSequenceNumber() <= MAX_PRIMITIVE) {
-                System.out.format("XXXXX primitive pointer requested for %s\n", typeName);
+                verboseLog(debugContext, "Primitive pointer requested for %s", typeName);
             }
             assert t.getSequenceNumber() > MAX_PRIMITIVE;
             return typePointerMap.get(t.getSequenceNumber());
@@ -210,12 +208,12 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
             CVTypeRecord.CVClassRecord cr = (CVTypeRecord.CVClassRecord) newRecord;
             /* TODO should we use uniquename here? */
             /* Save off the class definition (or forward reference) */
-            CVTypeRecord.CVClassRecord oldRecord = (CVTypeRecord.CVClassRecord) typeNameMap.get(cr.className);
+            CVTypeRecord.CVClassRecord oldRecord = (CVTypeRecord.CVClassRecord) typeNameMap.get(cr.getClassName());
             if (oldRecord == null || (oldRecord.isForwardRef() && !cr.isForwardRef())) {
                 newRecord.setSequenceNumber(sequenceCounter++);
                 typeMap.put(newRecord, newRecord);
                 record = newRecord;
-                typeNameMap.put(cr.className, cr);
+                typeNameMap.put(cr.getClassName(), cr);
             } else {
                 record = (T) oldRecord;
             }

@@ -39,6 +39,7 @@ import com.oracle.objectfile.debugentry.StructureTypeEntry;
 import com.oracle.objectfile.debugentry.TypeEntry;
 import com.oracle.objectfile.debuginfo.DebugInfoProvider;
 import org.graalvm.compiler.debug.DebugContext;
+import org.graalvm.compiler.debug.GraalError;
 
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
@@ -114,8 +115,9 @@ class CVTypeSectionBuilder {
             if (ti.record.type == LF_CLASS && ((CVTypeRecord.CVClassRecord) ti.record).isForwardRef()) {
                 assert ti.typeEntry.isClass();
                 if (ti.typeEntry == null) {
-                    int idx = getUnderlyingType(((CVTypeRecord.CVClassRecord) ti.record).className);
-                    log("****** no typeentry for %s; type remains incomplete", ((CVTypeRecord.CVClassRecord) ti.record).className);
+                    int idx = getUnderlyingType(((CVTypeRecord.CVClassRecord) ti.record).getClassName());
+                    log("no typeentry for %s; type remains incomplete", ((CVTypeRecord.CVClassRecord) ti.record).getClassName());
+                    GraalError.shouldNotReachHere();
                 } else {
                     buildType(ti.typeEntry);
                 }
@@ -124,7 +126,8 @@ class CVTypeSectionBuilder {
         /* Sanity check. */
         for (TypeInfo ti : typeInfoMap.values()) {
             if (ti.record.type == LF_CLASS && ((CVTypeRecord.CVClassRecord) ti.record).isForwardRef()) {
-                log("****** still have undefined type %s", ti.record);
+                log("still have undefined type %s", ti.record);
+                GraalError.shouldNotReachHere();
             }
         }
     }
@@ -155,6 +158,7 @@ class CVTypeSectionBuilder {
         TypeEntry inProcessType = inProcessMap.get(typeEntry.getTypeName());
         if (typeEntry.getTypeName().contains("[]") && typeEntry.typeKind() != DebugInfoProvider.DebugTypeInfo.DebugTypeKind.ARRAY) {
             log("rogue array found: %s %s", typeEntry.typeKind().name(), typeEntry.getTypeName());
+            GraalError.shouldNotReachHere();
         }
         if (inProcessType != null) {
             typeRecord = buildForwardReference(typeEntry);
@@ -230,7 +234,7 @@ class CVTypeSectionBuilder {
             assert record != null;
             return record.getSequenceNumber();
         }
-        CVTypeRecord ptrRecord = typeSection.getPointerRecordForType(entry.getTypeName());
+        CVTypeRecord ptrRecord = typeSection.getPointerRecordForType(debugContext, entry.getTypeName());
         if (ptrRecord == null) {
             CVTypeRecord record = typeSection.getType(entry.getTypeName());
             if (record == null) {
@@ -479,7 +483,7 @@ class CVTypeSectionBuilder {
 
             if (extraFields != null) {
                 for (CVTypeRecord.CVMemberRecord fieldRecord : extraFields) {
-                    fieldRecord.offset = (typeEntry.getSize() + 7) & ~0x7;
+                    fieldRecord.setOffset((typeEntry.getSize() + 7) & ~0x7);
                     log("synthetic field %s", fieldRecord);
                     fieldListRecord.add(fieldRecord);
                     /* TODO don't know size of element totalHeaderFieldSize = Math.max(totalHeaderFieldSize, fieldRecord.offset)); */

@@ -161,7 +161,7 @@ abstract class CVTypeRecord {
 
     static final class CVTypePrimitive extends CVTypeRecord {
 
-        int length;
+        private final int length;
 
         CVTypePrimitive(short cvtype, int length) {
             super(cvtype);
@@ -270,7 +270,7 @@ abstract class CVTypeRecord {
 
     static class CVUdtTypeLineRecord extends CVTypeRecord {
 
-        int typeIndex;
+        final int typeIndex;
         int fileIndex;
         int line;
 
@@ -367,9 +367,7 @@ abstract class CVTypeRecord {
         }
 
         CVTypeStringIdRecord(String string) {
-            super(LF_STRING_ID);
-            this.substringIdx = 0;
-            this.string = string;
+            this(0, string);
         }
 
         @Override
@@ -450,8 +448,8 @@ abstract class CVTypeRecord {
 
     static final class CVTypeProcedureRecord extends CVTypeRecord {
 
-        int returnType = -1;
-        CVTypeArglistRecord argList = null;
+        private int returnType = -1;
+        private CVTypeArglistRecord argList = null;
 
         CVTypeProcedureRecord() {
             super(LF_PROCEDURE);
@@ -508,7 +506,7 @@ abstract class CVTypeRecord {
 
     static final class CVTypeArglistRecord extends CVTypeRecord {
 
-        ArrayList<Integer> args = new ArrayList<>();
+        private final ArrayList<Integer> args = new ArrayList<>();
 
         CVTypeArglistRecord() {
             super(LF_ARGLIST);
@@ -670,7 +668,8 @@ abstract class CVTypeRecord {
                 this.idx = idx;
             }
         }
-        ArrayList<MDef> methods = new ArrayList<>(10);
+
+        private final ArrayList<MDef> methods = new ArrayList<>(10);
 
         CVTypeMethodListRecord() {
             super(LF_METHODLIST);
@@ -736,7 +735,7 @@ abstract class CVTypeRecord {
 
 
     static String attrString(short attrs) {
-        StringBuilder sb = new StringBuilder();
+        final StringBuilder sb = new StringBuilder();
 
         /* Low byte. */
         if ((attrs & MPROP_PPP_MASK) != 0) {
@@ -768,11 +767,11 @@ abstract class CVTypeRecord {
 
     static abstract class FieldRecord {
 
-        final short type;
-        final short attrs; /* property attribute field (prop_t) */
-        final String name;
+        protected final short type;
+        protected final short attrs; /* property attribute field (prop_t) */
+        protected final String name;
 
-        FieldRecord(short leafType, short attrs, String name) {
+        protected FieldRecord(short leafType, short attrs, String name) {
             this.type = leafType;
             this.attrs = attrs;
             this.name = name;
@@ -800,7 +799,7 @@ abstract class CVTypeRecord {
 
     static final class CVMemberMethodRecord extends FieldRecord {
 
-        final int methodListIndex; /* index of method list record */
+        private final int methodListIndex; /* index of method list record */
 
         CVMemberMethodRecord(short count, int methodListIndex, String methodName) {
             super(LF_METHOD, count, methodName);
@@ -840,12 +839,16 @@ abstract class CVTypeRecord {
 
     static final class CVMemberRecord extends FieldRecord {
 
-        final int underlyingTypeIndex; /* type index of member type */
-        int offset;
+        private final int underlyingTypeIndex; /* type index of member type */
+        private int offset;
 
         CVMemberRecord(short attrs, int underlyingTypeIndex, int offset, String name) {
             super(LF_MEMBER, attrs, name);
             this.underlyingTypeIndex = underlyingTypeIndex;
+            this.offset = offset;
+        }
+
+        public void setOffset(int offset) {
             this.offset = offset;
         }
 
@@ -885,7 +888,7 @@ abstract class CVTypeRecord {
 
     static final class CVStaticMemberRecord extends FieldRecord {
 
-        final int underlyingTypeIndex; /* type index of member type */;
+        private final int underlyingTypeIndex; /* type index of member type */;
 
         CVStaticMemberRecord(short attrs, int underlyingTypeIndex,  String name) {
             super(LF_STMEMBER, (short)(attrs + MPROP_STATIC), name);
@@ -925,8 +928,8 @@ abstract class CVTypeRecord {
 
     static final class CVOneMethodRecord extends FieldRecord {
 
-        final int funcIdx; /* type index of member type */
-        final int vtbleOffset;
+        private final int funcIdx; /* type index of member type */
+        private final int vtbleOffset;
 
         CVOneMethodRecord(short attrs, int funcIdx, int vtbleOffset, String name) {
             super(LF_ONEMETHOD, attrs, name);
@@ -974,8 +977,8 @@ abstract class CVTypeRecord {
 
     static class CVBaseMemberRecord extends FieldRecord {
 
-        int basetypeIndex; /* type index of member type */
-        int offset; /* in java, usually 0 as there is no multiple inheritance. */
+        private final int basetypeIndex; /* type index of member type */
+        private final int offset; /* in java, usually 0 as there is no multiple inheritance. */
 
         CVBaseMemberRecord(short attrs, int basetypeIndex, int offset) {
             super(LF_BCLASS, attrs, "");
@@ -1018,8 +1021,8 @@ abstract class CVTypeRecord {
 
     static class CVBaseClassRecord extends CVTypeRecord {
 
-        short propertyAttributes; /* property attribute field (prop_t) */
-        int fieldIndex; /* type index of member type */
+        private final short propertyAttributes; /* property attribute field (prop_t) */
+        private final int fieldIndex; /* type index of member type */
         /* TODO data */
 
         CVBaseClassRecord(short ltype, short attrs, int fieldIndex) {
@@ -1090,29 +1093,29 @@ abstract class CVTypeRecord {
         static final int ATTR_HAS_UNIQUENAME = 0x0200;
 
         /* Count of number of elements in class field list. */
-        short count;
+        private final short count;
 
         /* Property attribute field (prop_t). */
-        short propertyAttributes;
+        private final short propertyAttributes;
 
         /* Type index of LF_FIELDLIST descriptor list. */
-        int fieldIndex;
+        private final int fieldIndex;
 
         /* Type index of derived from list if not zero */
-        /* For Java, there is only one class, so LF_BCLASS is in the meber list and derivedFromIndex is 0. */
-        int derivedFromIndex;
+        /* For Java, there is only one class, so LF_BCLASS is in the member list and derivedFromIndex is 0. */
+        private final int derivedFromIndex;
 
         /* Type index of vshape table for this class. */
-        int vshapeIndex;
+        private final int vshapeIndex;
 
         /* Size (in bytes) of an instance. */
-        long size;
+        private final long size;
 
         /* Class name. */
-        String className;
+        private final String className;
 
         /* Linker class name. */
-        String uniqueName;
+        private final String uniqueName;
 
         CVClassRecord(short recType, short count, short attrs, int fieldIndex, int derivedFromIndex, int vshapeIndex, long size, String className, String uniqueName) {
             super(recType);
@@ -1123,6 +1126,7 @@ abstract class CVTypeRecord {
             this.vshapeIndex = vshapeIndex;
             this.size = size;
             this.className = className;
+            this.uniqueName = null;
         }
 
         CVClassRecord(short count, short attrs, int fieldIndex, int derivedFromIndex, int vshapeIndex, long size, String className, String uniqueName) {
@@ -1131,6 +1135,10 @@ abstract class CVTypeRecord {
 
         CVClassRecord(short attrs, String className, String uniqueName) {
             this(LF_CLASS, (short) 0, attrs, 0, 0, 0, 0, className, uniqueName);
+        }
+
+        String getClassName() {
+            return className;
         }
 
         @Override
@@ -1214,7 +1222,7 @@ abstract class CVTypeRecord {
 
         static final int INITIAL_CAPACITY = 10;
 
-        ArrayList<FieldRecord> members = new ArrayList<>(INITIAL_CAPACITY);
+        private final ArrayList<FieldRecord> members = new ArrayList<>(INITIAL_CAPACITY);
 
         CVFieldListRecord() {
             super(LF_FIELDLIST);
@@ -1274,7 +1282,7 @@ abstract class CVTypeRecord {
     /* Unused in Graal - enums are actually implemented as classes, and enumerations are static instances. */
     static final class CVEnumerateRecord extends FieldRecord {
 
-        final long value;
+        private final long value;
 
         CVEnumerateRecord(short attrs, long value, String name) {
             super(LF_ENUMERATE, attrs, name);
@@ -1316,10 +1324,10 @@ abstract class CVTypeRecord {
     /* Unused in Graal - enums are actually implemented as classes, and enumerations are static instances. */
     static final class CVEnumRecord extends CVTypeRecord {
 
-        String name;
-        int attrs;
-        int underlyingTypeIndex;
-        CVFieldListRecord fieldRecord;
+        private final String name;
+        private final int attrs;
+        private final int underlyingTypeIndex;
+        private final CVFieldListRecord fieldRecord;
 
         CVEnumRecord(short attrs, int underlyingTypeIndex, CVFieldListRecord fieldRecord, String name) {
             super(LF_ENUM);
@@ -1376,9 +1384,9 @@ abstract class CVTypeRecord {
 
     static final class CVTypeBitfieldRecord extends CVTypeRecord {
 
-        byte length;
-        byte position;
-        int typeIndex;
+        private final byte length;
+        private final byte position;
+        private final int typeIndex;
 
         CVTypeBitfieldRecord(int length, int position, int typeIndex) {
             super(LF_BITFIELD);
@@ -1428,9 +1436,9 @@ abstract class CVTypeRecord {
 
     static final class CVTypeArrayRecord extends CVTypeRecord {
 
-        int elementType = -1;
-        int indexType = -1;
-        int length = -1;
+        private int elementType = -1;
+        private int indexType = -1;
+        private int length = -1;
 
         CVTypeArrayRecord(int elementType, int indexType, int length) {
             super(LF_ARRAY);
@@ -1494,9 +1502,9 @@ abstract class CVTypeRecord {
 
     static final class CVTypeServer2Record extends CVTypeRecord {
 
-        byte[] guid;
-        int age;
-        String fileName;
+        private final byte[] guid;
+        private final int age;
+        private final String fileName;
 
         CVTypeServer2Record(byte[] guid, int age, String fileName) {
             super(LF_TYPESERVER2);
@@ -1559,7 +1567,7 @@ abstract class CVTypeRecord {
     }
 
     static String propertyString(int properties) {
-        StringBuilder sb = new StringBuilder();
+        final StringBuilder sb = new StringBuilder();
 
         /* Low byte. */
         if ((properties & 0x0001) != 0) {

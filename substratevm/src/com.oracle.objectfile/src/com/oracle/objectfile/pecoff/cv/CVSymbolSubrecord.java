@@ -43,7 +43,7 @@ abstract class CVSymbolSubrecord {
     private int subrecordStartPosition;
 
     private final short cmd;
-    CVDebugInfo cvDebugInfo;
+    protected final CVDebugInfo cvDebugInfo;
 
     CVSymbolSubrecord(CVDebugInfo cvDebugInfo, short cmd) {
         this.cvDebugInfo = cvDebugInfo;
@@ -78,7 +78,7 @@ abstract class CVSymbolSubrecord {
 
     public static final class CVObjectNameRecord extends CVSymbolSubrecord {
 
-        String objName; /* find the full path to object file we will produce. */
+        private final String objName; /* find the full path to object file we will produce. */
 
         CVObjectNameRecord(CVDebugInfo cvDebugInfo, String objName) {
             super(cvDebugInfo, CVDebugConstants.S_OBJNAME);
@@ -251,11 +251,11 @@ abstract class CVSymbolSubrecord {
 
     public static class CVSymbolGData32Record extends CVSymbolSubrecord {
 
-        int typeIndex;
-        int offset;
-        short segment;
-        String name;
-        String relativeTo;
+        protected final int typeIndex;
+        protected final int offset;
+        protected final short segment;
+        protected final String name;
+        private final String relativeTo;
 
         CVSymbolGData32Record(CVDebugInfo cvDebugInfo, short cmd, String name, String relativeTo, int typeIndex, int offset, short segment) {
             super(cvDebugInfo, cmd);
@@ -328,10 +328,10 @@ abstract class CVSymbolSubrecord {
 
     public static class CVSymbolRegRel32Record extends CVSymbolSubrecord {
 
-        String name;
-        int typeIndex;
-        int offset;
-        short register;
+        private final String name;
+        private final int typeIndex;
+        private final int offset;
+        private final short register;
 
         CVSymbolRegRel32Record(CVDebugInfo debugInfo, String name, int typeIndex, int offset, short register) {
             super(debugInfo, S_REGREL32);
@@ -362,18 +362,18 @@ abstract class CVSymbolSubrecord {
      */
     public static class CVSymbolGProc32Record extends CVSymbolSubrecord {
 
-        int pparent;
-        int pend;
-        int pnext;
-        int proclen;
-        int debugStart;
-        int debugEnd;
-        int typeIndex;
-        int offset;
-        short segment;
-        byte flags;
-        String externalName;
-        String debuggerName;
+        private final int pparent;
+        private final int pend;
+        private final int pnext;
+        private final int proclen;
+        private final int debugStart;
+        private final int debugEnd;
+        private final int typeIndex;
+        private final int offset;
+        private final short segment;
+        private final byte flags;
+        private final String externalName;
+        private final String debuggerName;
 
         CVSymbolGProc32Record(CVDebugInfo cvDebugInfo, short cmd, String externalName, String debuggerName, int pparent, int pend, int pnext, int proclen, int debugStart, int debugEnd, int typeIndex,
                         int offset, short segment, byte flags) {
@@ -421,20 +421,20 @@ abstract class CVSymbolSubrecord {
 
         @Override
         public String toString() {
-            return String.format("S_GPROC32   name=%s/%s parent=%d debugstart=0x%x debugend=0x%x len=0x%x offset=0x%x type=0x%x flags=0x%x)", debuggerName, externalName, pparent, debugStart, debugEnd,
-                            proclen, offset, typeIndex, flags);
+            return String.format("S_GPROC32   name=%s/%s parent=%d debugstart=0x%x debugend=0x%x len=0x%x seg:offset=0x%x:0x%x type=0x%x flags=0x%x)", debuggerName, externalName, pparent, debugStart, debugEnd,
+                            proclen, segment, offset, typeIndex, flags);
         }
     }
 
     public static final class CVSymbolFrameProcRecord extends CVSymbolSubrecord {
 
-        int framelen;
-        int padLen;
-        int padOffset;
-        int saveRegsCount;
-        int ehOffset;
-        short ehSection;
-        int flags;
+        private final int framelen;
+        private final int padLen;
+        private final int padOffset;
+        private final int saveRegsCount;
+        private final int ehOffset;
+        private final short ehSection;
+        private final int flags;
 
         CVSymbolFrameProcRecord(CVDebugInfo cvDebugInfo, int framelen, int padLen, int padOffset, int saveRegsCount, int ehOffset, short ehSection, int flags) {
             super(cvDebugInfo, CVDebugConstants.S_FRAMEPROC);
@@ -471,8 +471,8 @@ abstract class CVSymbolSubrecord {
 
     public static final class CVSymbolUDTRecord extends CVSymbolSubrecord {
 
-        int typeIdx;
-        String typeName;
+        private final int typeIdx;
+        private final String typeName;
 
         CVSymbolUDTRecord(CVDebugInfo cvDebugInfo, int typeIdx, String typeName) {
             super(cvDebugInfo, CVDebugConstants.S_UDT);
