@@ -445,13 +445,11 @@ class CVTypeSectionBuilder {
         return record;
     }
 
-    private CVTypeRecord buildStruct(StructureTypeEntry typeEntry, int superTypeIndex, String typeName, CVTypeRecord.CVMemberRecord[] extraFields) {
+    private CVTypeRecord buildStruct(StructureTypeEntry typeEntry, int superTypeIndex, String actualTypeName, CVTypeRecord.CVMemberRecord[] extraFields) {
         /* Create a synthetic class for this object and make java.lang.Object derive from it. */
         /* Used for arrays, objhdr_ (and perhaps synthetic structs later on).*/
         depth++;
-        if (typeName == null) {
-            typeName = typeEntry.getTypeName();
-        }
+        String typeName = actualTypeName != null ? actualTypeName : typeEntry.getTypeName();
         inProcessMap.put(typeName, typeEntry);
 
         int fieldListIdx = 0;
@@ -532,7 +530,7 @@ class CVTypeSectionBuilder {
         }
     }
 
-    private short modifiersToAttr(MemberEntry member) {
+    private static short modifiersToAttr(MemberEntry member) {
         short attr = Modifier.isPublic(member.getModifiers()) ? MPROP_PUBLIC : (Modifier.isPrivate(member.getModifiers())) ? MPROP_PRIVATE : MPROP_PROTECTED;
         attr += Modifier.isStatic(member.getModifiers()) ? MPROP_STATIC : MPROP_VIRTUAL; // TODO_ this may need to be IVIRTUAL if this is initial
         return attr;
