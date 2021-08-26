@@ -186,9 +186,9 @@ final class CVSymbolSubsectionBuilder {
     }
 
     /**
-     * Add type records for a class and all its members
+     * Add type records for a class and all its members.
      *
-     * @param typeEntry class to add records for
+     * @param typeEntry class to add records for.
      */
     private void addTypeRecords(TypeEntry typeEntry) {
         cvDebugInfo.getCVTypeSection().addTypeRecords(typeEntry);

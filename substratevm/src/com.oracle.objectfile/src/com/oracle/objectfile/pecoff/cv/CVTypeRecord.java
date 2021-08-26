@@ -78,7 +78,7 @@ import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_UINT8;
  */
 abstract class CVTypeRecord {
 
-    static int FIRST_TYPE_INDEX = 0x1000;
+    static final int FIRST_TYPE_INDEX = 0x1000;
 
     protected final short type;
     private int startPosition;
@@ -368,7 +368,7 @@ abstract class CVTypeRecord {
         String string;
         int substringIdx;
 
-        public CVTypeStringIdRecord(int substringIdx, String string) {
+        CVTypeStringIdRecord(int substringIdx, String string) {
             super(LF_STRING_ID);
             this.substringIdx = substringIdx;
             this.string = string;
@@ -419,7 +419,7 @@ abstract class CVTypeRecord {
             this.attrs = attrs;
         }
 
-        public CVTypeModifierRecord(int typeIndex, boolean isConst, boolean isVolatile, boolean isUnaligned) {
+        CVTypeModifierRecord(int typeIndex, boolean isConst, boolean isVolatile, boolean isUnaligned) {
             this(typeIndex, (short) ((isConst ? 1 : 0) + (isVolatile ? 2 : 0) + (isUnaligned ? 4 : 0)));
         }
 
@@ -763,7 +763,7 @@ abstract class CVTypeRecord {
         return sb.toString();
     }
 
-    static abstract class FieldRecord {
+    abstract static class FieldRecord {
 
         protected final short type;
         protected final short attrs; /* property attribute field (prop_t) */
@@ -775,7 +775,7 @@ abstract class CVTypeRecord {
             this.name = name;
         }
 
-        abstract public int computeContents(byte[] buffer, int initialPos);
+        public abstract int computeContents(byte[] buffer, int initialPos);
 
         @Override
         public int hashCode() {
