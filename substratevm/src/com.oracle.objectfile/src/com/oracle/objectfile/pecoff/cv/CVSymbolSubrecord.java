@@ -291,7 +291,8 @@ abstract class CVSymbolSubrecord {
                 pos = CVUtil.putShort((short) 0, buffer, pos);
             } else {
                 if (buffer != null) {
-                    cvDebugInfo.getCVSymbolSection().markRelocationSite(pos, cvDebugInfo.oopReferenceSize() == 8 ? ObjectFile.RelocationKind.DIRECT_8 : ObjectFile.RelocationKind.DIRECT_4, relativeTo, false, (long) offset);
+                    cvDebugInfo.getCVSymbolSection().markRelocationSite(pos, cvDebugInfo.oopReferenceSize() == 8 ? ObjectFile.RelocationKind.DIRECT_8 : ObjectFile.RelocationKind.DIRECT_4, relativeTo,
+                                    false, (long) offset);
                 }
                 /* Placeholder for offset. */
                 if (cvDebugInfo.oopReferenceSize() == 8) {
@@ -354,7 +355,7 @@ abstract class CVSymbolSubrecord {
 
         @Override
         public String toString() {
-            return String.format("S_REGREL32   name=%s  offset=(r%d + 0x%x) type=0x%x)",  name, register, offset, typeIndex);
+            return String.format("S_REGREL32   name=%s  offset=(r%d + 0x%x) type=0x%x)", name, register, offset, typeIndex);
         }
     }
 
@@ -423,7 +424,8 @@ abstract class CVSymbolSubrecord {
 
         @Override
         public String toString() {
-            return String.format("S_GPROC32   name=%s/%s parent=%d debugstart=0x%x debugend=0x%x len=0x%x seg:offset=0x%x:0x%x type=0x%x flags=0x%x)", debuggerName, externalName, pparent, debugStart, debugEnd,
+            return String.format("S_GPROC32   name=%s/%s parent=%d debugstart=0x%x debugend=0x%x len=0x%x seg:offset=0x%x:0x%x type=0x%x flags=0x%x)", debuggerName, externalName, pparent, debugStart,
+                            debugEnd,
                             proclen, segment, offset, typeIndex, flags);
         }
     }

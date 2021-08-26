@@ -176,7 +176,7 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
         typeNameMap.put(typename, record);
         if (pointerTypeId != 0) {
             CVTypeRecord pointerRecord = new CVTypeRecord.CVTypePrimitive(pointerTypeId, ADDRESS_BITS);
-            typePointerMap.put((int)typeId, pointerRecord);
+            typePointerMap.put((int) typeId, pointerRecord);
         }
     }
 
@@ -184,7 +184,7 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
      * Return either the caller-created instance or a matching existing instance. Every entry in
      * typeMap is a T, because it is ONLY this function which inserts entries (of type T).
      *
-     * @param <T>       type of new record
+     * @param <T> type of new record
      * @param newRecord record to add if an existing record with same hash hasn't already been added
      * @return the record (if previously unseen) or old record
      */
@@ -192,8 +192,9 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
     <T extends CVTypeRecord> T addOrReference(T newRecord) {
         final T record;
         final boolean isInstance = newRecord.type == LF_CLASS || newRecord.type == LF_STRUCTURE;
-        /* Currently the hashes for identical class records do not always match.
-           Until this is tracked down, use type name.
+        /*
+         * Currently the hashes for identical class records do not always match. Until this is
+         * tracked down, use type name.
          */
         if (typeMap.containsKey(newRecord)) {
             record = (T) typeMap.get(newRecord);

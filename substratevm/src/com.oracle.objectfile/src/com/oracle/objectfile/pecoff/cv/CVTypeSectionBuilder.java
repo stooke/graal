@@ -78,8 +78,8 @@ import static com.oracle.objectfile.pecoff.cv.CVTypeRecord.CVClassRecord.ATTR_FO
 
 class CVTypeSectionBuilder {
 
-   // private static final String MAGIC_OBJECT_HEADER_TYPE = "_objhdr";
-   // private static final String JAVA_LANG_CLASS = "java.lang.Class";
+    // private static final String MAGIC_OBJECT_HEADER_TYPE = "_objhdr";
+    // private static final String JAVA_LANG_CLASS = "java.lang.Class";
     private static final String JAVA_LANG_OBJECT = "java.lang.Object";
 
     private int objectHeaderRecordIndex;
@@ -93,13 +93,17 @@ class CVTypeSectionBuilder {
     static class TypeInfo {
         CVTypeRecord record;
         TypeEntry typeEntry;
+
         TypeInfo(CVTypeRecord record, TypeEntry typeEntry) {
             this.record = record;
             this.typeEntry = typeEntry;
         }
     }
 
-    /* A map of type names to type records.  Only forward references are stored here, and only until they are defined. */
+    /*
+     * A map of type names to type records. Only forward references are stored here, and only until
+     * they are defined.
+     */
     private static final int MAX_FORWARD_REFS = 100;
     private final Map<String, TypeInfo> typeInfoMap = new HashMap<>(MAX_FORWARD_REFS);
 
@@ -114,7 +118,8 @@ class CVTypeSectionBuilder {
             if (ti.record.type == LF_CLASS && ((CVTypeRecord.CVClassRecord) ti.record).isForwardRef()) {
                 assert ti.typeEntry.isClass();
                 if (ti.typeEntry == null) {
-                    //int idx = getUnderlyingType(((CVTypeRecord.CVClassRecord) ti.record).getClassName());
+                    // int idx = getUnderlyingType(((CVTypeRecord.CVClassRecord)
+                    // ti.record).getClassName());
                     log("no typeentry for %s; type remains incomplete", ((CVTypeRecord.CVClassRecord) ti.record).getClassName());
                     GraalError.shouldNotReachHere();
                 } else {
@@ -146,9 +151,10 @@ class CVTypeSectionBuilder {
 
     private static final int IN_PROCESS_DEPTH = 10;
 
-    /* If a typename appears in inProcessMap, it is currently being constructed.
-     * if it is referenced elsewhere while being constructed, a LF_CLASS with a
-     * forward ref and a LF_POINTER are emitted, and the index to the forward ref is used.
+    /*
+     * If a typename appears in inProcessMap, it is currently being constructed. if it is referenced
+     * elsewhere while being constructed, a LF_CLASS with a forward ref and a LF_POINTER are
+     * emitted, and the index to the forward ref is used.
      */
     private final Map<String, TypeEntry> inProcessMap = new HashMap<>(IN_PROCESS_DEPTH);
 
@@ -164,8 +170,11 @@ class CVTypeSectionBuilder {
             typeRecord = buildForwardReference(typeEntry);
         } else {
             typeRecord = typeSection.getType(typeEntry.getTypeName());
-            /* If we've never seen the class or only defined it as a forward reference, define it now. */
-            if (typeRecord != null && typeRecord.type == LF_CLASS && !((CVTypeRecord.CVClassRecord)typeRecord).isForwardRef()) {
+            /*
+             * If we've never seen the class or only defined it as a forward reference, define it
+             * now.
+             */
+            if (typeRecord != null && typeRecord.type == LF_CLASS && !((CVTypeRecord.CVClassRecord) typeRecord).isForwardRef()) {
                 log("buildType() type %s(%s) is known %s", typeEntry.getTypeName(), typeEntry.typeKind().name(), typeRecord);
             } else {
                 log("buildType() %s %s size=%d - begin", typeEntry.typeKind().name(), typeEntry.getTypeName(), typeEntry.getSize());
@@ -179,7 +188,10 @@ class CVTypeSectionBuilder {
                         break;
                     }
                     case ENUM:
-                        /* EnumClassEntry returns INSTANCE for typeKind() so ENUM switch case is never called. */
+                        /*
+                         * EnumClassEntry returns INSTANCE for typeKind() so ENUM switch case is
+                         * never called.
+                         */
                     case INSTANCE: {
                         typeRecord = buildClass((ClassEntry) typeEntry);
                         break;
@@ -189,15 +201,20 @@ class CVTypeSectionBuilder {
                         break;
                     }
                     case HEADER: {
-                        /* The bits at the beginning of an Object: contains pointer to DynamicHub. */
+                        /*
+                         * The bits at the beginning of an Object: contains pointer to DynamicHub.
+                         */
                         if (globalHeaderEntry == null) {
                             globalHeaderEntry = (HeaderTypeEntry) typeEntry;
-                            /* create a synthetic class for this object and make java.lang.Object derive from it */
+                            /*
+                             * create a synthetic class for this object and make java.lang.Object
+                             * derive from it
+                             */
                             log("Object header size=%d kind=%s %s", typeEntry.getSize(), typeEntry.typeKind().name(), typeEntry.getTypeName());
                             typeRecord = buildStruct((HeaderTypeEntry) typeEntry, 0, null, null);
                             objectHeaderRecordIndex = typeRecord.getSequenceNumber();
                         } else {
-                            log( "More than one object header (%s) has been defined", typeEntry.getTypeName());
+                            log("More than one object header (%s) has been defined", typeEntry.getTypeName());
                             GraalError.shouldNotReachHere();
                         }
                         break;
@@ -222,11 +239,12 @@ class CVTypeSectionBuilder {
 
     /**
      * Return a CV type index for a pointer to a java type, or the type itself if a primitive.
+     *
      * @param entry The java type to return a typeindex for.
-     * @param onlyForwardReference If true, and the type has not previously been seen,
-     *                             do not attempt to generate a record for the typeitself,
-     *                             only generate a forward reference at this time.
-     *                             This is used to avoid infinite recursion when processing self-referencing types.
+     * @param onlyForwardReference If true, and the type has not previously been seen, do not
+     *            attempt to generate a record for the typeitself, only generate a forward reference
+     *            at this time. This is used to avoid infinite recursion when processing
+     *            self-referencing types.
      * @return The index for the typeentry for a pointer to the type.
      */
     int getIndexForPointerOrPrimitive(TypeEntry entry, boolean onlyForwardReference) {
@@ -258,25 +276,20 @@ class CVTypeSectionBuilder {
     }
 
     /**
-     * If the type of the pointee is a primitive type, return it directly.
-     * Otherwise, create (if needed) and return a record representing a pointer to class.
+     * If the type of the pointee is a primitive type, return it directly. Otherwise, create (if
+     * needed) and return a record representing a pointer to class.
      *
-    private int getIndexForPointer(String typeName) {
-        CVTypeRecord ptrRecord = typeSection.getPointerRecordForType(typeName);
-        if (ptrRecord == null) {
-            CVTypeRecord clsRecord = typeSection.getType(typeName);
-            if (clsRecord == null) {
-                /* we've never heard of this class (but it may be in process) *
-                clsRecord = addTypeRecord(new CVTypeRecord.CVClassRecord((short) ATTR_FORWARD_REF, typeName, null));
-                typeInfoMap.put(typeName, new TypeInfo(clsRecord, null));
-            } else if (clsRecord.getSequenceNumber() <= MAX_PRIMITIVE) {
-                return clsRecord.getSequenceNumber();
-            }
-            /* We now have a class record but must create a pointer record. *
-            ptrRecord = addTypeRecord(new CVTypeRecord.CVTypePointerRecord(clsRecord.getSequenceNumber(), CVTypeRecord.CVTypePointerRecord.NORMAL_64));
-        }
-        return ptrRecord.getSequenceNumber();
-    }*/
+     * private int getIndexForPointer(String typeName) { CVTypeRecord ptrRecord =
+     * typeSection.getPointerRecordForType(typeName); if (ptrRecord == null) { CVTypeRecord
+     * clsRecord = typeSection.getType(typeName); if (clsRecord == null) { /* we've never heard of
+     * this class (but it may be in process) * clsRecord = addTypeRecord(new
+     * CVTypeRecord.CVClassRecord((short) ATTR_FORWARD_REF, typeName, null));
+     * typeInfoMap.put(typeName, new TypeInfo(clsRecord, null)); } else if
+     * (clsRecord.getSequenceNumber() <= MAX_PRIMITIVE) { return clsRecord.getSequenceNumber(); } /*
+     * We now have a class record but must create a pointer record. * ptrRecord = addTypeRecord(new
+     * CVTypeRecord.CVTypePointerRecord(clsRecord.getSequenceNumber(),
+     * CVTypeRecord.CVTypePointerRecord.NORMAL_64)); } return ptrRecord.getSequenceNumber(); }
+     */
 
     private int getIndexForType(TypeEntry entry) {
         CVTypeRecord clsRecord = typeSection.getType(entry.getTypeName());
@@ -335,9 +348,9 @@ class CVTypeSectionBuilder {
 
                 log("building methods");
                 /*
-                 * Functions go into the main fieldList if they are not overloaded.
-                 * Overloaded functions get a M_FUNCTION entry in the field list,
-                 * and a LF_METHODLIST record pointing to M_MFUNCTION records for each overload.
+                 * Functions go into the main fieldList if they are not overloaded. Overloaded
+                 * functions get a M_FUNCTION entry in the field list, and a LF_METHODLIST record
+                 * pointing to M_MFUNCTION records for each overload.
                  */
                 if (classEntry.methods().count() > 0) {
 
@@ -395,7 +408,7 @@ class CVTypeSectionBuilder {
             }
 
             /* Build final class record. */
-            short count = (short)fieldListCount; /* count of number of elements in class */
+            short count = (short) fieldListCount; /* count of number of elements in class */
             short attrs = 0; /* property attribute field (prop_t) */
             int vshapeIndex = 0; /* type index of vshape table for this class */
             classRecord = new CVTypeRecord.CVClassRecord(LF_CLASS, count, attrs, fieldListIdx, 0, vshapeIndex, classEntry.getSize(), classEntry.getTypeName(), null);
@@ -447,7 +460,7 @@ class CVTypeSectionBuilder {
 
     private CVTypeRecord buildStruct(StructureTypeEntry typeEntry, int superTypeIndex, String actualTypeName, CVTypeRecord.CVMemberRecord[] extraFields) {
         /* Create a synthetic class for this object and make java.lang.Object derive from it. */
-        /* Used for arrays, objhdr_ (and perhaps synthetic structs later on).*/
+        /* Used for arrays, objhdr_ (and perhaps synthetic structs later on). */
         depth++;
         String typeName = actualTypeName != null ? actualTypeName : typeEntry.getTypeName();
         inProcessMap.put(typeName, typeEntry);
@@ -485,7 +498,10 @@ class CVTypeSectionBuilder {
                     fieldRecord.setOffset((typeEntry.getSize() + 7) & ~0x7);
                     log("synthetic field %s", fieldRecord);
                     fieldListRecord.add(fieldRecord);
-                    /* TODO don't know size of element totalHeaderFieldSize = Math.max(totalHeaderFieldSize, fieldRecord.offset)); */
+                    /*
+                     * TODO don't know size of element totalHeaderFieldSize =
+                     * Math.max(totalHeaderFieldSize, fieldRecord.offset));
+                     */
                 }
             }
 
@@ -532,7 +548,14 @@ class CVTypeSectionBuilder {
 
     private static short modifiersToAttr(MemberEntry member) {
         short attr = Modifier.isPublic(member.getModifiers()) ? MPROP_PUBLIC : (Modifier.isPrivate(member.getModifiers())) ? MPROP_PRIVATE : MPROP_PROTECTED;
-        attr += Modifier.isStatic(member.getModifiers()) ? MPROP_STATIC : MPROP_VIRTUAL; // TODO_ this may need to be IVIRTUAL if this is initial
+        attr += Modifier.isStatic(member.getModifiers()) ? MPROP_STATIC : MPROP_VIRTUAL; // TODO_
+                                                                                         // this may
+                                                                                         // need to
+                                                                                         // be
+                                                                                         // IVIRTUAL
+                                                                                         // if this
+                                                                                         // is
+                                                                                         // initial
         return attr;
     }
 
@@ -559,9 +582,10 @@ class CVTypeSectionBuilder {
         mFunctionRecord.setArgList(argListType);
         return addTypeRecord(mFunctionRecord);
     }
+
     /**
-     * Add type records for function. (later add arglist and local types).
-     * This works better if we had ClassEntries instead of strings.
+     * Add type records for function. (later add arglist and local types). This works better if we
+     * had ClassEntries instead of strings.
      *
      * @param entry primaryEntry containing entities whoses type records must be added
      * @return type index of function type
@@ -575,8 +599,11 @@ class CVTypeSectionBuilder {
         /* Build return type records. */
         /* TODO - build from proper type instead of name */
         /* currently this builds ugly class records for arrays, so cheat by returning Object */
-       // TypeEntry foo = primary.getMethodEntry().getValueType();
-        //int returnTypeIndex = primary.getMethodEntry().getValueType().getTypeName().endsWith("[]") ? getIndexForPointer(JAVA_LANG_OBJECT) : getIndexForPointer(primary.getMethodEntry().getValueType().getTypeName());
+        // TypeEntry foo = primary.getMethodEntry().getValueType();
+        // int returnTypeIndex =
+        // primary.getMethodEntry().getValueType().getTypeName().endsWith("[]") ?
+        // getIndexForPointer(JAVA_LANG_OBJECT) :
+        // getIndexForPointer(primary.getMethodEntry().getValueType().getTypeName());
         int returnTypeIndex = getIndexForPointerOrPrimitive(primary.getMethodEntry().getValueType(), false);
 
         /* Build arglist record. */
@@ -622,5 +649,3 @@ class CVTypeSectionBuilder {
         }
     }
 }
-
-
