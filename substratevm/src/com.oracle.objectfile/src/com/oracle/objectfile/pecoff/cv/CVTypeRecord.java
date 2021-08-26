@@ -247,7 +247,7 @@ abstract class CVTypeRecord {
             sb.append((flags1 & 4) != 0 ? " const" : "");
             sb.append((flags1 & 8) != 0 ? " unaligned" : "");
             sb.append((flags1 & 16) != 0 ? " restricted" : "");
-            return String.format("LF_POINTER 0x%04x attrs=0x%x(kind=%d(%s) mode=%d(%s) flags1=0x%x(%s) size=%d flags2=0x%x) pointTo=0x%04x", getSequenceNumber(), attrs,  kind, ptrType[kind], mode, modeStrs[mode], flags1, sb.toString(), size, flags2, pointsTo);
+            return String.format("LF_POINTER 0x%04x attrs=0x%x(kind=%d(%s) mode=%d(%s) flags1=0x%x(%s) size=%d flags2=0x%x) pointTo=0x%04x", getSequenceNumber(), attrs,  kind, ptrType[kind], mode, modeStrs[mode], flags1, sb, size, flags2, pointsTo);
         }
 
         @Override
@@ -317,6 +317,7 @@ abstract class CVTypeRecord {
         }
     }
 
+    @SuppressWarnings("unused")
     static final class CVUdtTypeLineModRecord extends CVUdtTypeLineRecord {
 
         final short mod;
@@ -399,6 +400,7 @@ abstract class CVTypeRecord {
         }
     }
 
+    @SuppressWarnings("unused")
     static final class CVTypeModifierRecord extends CVTypeRecord {
 
         private final int typeIndex;
@@ -888,7 +890,8 @@ abstract class CVTypeRecord {
 
     static final class CVStaticMemberRecord extends FieldRecord {
 
-        private final int underlyingTypeIndex; /* type index of member type */;
+        /* Type index of member type. */
+        private final int underlyingTypeIndex;
 
         CVStaticMemberRecord(short attrs, int underlyingTypeIndex,  String name) {
             super(LF_STMEMBER, (short)(attrs + MPROP_STATIC), name);
@@ -1075,6 +1078,7 @@ abstract class CVTypeRecord {
         }
     }
 
+    @SuppressWarnings("unused")
     static class CVBaseInterfaceRecord extends CVBaseClassRecord {
 
         CVBaseInterfaceRecord(short attrs, int fieldIndex) {
@@ -1129,6 +1133,7 @@ abstract class CVTypeRecord {
             this.uniqueName = null;
         }
 
+        @SuppressWarnings("unused")
         CVClassRecord(short count, short attrs, int fieldIndex, int derivedFromIndex, int vshapeIndex, long size, String className, String uniqueName) {
             this(LF_CLASS, count, attrs, fieldIndex, derivedFromIndex, vshapeIndex, size, className, uniqueName);
         }
@@ -1163,6 +1168,7 @@ abstract class CVTypeRecord {
             return (propertyAttributes & ATTR_FORWARD_REF) != 0;
         }
 
+        @SuppressWarnings("unused")
         public boolean hasUniqueName() {
             return (propertyAttributes & ATTR_HAS_UNIQUENAME) != 0;
         }
@@ -1207,6 +1213,7 @@ abstract class CVTypeRecord {
         }
     }
 
+    @SuppressWarnings("unused")
     static final class CVStructRecord extends CVClassRecord {
         CVStructRecord(short count, short attrs, int fieldIndex, int derivedFromIndex, int vshape, long size, String name) {
             super(LF_STRUCTURE, count, attrs, fieldIndex, derivedFromIndex, vshape, size, name, null);
@@ -1280,6 +1287,7 @@ abstract class CVTypeRecord {
     }
 
     /* Unused in Graal - enums are actually implemented as classes, and enumerations are static instances. */
+    @SuppressWarnings("unused")
     static final class CVEnumerateRecord extends FieldRecord {
 
         private final long value;
@@ -1322,6 +1330,7 @@ abstract class CVTypeRecord {
     }
 
     /* Unused in Graal - enums are actually implemented as classes, and enumerations are static instances. */
+    @SuppressWarnings("unused")
     static final class CVEnumRecord extends CVTypeRecord {
 
         private final String name;
@@ -1371,6 +1380,7 @@ abstract class CVTypeRecord {
         }
     }
 
+    @SuppressWarnings("unused")
     static final class CVInterfaceRecord extends CVClassRecord {
         CVInterfaceRecord(short count, short attrs, int fieldIndex, int derivedFromIndex, int vshape, String name) {
             super(LF_INTERFACE, count, attrs, fieldIndex, derivedFromIndex, vshape, 0, name, null);
@@ -1382,6 +1392,7 @@ abstract class CVTypeRecord {
         }
     }
 
+    @SuppressWarnings("unused")
     static final class CVTypeBitfieldRecord extends CVTypeRecord {
 
         private final byte length;
@@ -1436,9 +1447,9 @@ abstract class CVTypeRecord {
 
     static final class CVTypeArrayRecord extends CVTypeRecord {
 
-        private int elementType = -1;
-        private int indexType = -1;
-        private int length = -1;
+        private final int elementType;
+        private final int indexType;
+        private final int length;
 
         CVTypeArrayRecord(int elementType, int indexType, int length) {
             super(LF_ARRAY);
@@ -1447,6 +1458,7 @@ abstract class CVTypeRecord {
             this.length = length;
         }
 
+        @SuppressWarnings("unused")
         CVTypeArrayRecord(int elementType, int length) {
             super(LF_ARRAY);
             this.elementType = elementType;
@@ -1454,6 +1466,7 @@ abstract class CVTypeRecord {
             this.length = length;
         }
 
+        @SuppressWarnings("unused")
         CVTypeArrayRecord(CVTypeRecord elementType, int length) {
             super(LF_ARRAY);
             this.elementType = elementType.getSequenceNumber();
@@ -1500,6 +1513,7 @@ abstract class CVTypeRecord {
         }
     }
 
+    @SuppressWarnings("unused")
     static final class CVTypeServer2Record extends CVTypeRecord {
 
         private final byte[] guid;

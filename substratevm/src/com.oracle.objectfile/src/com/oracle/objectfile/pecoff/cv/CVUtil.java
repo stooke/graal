@@ -28,11 +28,8 @@ package com.oracle.objectfile.pecoff.cv;
 
 import com.oracle.objectfile.io.Utf8;
 
-import java.nio.ByteBuffer;
-
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_CHAR;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_LONG;
-import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_NUMERIC;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_PAD1;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_PAD2;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_PAD3;
@@ -76,31 +73,24 @@ abstract class CVUtil {
     }
 
     static int putLfNumeric(long i, byte[] buffer, int initialPos) {
-        if (0 <= i && i < (long) (0x8000)) {
-          //  System.out.format("XXPUTLF 1 %d 0x%x\n", i, i);
+        if (0 <= i && i < 0x8000) {
             return putShort((short) i, buffer, initialPos);
         } else if (Byte.MIN_VALUE <= i && i <= Byte.MAX_VALUE) {
-          //  System.out.format("XXPUTLF 2 %d 0x%x\n", i, i);
             int pos = putShort(LF_CHAR, buffer, initialPos);
             return putByte((byte) i, buffer, pos);
         } else if (Short.MIN_VALUE <= i && i <= Short.MAX_VALUE) {
-           // System.out.format("XXPUTLF 3 %d 0x%x\n", i, i);
             int pos = putShort(LF_SHORT, buffer, initialPos);
             return putShort((short) i, buffer, pos);
-        } else if (0 <= i && i <= (long) 0xffff) {
-          //  System.out.format("XXPUTLF 4 %d 0x%x\n", i, i);
+        } else if (0 <= i && i <= 0xffff) {
             int pos = putShort(LF_USHORT, buffer, initialPos);
             return putShort((short) i, buffer, pos);
         } else if (Integer.MIN_VALUE <= i && i <= Integer.MAX_VALUE) {
-            System.out.format("XXPUTLF 5 %d 0x%x\n", i, i);
             int pos = putShort(LF_LONG, buffer, initialPos);
             return putInt((int) i, buffer, pos);
         } else if (0 <= i && i <= 0xffffffffL) {
-            System.out.format("XXPUTLF 6 %d 0x%x\n", i, i);
             int pos = putShort(LF_ULONG, buffer, initialPos);
             return putInt((int) i, buffer, pos);
         } else {
-            System.out.format("XXPUTLF 7 %d 0x%x\n", i, i);
             int pos = putShort(LF_QUADWORD, buffer, initialPos);
             return putLong(i, buffer, pos);
         }

@@ -38,8 +38,8 @@ import com.oracle.objectfile.debugentry.Range;
  */
 public class CVLineRecordBuilder {
 
-    private CVDebugInfo cvDebugInfo;
-    private DebugContext debugContext;
+    private final CVDebugInfo cvDebugInfo;
+    private final DebugContext debugContext;
     private CVLineRecord lineRecord;
     private PrimaryEntry primaryEntry;
 

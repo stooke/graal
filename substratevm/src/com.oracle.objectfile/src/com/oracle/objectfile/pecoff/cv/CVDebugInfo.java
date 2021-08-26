@@ -38,8 +38,8 @@ import java.nio.ByteOrder;
  */
 public final class CVDebugInfo extends DebugInfoBase {
 
-    private CVSymbolSectionImpl cvSymbolSection;
-    private CVTypeSectionImpl cvTypeSection;
+    private final CVSymbolSectionImpl cvSymbolSection;
+    private final CVTypeSectionImpl cvTypeSection;
 
     /* Register constants for Windows x86_64 */
     /* See AMD64ReservedRegisters.java. */
@@ -49,11 +49,11 @@ public final class CVDebugInfo extends DebugInfoBase {
     /**
      * Register used to hold the heap base.
      */
-    private byte heapbaseRegister;
+    private final byte heapbaseRegister;
     /**
      * Register used to hold the current thread.
      */
-    private byte threadRegister;
+    private final byte threadRegister;
 
     public CVDebugInfo(PECoffMachine machine, ByteOrder byteOrder) {
         super(byteOrder);
@@ -80,6 +80,7 @@ public final class CVDebugInfo extends DebugInfoBase {
         return heapbaseRegister;
     }
 
+    @SuppressWarnings("unused")
     public byte getThreadRegister() {
         return threadRegister;
     }

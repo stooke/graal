@@ -270,6 +270,7 @@ abstract class CVSymbolSubrecord {
             this(cvDebugInfo, CVDebugConstants.S_GDATA32, name, null, typeIndex, offset, segment);
         }
 
+        @SuppressWarnings("unused")
         CVSymbolGData32Record(CVDebugInfo cvDebugInfo, String name, String relativeTo, int typeIndex, int offset, short segment) {
             this(cvDebugInfo, CVDebugConstants.S_GDATA32, name, relativeTo, typeIndex, offset, segment);
         }
@@ -314,6 +315,7 @@ abstract class CVSymbolSubrecord {
         }
     }
 
+    @SuppressWarnings("unused")
     public static class CVSymbolLData32Record extends CVSymbolGData32Record {
 
         CVSymbolLData32Record(CVDebugInfo cvDebugInfo, String name, int typeIndex, int offset, short segment) {
@@ -469,6 +471,7 @@ abstract class CVSymbolSubrecord {
         }
     }
 
+    @SuppressWarnings("unused")
     public static final class CVSymbolUDTRecord extends CVSymbolSubrecord {
 
         private final int typeIdx;

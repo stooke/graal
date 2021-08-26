@@ -42,7 +42,6 @@ import org.graalvm.compiler.debug.DebugContext;
 import org.graalvm.compiler.debug.GraalError;
 
 import java.lang.reflect.Modifier;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -110,12 +109,12 @@ class CVTypeSectionBuilder {
     }
 
     void buildRemainingRecords() {
-        /* currently java.lang.Class is the only type undefined at this point */
+        /* Currently java.lang.Class is the only type undefined at this point. */
         for (TypeInfo ti : typeInfoMap.values()) {
             if (ti.record.type == LF_CLASS && ((CVTypeRecord.CVClassRecord) ti.record).isForwardRef()) {
                 assert ti.typeEntry.isClass();
                 if (ti.typeEntry == null) {
-                    int idx = getUnderlyingType(((CVTypeRecord.CVClassRecord) ti.record).getClassName());
+                    //int idx = getUnderlyingType(((CVTypeRecord.CVClassRecord) ti.record).getClassName());
                     log("no typeentry for %s; type remains incomplete", ((CVTypeRecord.CVClassRecord) ti.record).getClassName());
                     GraalError.shouldNotReachHere();
                 } else {
@@ -132,6 +131,7 @@ class CVTypeSectionBuilder {
         }
     }
 
+    @SuppressWarnings("unused")
     private int getUnderlyingType(String typeName) {
         final int idx;
         if (typeName.endsWith("[]")) {
@@ -146,9 +146,9 @@ class CVTypeSectionBuilder {
 
     private static final int IN_PROCESS_DEPTH = 10;
 
-    /* Ff a typename appears in this map, it is currently being constructed.
+    /* If a typename appears in inProcessMap, it is currently being constructed.
      * if it is referenced elsewhere while being constructed, a LF_CLASS with a
-     * forward ref and a LF_POINTER are emitted, and the forward ref is used.
+     * forward ref and a LF_POINTER are emitted, and the index to the forward ref is used.
      */
     private final Map<String, TypeEntry> inProcessMap = new HashMap<>(IN_PROCESS_DEPTH);
 
@@ -157,7 +157,7 @@ class CVTypeSectionBuilder {
         CVTypeRecord typeRecord;
         TypeEntry inProcessType = inProcessMap.get(typeEntry.getTypeName());
         if (typeEntry.getTypeName().contains("[]") && typeEntry.typeKind() != DebugInfoProvider.DebugTypeInfo.DebugTypeKind.ARRAY) {
-            log("rogue array found: %s %s", typeEntry.typeKind().name(), typeEntry.getTypeName());
+            log("Rogue array found: %s %s", typeEntry.typeKind().name(), typeEntry.getTypeName());
             GraalError.shouldNotReachHere();
         }
         if (inProcessType != null) {
@@ -166,9 +166,9 @@ class CVTypeSectionBuilder {
             typeRecord = typeSection.getType(typeEntry.getTypeName());
             /* If we've never seen the class or only defined it as a forward reference, define it now. */
             if (typeRecord != null && typeRecord.type == LF_CLASS && !((CVTypeRecord.CVClassRecord)typeRecord).isForwardRef()) {
-                log("buildType type %s(%s) is known %s", typeEntry.getTypeName(), typeEntry.typeKind().name(), typeRecord);
+                log("buildType() type %s(%s) is known %s", typeEntry.getTypeName(), typeEntry.typeKind().name(), typeRecord);
             } else {
-                log("buildType %s %s size=%d - begin", typeEntry.typeKind().name(), typeEntry.getTypeName(), typeEntry.getSize());
+                log("buildType() %s %s size=%d - begin", typeEntry.typeKind().name(), typeEntry.getTypeName(), typeEntry.getSize());
                 switch (typeEntry.typeKind()) {
                     case PRIMITIVE: {
                         typeRecord = typeSection.getType(typeEntry.getTypeName());
@@ -197,7 +197,8 @@ class CVTypeSectionBuilder {
                             typeRecord = buildStruct((HeaderTypeEntry) typeEntry, 0, null, null);
                             objectHeaderRecordIndex = typeRecord.getSequenceNumber();
                         } else {
-                            log( "****** more than one HEADER %s ******", typeEntry.getTypeName());
+                            log( "More than one object header (%s) has been defined", typeEntry.getTypeName());
+                            GraalError.shouldNotReachHere();
                         }
                         break;
                     }
@@ -242,7 +243,7 @@ class CVTypeSectionBuilder {
                 if (onlyForwardReference) {
                     record = addTypeRecord(new CVTypeRecord.CVClassRecord((short) ATTR_FORWARD_REF, entry.getTypeName(), null));
                     typeInfoMap.put(entry.getTypeName(), new TypeInfo(record, entry));
-                    log("buildForwardReference: type %s (%s): added %s", entry.getTypeName(), entry.typeKind().name(), record);
+                    log("getIndexForPointerOrPrimitive: type %s (%s): added %s", entry.getTypeName(), entry.typeKind().name(), record);
                 } else {
                     record = buildType(entry);
                 }
@@ -416,7 +417,7 @@ class CVTypeSectionBuilder {
                 addTypeRecord(udt);
             }
 
-            /* may need to add S_UDT record to symbol table */
+            /* TODO: May need to add S_UDT record to symbol table. */
 
             depth--;
             /* we've added the complete class record now, */
@@ -466,7 +467,7 @@ class CVTypeSectionBuilder {
                 CVTypeRecord.CVBaseMemberRecord btype = new CVTypeRecord.CVBaseMemberRecord((short) 0x3, superTypeIndex, 0);
                 log("basetype %s", btype);
                 fieldListRecord.add(btype);
-                /* TODO - we don't really know the size here unless we refactor a bunch. */
+                /* TODO - the size is unknown here unless we refactor a bunch. */
                 totalHeaderFieldSize = Math.max(totalHeaderFieldSize, 0);
             }
 
@@ -520,27 +521,6 @@ class CVTypeSectionBuilder {
         return fieldEntry.getOffset() >= 0;
     }
 
-    /* use the standard class builder for enums
-    private CVTypeRecord buildEnum(EnumClassEntry type) {
-        depth++;
-        log("in buildenum %s\n", type.getTypeName());
-        CVTypeRecord.CVFieldListRecord fields = new CVTypeRecord.CVFieldListRecord();
-        type.fields().forEach(f -> {
-            log("        LF_ENUMERATE offset=%d %s %s\n", f.getOffset(), f.getModifiersString(), f.fieldName());
-            short attr = (short) (Modifier.isPublic(f.getModifiers()) ? 0x03 : (Modifier.isPrivate(f.getModifiers())) ? 0x01 : 0x02);
-            CVTypeRecord.CVEnumerateRecord er = new CVTypeRecord.CVEnumerateRecord(attr, f.getOffset(), f.fieldName());
-            fields.addMember(er);
-        });
-        CVTypeRecord.CVFieldListRecord nfields = addTypeRecord(fields);
-        CVTypeRecord.CVEnumRecord enumRecord = new CVTypeRecord.CVEnumRecord((short)0x3, T_LONG, nfields, type.getTypeName());
-        // TODO: are enum names unique (i.e. qualifed by class) or not?
-        CVTypeRecord.CVEnumRecord nenumRecord = typeSection.defineType(type.getTypeName(), enumRecord);
-        log("      LF_ENUM idx=0x%04x sz=0x%x enum %s", nenumRecord.getSequenceNumber(), type.getSize(), type.getTypeName());
-        depth--;
-        return nenumRecord;
-    }
-     */
-
     private CVTypeRecord.FieldRecord buildField(FieldEntry fieldEntry, boolean onlyForwardReference) {
         TypeEntry valueType = fieldEntry.getValueType();
         int vtIndex = getIndexForPointerOrPrimitive(valueType, onlyForwardReference);
@@ -561,7 +541,7 @@ class CVTypeSectionBuilder {
     private CVTypeRecord.CVOneMethodRecord buildMethod(ClassEntry classEntry, MethodEntry methodEntry) {
         CVTypeRecord.CVTypeMFunctionRecord funcRecord = buildMemberFunction(classEntry, methodEntry);
         short attr = modifiersToAttr(methodEntry);
-        int offset = 0; /* TODO */
+        int offset = 0; /* TODO - calculate vtable offset if required */
         return new CVTypeRecord.CVOneMethodRecord(attr, funcRecord.getSequenceNumber(), offset, methodEntry.methodName());
     }
 

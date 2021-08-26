@@ -167,13 +167,6 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
         return addOrReference(r);
     }
 
-    /*
-    <T extends CVTypeRecord> T defineType(String typename, T record) {
-        final T therecord = addOrReference(record);
-        typeNameMap.put(typename, therecord);
-        return therecord;
-    }*/
-
     int getIndexForPointer(TypeEntry typeEntry) {
         return builder.getIndexForPointerOrPrimitive(typeEntry, false);
     }

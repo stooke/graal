@@ -26,6 +26,7 @@
 
 package com.oracle.objectfile.pecoff.cv;
 
+@SuppressWarnings("unused")
 abstract class CVTypeConstants {
 
     static final int ADDRESS_BITS = 64;
@@ -63,8 +64,6 @@ abstract class CVTypeConstants {
     static final short T_64PUINT1      = 0x0669;
     static final short T_64PREAL32     = 0x0640;
     static final short T_64PREAL64     = 0x0641;
-
-
 
     // static final short T_POINTER_BITS = 0x0700;
     // static final short T_POINTER32 = 0x0400; /* 32 bit pointer */
