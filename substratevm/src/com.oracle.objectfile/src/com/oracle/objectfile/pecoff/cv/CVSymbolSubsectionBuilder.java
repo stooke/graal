@@ -97,7 +97,6 @@ final class CVSymbolSubsectionBuilder {
             build(primaryEntry);
         }
         /* Add manifested static fields as S_GDATA32 records. */
-        final ObjectFile.Section rwSection = this.rwSection;
         final short sectionId = (short) ((PECoffObjectFile.PECoffSection) rwSection).getSectionID();
         classEntry.fields().filter(CVSymbolSubsectionBuilder::isManifestedStaticField).forEach(f -> {
             int typeIndex = cvDebugInfo.getCVTypeSection().getIndexForPointer(f.getValueType());
