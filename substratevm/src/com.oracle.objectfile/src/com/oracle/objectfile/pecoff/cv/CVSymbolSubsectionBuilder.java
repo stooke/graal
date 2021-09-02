@@ -100,7 +100,7 @@ final class CVSymbolSubsectionBuilder {
         final short sectionId = (short) ((PECoffObjectFile.PECoffSection) rwSection).getSectionID();
         classEntry.fields().filter(CVSymbolSubsectionBuilder::isManifestedStaticField).forEach(f -> {
             int typeIndex = cvDebugInfo.getCVTypeSection().getIndexForPointer(f.getValueType());
-            String externName = "static$" + classEntry.getTypeName().replace(".", "_") + "_" + f.fieldName();
+            String externName = memberNameToCodeViewName(classEntry, f);
             if (cvDebugInfo.useHeapBase()) {
                 /* REL32 offset from heap base register. */
                 addToSymbolSubsection(new CVSymbolSubrecord.CVSymbolRegRel32Record(cvDebugInfo, externName, typeIndex, f.getOffset(), cvDebugInfo.getHeapbaseRegister()));
@@ -113,6 +113,10 @@ final class CVSymbolSubsectionBuilder {
 
     private static boolean isManifestedStaticField(FieldEntry fieldEntry) {
         return Modifier.isStatic(fieldEntry.getModifiers()) && fieldEntry.getOffset() >= 0;
+    }
+
+    private static String memberNameToCodeViewName(ClassEntry classEntry, FieldEntry fieldEntry) {
+        return classEntry.getTypeName().replace(".", "_") + "::" + fieldEntry.fieldName();
     }
 
     /**
