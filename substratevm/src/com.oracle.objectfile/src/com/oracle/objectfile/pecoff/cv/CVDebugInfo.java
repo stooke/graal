@@ -43,8 +43,8 @@ public final class CVDebugInfo extends DebugInfoBase {
 
     /* Register constants for Windows x86_64 */
     /* See AMD64ReservedRegisters.java. */
-    public static final byte rheapbase_x86 = (byte) 14;
-    public static final byte rthread_x86 = (byte) 15;
+    public static final byte RHEAPBASE_X86 = (byte) 14;
+    public static final byte RTHREAD_X86 = (byte) 15;
 
     /**
      * Register used to hold the heap base.
@@ -60,8 +60,8 @@ public final class CVDebugInfo extends DebugInfoBase {
         cvSymbolSection = new CVSymbolSectionImpl(this);
         cvTypeSection = new CVTypeSectionImpl();
         if (machine == PECoffMachine.X86_64) {
-            this.heapbaseRegister = rheapbase_x86;
-            this.threadRegister = rthread_x86;
+            this.heapbaseRegister = RHEAPBASE_X86;
+            this.threadRegister = RTHREAD_X86;
         } else {
             /* room for future aach64 port */
             throw GraalError.shouldNotReachHere("Unsupported architecture on Windows");

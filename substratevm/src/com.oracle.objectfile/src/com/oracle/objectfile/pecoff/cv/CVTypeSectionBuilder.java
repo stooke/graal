@@ -78,8 +78,6 @@ import static com.oracle.objectfile.pecoff.cv.CVTypeRecord.CVClassRecord.ATTR_FO
 
 class CVTypeSectionBuilder {
 
-    // private static final String MAGIC_OBJECT_HEADER_TYPE = "_objhdr";
-    // private static final String JAVA_LANG_CLASS = "java.lang.Class";
     private static final String JAVA_LANG_OBJECT = "java.lang.Object";
 
     private int objectHeaderRecordIndex;
@@ -274,22 +272,6 @@ class CVTypeSectionBuilder {
         }
         return ptrRecord.getSequenceNumber();
     }
-
-    /**
-     * If the type of the pointee is a primitive type, return it directly. Otherwise, create (if
-     * needed) and return a record representing a pointer to class.
-     *
-     * private int getIndexForPointer(String typeName) { CVTypeRecord ptrRecord =
-     * typeSection.getPointerRecordForType(typeName); if (ptrRecord == null) { CVTypeRecord
-     * clsRecord = typeSection.getType(typeName); if (clsRecord == null) { /* we've never heard of
-     * this class (but it may be in process) * clsRecord = addTypeRecord(new
-     * CVTypeRecord.CVClassRecord((short) ATTR_FORWARD_REF, typeName, null));
-     * typeInfoMap.put(typeName, new TypeInfo(clsRecord, null)); } else if
-     * (clsRecord.getSequenceNumber() <= MAX_PRIMITIVE) { return clsRecord.getSequenceNumber(); } /*
-     * We now have a class record but must create a pointer record. * ptrRecord = addTypeRecord(new
-     * CVTypeRecord.CVTypePointerRecord(clsRecord.getSequenceNumber(),
-     * CVTypeRecord.CVTypePointerRecord.NORMAL_64)); } return ptrRecord.getSequenceNumber(); }
-     */
 
     private int getIndexForType(TypeEntry entry) {
         CVTypeRecord clsRecord = typeSection.getType(entry.getTypeName());
