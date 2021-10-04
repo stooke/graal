@@ -46,13 +46,7 @@ public final class CVDebugInfo extends DebugInfoBase {
     public static final byte RHEAPBASE_X86 = (byte) 14;
     public static final byte RTHREAD_X86 = (byte) 15;
 
-    /**
-     * Register used to hold the heap base.
-     */
     private final byte heapbaseRegister;
-    /**
-     * Register used to hold the current thread.
-     */
     private final byte threadRegister;
 
     public CVDebugInfo(PECoffMachine machine, ByteOrder byteOrder) {

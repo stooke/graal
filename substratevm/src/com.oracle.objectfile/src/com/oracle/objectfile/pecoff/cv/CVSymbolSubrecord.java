@@ -254,18 +254,13 @@ abstract class CVSymbolSubrecord {
         protected final String name;
         private final String relativeTo;
 
-        CVSymbolGData32Record(CVDebugInfo cvDebugInfo, short cmd, String name, String relativeTo, int typeIndex, int offset, short segment) {
+        protected CVSymbolGData32Record(CVDebugInfo cvDebugInfo, short cmd, String name, String relativeTo, int typeIndex, int offset, short segment) {
             super(cvDebugInfo, cmd);
             this.name = name;
             this.relativeTo = relativeTo;
             this.typeIndex = typeIndex;
             this.offset = offset;
             this.segment = segment;
-        }
-
-        @SuppressWarnings("unused")
-        CVSymbolGData32Record(CVDebugInfo cvDebugInfo, String name, int typeIndex, int offset, short segment) {
-            this(cvDebugInfo, CVDebugConstants.S_GDATA32, name, null, typeIndex, offset, segment);
         }
 
         CVSymbolGData32Record(CVDebugInfo cvDebugInfo, String name, String relativeTo, int typeIndex, int offset, short segment) {

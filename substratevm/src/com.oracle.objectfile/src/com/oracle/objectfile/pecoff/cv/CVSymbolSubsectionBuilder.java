@@ -33,12 +33,11 @@ import com.oracle.objectfile.debugentry.FieldEntry;
 import com.oracle.objectfile.debugentry.PrimaryEntry;
 import com.oracle.objectfile.debugentry.Range;
 import com.oracle.objectfile.debugentry.TypeEntry;
+import com.oracle.objectfile.elf.dwarf.DwarfDebugInfo;
 import com.oracle.objectfile.pecoff.PECoffObjectFile;
 import org.graalvm.compiler.debug.DebugContext;
 
 import java.lang.reflect.Modifier;
-
-import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.HEAP_BEGIN_NAME;
 
 final class CVSymbolSubsectionBuilder {
 
@@ -106,7 +105,7 @@ final class CVSymbolSubsectionBuilder {
                 addToSymbolSubsection(new CVSymbolSubrecord.CVSymbolRegRel32Record(cvDebugInfo, externName, typeIndex, f.getOffset(), cvDebugInfo.getHeapbaseRegister()));
             } else {
                 /* Offset from heap begin. */
-                addToSymbolSubsection(new CVSymbolSubrecord.CVSymbolGData32Record(cvDebugInfo, externName, HEAP_BEGIN_NAME, typeIndex, f.getOffset(), sectionId));
+                addToSymbolSubsection(new CVSymbolSubrecord.CVSymbolGData32Record(cvDebugInfo, externName, DwarfDebugInfo.HEAP_BEGIN_NAME, typeIndex, f.getOffset(), sectionId));
             }
         });
     }
