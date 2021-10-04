@@ -26,22 +26,38 @@
 
 package com.oracle.objectfile.pecoff.cv;
 
-public abstract class CVConstants {
+import com.oracle.objectfile.debugentry.FieldEntry;
+import com.oracle.objectfile.debugentry.MethodEntry;
+import com.oracle.objectfile.debugentry.TypeEntry;
 
-    /* The names of relevant CodeView sections. */
-    static final String CV_SECTION_NAME_PREFIX = ".debug$";
-    static final String CV_SYMBOL_SECTION_NAME = CV_SECTION_NAME_PREFIX + "S";
-    static final String CV_TYPE_SECTION_NAME = CV_SECTION_NAME_PREFIX + "T";
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
-    /* CodeView section header signature */
-    static final int CV_SIGNATURE_C13 = 4;
+final class CVNames {
 
-    static final int CV_AMD64_R8 = 336;
-    static final int CV_AMD64_R9 = 337;
-    static final int CV_AMD64_R10 = 338;
-    static final int CV_AMD64_R11 = 339;
-    static final int CV_AMD64_R12 = 340;
-    static final int CV_AMD64_R13 = 341;
-    static final int CV_AMD64_R14 = 342;
-    static final int CV_AMD64_R15 = 343;
+    static String typeNameToCodeViewName(String typeName) {
+        return typeName.replace('.', '_').replace("[]", "_array");
+    }
+
+    static String typeNameToCodeViewName(TypeEntry typeEntry) {
+        return typeNameToCodeViewName(typeEntry.getTypeName());
+    }
+
+    static String fieldNameToCodeViewName(FieldEntry fieldEntry) {
+        return typeNameToCodeViewName(fieldEntry.ownerType()) + "::" + fieldEntry.fieldName();
+    }
+
+    static String functionNameToCodeViewName(MethodEntry methodEntry) {
+        return typeNameToCodeViewName(methodEntry.ownerType()) + "_" + methodEntry.methodName();
+    }
+
+    static String functionNameAndArgsToCodeViewName(MethodEntry methodEntry) {
+        final String paramString;
+        if (methodEntry.getParamCount() > 0) {
+            paramString = "_" + Arrays.stream(methodEntry.getParamTypes()).map(CVNames::typeNameToCodeViewName).collect(Collectors.joining("_"));
+        } else {
+            paramString = "";
+        }
+        return functionNameToCodeViewName(methodEntry) + paramString;
+    }
 }

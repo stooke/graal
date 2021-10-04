@@ -26,7 +26,6 @@
 
 package com.oracle.objectfile.pecoff.cv;
 
-import org.graalvm.compiler.debug.DebugContext;
 import com.oracle.objectfile.debugentry.FileEntry;
 import com.oracle.objectfile.debugentry.PrimaryEntry;
 import com.oracle.objectfile.debugentry.Range;
@@ -39,17 +38,15 @@ import com.oracle.objectfile.debugentry.Range;
 public class CVLineRecordBuilder {
 
     private final CVDebugInfo cvDebugInfo;
-    private final DebugContext debugContext;
     private CVLineRecord lineRecord;
     private PrimaryEntry primaryEntry;
 
-    CVLineRecordBuilder(DebugContext theDebugContext, CVDebugInfo cvDebugInfo) {
-        this.debugContext = theDebugContext;
+    CVLineRecordBuilder(CVDebugInfo cvDebugInfo) {
         this.cvDebugInfo = cvDebugInfo;
     }
 
     public void debug(String format, Object... args) {
-        cvDebugInfo.getCVSymbolSection().verboseLog(debugContext, format, args);
+        cvDebugInfo.getCVSymbolSection().verboseLog(format, args);
     }
 
     /**
