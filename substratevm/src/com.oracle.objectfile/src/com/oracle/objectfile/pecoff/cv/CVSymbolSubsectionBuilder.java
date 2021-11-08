@@ -33,9 +33,7 @@ import com.oracle.objectfile.debugentry.FieldEntry;
 import com.oracle.objectfile.debugentry.PrimaryEntry;
 import com.oracle.objectfile.debugentry.Range;
 import com.oracle.objectfile.debugentry.TypeEntry;
-import com.oracle.objectfile.elf.dwarf.DwarfDebugInfo;
 import com.oracle.objectfile.pecoff.PECoffObjectFile;
-import org.graalvm.compiler.debug.DebugContext;
 
 import java.lang.reflect.Modifier;
 
@@ -60,8 +58,8 @@ final class CVSymbolSubsectionBuilder {
      * The CodeView symbol section Prolog is also a CVSymbolSubsection, but it is not built in this
      * class.
      */
-    void build(DebugContext theDebugContext) {
-        this.lineRecordBuilder = new CVLineRecordBuilder(theDebugContext, cvDebugInfo);
+    void build() {
+        this.lineRecordBuilder = new CVLineRecordBuilder(cvDebugInfo);
 
         /* Find the heap section; static member variables are offset from __svm_heap_begin */
         ObjectFile objectFile = cvDebugInfo.getCVTypeSection().getOwner();
@@ -99,13 +97,14 @@ final class CVSymbolSubsectionBuilder {
         final short sectionId = (short) ((PECoffObjectFile.PECoffSection) rwSection).getSectionID();
         classEntry.fields().filter(CVSymbolSubsectionBuilder::isManifestedStaticField).forEach(f -> {
             int typeIndex = cvDebugInfo.getCVTypeSection().getIndexForPointer(f.getValueType());
-            String externName = memberNameToCodeViewName(classEntry, f);
+            String displayName = fieldNameToCodeViewName(classEntry, f);
             if (cvDebugInfo.useHeapBase()) {
                 /* REL32 offset from heap base register. */
-                addToSymbolSubsection(new CVSymbolSubrecord.CVSymbolRegRel32Record(cvDebugInfo, externName, typeIndex, f.getOffset(), cvDebugInfo.getHeapbaseRegister()));
+                addToSymbolSubsection(new CVSymbolSubrecord.CVSymbolRegRel32Record(cvDebugInfo, displayName, typeIndex, f.getOffset(), cvDebugInfo.getHeapbaseRegister()));
             } else {
                 /* Offset from heap begin. */
-                addToSymbolSubsection(new CVSymbolSubrecord.CVSymbolGData32Record(cvDebugInfo, externName, DwarfDebugInfo.HEAP_BEGIN_NAME, typeIndex, f.getOffset(), sectionId));
+                String heapName = SectionName.SVM_HEAP.getFormatDependentName(cvDebugInfo.getCVSymbolSection().getOwner().getFormat());
+                addToSymbolSubsection(new CVSymbolSubrecord.CVSymbolGData32Record(cvDebugInfo, displayName, heapName, typeIndex, f.getOffset(), sectionId));
             }
         });
     }
@@ -114,7 +113,7 @@ final class CVSymbolSubsectionBuilder {
         return Modifier.isStatic(fieldEntry.getModifiers()) && fieldEntry.getOffset() >= 0;
     }
 
-    private static String memberNameToCodeViewName(ClassEntry classEntry, FieldEntry fieldEntry) {
+    private static String fieldNameToCodeViewName(ClassEntry classEntry, FieldEntry fieldEntry) {
         return classEntry.getTypeName().replace(".", "_") + "::" + fieldEntry.fieldName();
     }
 

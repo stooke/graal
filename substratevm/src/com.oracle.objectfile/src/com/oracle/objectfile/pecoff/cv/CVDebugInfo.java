@@ -28,6 +28,7 @@ package com.oracle.objectfile.pecoff.cv;
 
 import com.oracle.objectfile.debugentry.DebugInfoBase;
 import com.oracle.objectfile.pecoff.PECoffMachine;
+import org.graalvm.compiler.debug.DebugContext;
 import org.graalvm.compiler.debug.GraalError;
 
 import java.nio.ByteOrder;
@@ -40,6 +41,7 @@ public final class CVDebugInfo extends DebugInfoBase {
 
     private final CVSymbolSectionImpl cvSymbolSection;
     private final CVTypeSectionImpl cvTypeSection;
+    private DebugContext debugContext;
 
     /* Register constants for Windows x86_64 */
     /* See AMD64ReservedRegisters.java. */
@@ -52,7 +54,7 @@ public final class CVDebugInfo extends DebugInfoBase {
     public CVDebugInfo(PECoffMachine machine, ByteOrder byteOrder) {
         super(byteOrder);
         cvSymbolSection = new CVSymbolSectionImpl(this);
-        cvTypeSection = new CVTypeSectionImpl();
+        cvTypeSection = new CVTypeSectionImpl(this);
         if (machine == PECoffMachine.X86_64) {
             this.heapbaseRegister = RHEAPBASE_X86;
             this.threadRegister = RTHREAD_X86;
@@ -77,5 +79,13 @@ public final class CVDebugInfo extends DebugInfoBase {
     @SuppressWarnings("unused")
     public byte getThreadRegister() {
         return threadRegister;
+    }
+
+    public DebugContext getDebugContext() {
+        return debugContext;
+    }
+
+    void setDebugContext(DebugContext debugContext) {
+        this.debugContext = debugContext;
     }
 }

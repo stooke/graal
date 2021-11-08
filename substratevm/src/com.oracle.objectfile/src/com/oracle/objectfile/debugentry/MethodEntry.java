@@ -36,13 +36,14 @@ public class MethodEntry extends MemberEntry implements Comparable<MethodEntry> 
     final String[] paramNames;
     public final boolean isDeoptTarget;
     boolean isInRange;
+    final int vtableOffset;
 
     final String symbolName;
     private String signature;
 
     public MethodEntry(FileEntry fileEntry, String symbolName, String methodName, ClassEntry ownerType,
                     TypeEntry valueType, TypeEntry[] paramTypes, String[] paramNames, int modifiers,
-                    boolean isDeoptTarget, boolean isInRange) {
+                    boolean isDeoptTarget, boolean isInRange, int vtableOffset) {
         super(fileEntry, methodName, ownerType, valueType, modifiers);
         assert ((paramTypes == null && paramNames == null) ||
                         (paramTypes != null && paramNames != null && paramTypes.length == paramNames.length));
@@ -51,6 +52,7 @@ public class MethodEntry extends MemberEntry implements Comparable<MethodEntry> 
         this.isDeoptTarget = isDeoptTarget;
         this.isInRange = isInRange;
         this.symbolName = symbolName;
+        this.vtableOffset = vtableOffset;
     }
 
     public String methodName() {
@@ -118,6 +120,29 @@ public class MethodEntry extends MemberEntry implements Comparable<MethodEntry> 
          * reflects the file info associated with the corresponding Range.
          */
         fileEntry = debugInfoBase.ensureFileEntry(debugRangeInfo);
+    }
+
+    /**
+     * Returns true if this is a newly introduced virtual method.
+     * Walks the class heirarchy looking methods that looke like itself.
+     * This is an odd requirement, but used in the Windows CodeView output.
+     * @return true if this is a virtual method and is defined for the first time (from base class) in the call heirarchy.
+     */
+    public boolean isFirstSighting() {
+        ClassEntry parentClass = ownerType().getSuperClass();
+        while (parentClass != null) {
+            parentClass = ownerType().getSuperClass();
+            for (MethodEntry method : parentClass.methods) {
+                if (this.equals(method)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    public int getVtableOffset() {
+        return vtableOffset;
     }
 
     public String getSymbolName() {

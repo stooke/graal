@@ -303,7 +303,7 @@ public class ClassEntry extends StructureTypeEntry {
          */
         FileEntry methodFileEntry = debugInfoBase.ensureFileEntry(debugMethodInfo);
         return new MethodEntry(methodFileEntry, debugMethodInfo.symbolNameForMethod(), methodName, this, resultType,
-                        paramTypeArray, paramNameArray, modifiers, debugMethodInfo.isDeoptTarget(), fromRangeInfo);
+                        paramTypeArray, paramNameArray, modifiers, debugMethodInfo.isDeoptTarget(), fromRangeInfo, debugMethodInfo.vtableOffset());
     }
 
     @Override

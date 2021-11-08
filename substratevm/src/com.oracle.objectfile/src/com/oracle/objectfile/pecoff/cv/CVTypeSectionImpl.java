@@ -70,7 +70,9 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
 
     private final CVTypeSectionBuilder builder;
 
-    CVTypeSectionImpl() {
+    CVTypeSectionImpl(CVDebugInfo cvDebugInfo) {
+        /* At this point, there is no debugContext in debugInfo, so no logging should be attempted. */
+        super(cvDebugInfo);
         builder = new CVTypeSectionBuilder(this);
     }
 
@@ -83,10 +85,9 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
     public void createContent(DebugContext debugContext) {
         int pos = 0;
         enableLog(debugContext);
-        builder.setDebugContext(debugContext);
-        log(debugContext, "CVTypeSectionImpl.createContent() adding records");
+        log("CVTypeSectionImpl.createContent() adding records");
         addRecords();
-        log(debugContext, "CVTypeSectionImpl.createContent() start");
+        log("CVTypeSectionImpl.createContent() start");
         pos = CVUtil.putInt(CV_SIGNATURE_C13, null, pos);
         for (CVTypeRecord record : typeMap.values()) {
             pos = record.computeFullSize(pos);
@@ -94,23 +95,23 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
         }
         byte[] buffer = new byte[pos];
         super.setContent(buffer);
-        log(debugContext, "CVTypeSectionImpl.createContent() end");
+        log("CVTypeSectionImpl.createContent() end");
     }
 
     @Override
     public void writeContent(DebugContext debugContext) {
         int pos = 0;
         enableLog(debugContext);
-        log(debugContext, "CVTypeSectionImpl.writeContent() start");
+        log("CVTypeSectionImpl.writeContent() start");
         byte[] buffer = getContent();
-        verboseLog(debugContext, "  [0x%08x] CV_SIGNATURE_C13", pos);
+        verboseLog("  [0x%08x] CV_SIGNATURE_C13", pos);
         pos = CVUtil.putInt(CV_SIGNATURE_C13, buffer, pos);
         for (CVTypeRecord record : typeMap.values()) {
-            verboseLog(debugContext, "  [0x%08x] 0x%06x %s", pos, record.getSequenceNumber(), record.toString());
+            verboseLog("  [0x%08x] 0x%06x %s", pos, record.getSequenceNumber(), record.toString());
             pos = record.computeFullContents(buffer, pos);
             pos = CVUtil.pad4(buffer, pos);
         }
-        verboseLog(debugContext, "CVTypeSectionImpl.writeContent() end");
+        verboseLog("CVTypeSectionImpl.writeContent() end");
     }
 
     /**
@@ -149,11 +150,11 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
         return typeNameMap.get(typename);
     }
 
-    CVTypeRecord getPointerRecordForType(DebugContext debugContext, String typeName) {
+    CVTypeRecord getPointerRecordForType(String typeName) {
         CVTypeRecord t = getType(typeName);
         if (t != null) {
             if (t.getSequenceNumber() <= MAX_PRIMITIVE) {
-                verboseLog(debugContext, "Primitive pointer requested for %s", typeName);
+                verboseLog("Primitive pointer requested for %s", typeName);
             }
             assert t.getSequenceNumber() > MAX_PRIMITIVE;
             return typePointerMap.get(t.getSequenceNumber());

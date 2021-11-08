@@ -66,7 +66,7 @@ final class CVSymbolSubsection extends CVSymbolRecord {
     public void logContents(DebugContext debugContext) {
         CVSectionImpl section = cvDebugInfo.getCVSymbolSection();
         for (CVSymbolSubrecord subcmd : subcmds) {
-            section.log(debugContext, "     [0x%08x]  %s", subcmd.getPos(), subcmd.toString());
+            section.log("     [0x%08x]  %s", subcmd.getPos(), subcmd.toString());
         }
     }
 
