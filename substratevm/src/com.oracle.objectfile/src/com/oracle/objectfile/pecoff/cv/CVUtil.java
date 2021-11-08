@@ -183,19 +183,4 @@ abstract class CVUtil {
         }
         return pos;
     }
-
-    static int pad4(byte[] buffer, int initialPos) {
-        int pos = initialPos;
-        int pad = initialPos & 0x3;
-        if (pad > 2) {
-            pos = CVUtil.putByte(LF_PAD3, buffer, pos);
-        }
-        if (pad > 1) {
-            pos = CVUtil.putByte(LF_PAD2, buffer, pos);
-        }
-        if (pad > 0) {
-            pos = CVUtil.putByte(LF_PAD1, buffer, pos);
-        }
-        return pos;
-    }
 }

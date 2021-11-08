@@ -91,7 +91,6 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
         pos = CVUtil.putInt(CV_SIGNATURE_C13, null, pos);
         for (CVTypeRecord record : typeMap.values()) {
             pos = record.computeFullSize(pos);
-            pos = CVUtil.pad4(null, pos);
         }
         byte[] buffer = new byte[pos];
         super.setContent(buffer);
@@ -109,7 +108,6 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
         for (CVTypeRecord record : typeMap.values()) {
             verboseLog("  [0x%08x] 0x%06x %s", pos, record.getSequenceNumber(), record.toString());
             pos = record.computeFullContents(buffer, pos);
-            pos = CVUtil.pad4(buffer, pos);
         }
         verboseLog("CVTypeSectionImpl.writeContent() end");
     }

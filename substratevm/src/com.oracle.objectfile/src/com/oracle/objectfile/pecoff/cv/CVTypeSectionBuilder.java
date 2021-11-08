@@ -53,7 +53,9 @@ import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_PRIVATE;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_PROTECTED;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_PUBLIC;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_PURE_IVIRTUAL;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_PURE_VIRTUAL;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_STATIC;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_VANILLA;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_VIRTUAL;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_VSF_MASK;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_64PINT1;
@@ -355,7 +357,7 @@ class CVTypeSectionBuilder {
                             addTypeRecord(mFunctionRecord);
                             short attr = modifiersToAttr(m);
                             log("    overloaded method %s", mFunctionRecord);
-                            int vtbleOffset = ((attr & MPROP_VSF_MASK) == MPROP_IVIRTUAL || (attr & MPROP_VSF_MASK) == MPROP_PURE_IVIRTUAL) ? m.getVtableOffset() : 0;
+                            int vtbleOffset = m.getVtableOffset() >= 0 && ((attr & MPROP_VSF_MASK) == MPROP_IVIRTUAL || (attr & MPROP_VSF_MASK) == MPROP_PURE_IVIRTUAL) ? m.getVtableOffset() : 0;
                             mlist.add(attr, mFunctionRecord.getSequenceNumber(), vtbleOffset, m.methodName());
                         });
 
@@ -512,7 +514,16 @@ class CVTypeSectionBuilder {
     private static short modifiersToAttr(MethodEntry member) {
         short attr = Modifier.isPublic(member.getModifiers()) ? MPROP_PUBLIC : (Modifier.isPrivate(member.getModifiers())) ? MPROP_PRIVATE : MPROP_PROTECTED;
         boolean isStatic = Modifier.isStatic(member.getModifiers());
-        attr += isStatic ? MPROP_STATIC : (member.isFirstSighting() ? MPROP_IVIRTUAL : MPROP_VIRTUAL);
+        /* TODO take abstract (= pure) and vtableOffset into account */
+        if (Modifier.isStatic(member.getModifiers())) {
+            attr += MPROP_STATIC;
+        } else if (member.getVtableOffset() < 0) {
+            attr += MPROP_VANILLA;
+        } else if (Modifier.isAbstract(member.getModifiers())) {
+            attr += member.isFirstSighting() ? MPROP_PURE_IVIRTUAL : MPROP_PURE_VIRTUAL;
+        } else {
+            attr += member.isFirstSighting() ? MPROP_IVIRTUAL : MPROP_VIRTUAL;
+        }
         return attr;
     }
 

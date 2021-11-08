@@ -131,12 +131,12 @@ public class MethodEntry extends MemberEntry implements Comparable<MethodEntry> 
     public boolean isFirstSighting() {
         ClassEntry parentClass = ownerType().getSuperClass();
         while (parentClass != null) {
-            parentClass = ownerType().getSuperClass();
             for (MethodEntry method : parentClass.methods) {
                 if (this.equals(method)) {
                     return false;
                 }
             }
+            parentClass = parentClass.getSuperClass();
         }
         return true;
     }

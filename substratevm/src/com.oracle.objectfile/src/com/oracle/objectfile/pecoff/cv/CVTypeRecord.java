@@ -632,7 +632,7 @@ abstract class CVTypeRecord {
                 pos = CVUtil.putShort(attrs, buffer, pos);
                 /* Two bytes of padding. */
                 pos = CVUtil.putShort((short) 0, buffer, pos);
-                if (hasVtableOffset(attrs)) {
+                if (hasVtableOffset()) {
                     pos = CVUtil.putInt(vtbleOffset, buffer, pos);
                 }
                 pos = CVUtil.putInt(funcIdx, buffer, pos);
@@ -845,7 +845,7 @@ abstract class CVTypeRecord {
         private final int underlyingTypeIndex;
 
         CVStaticMemberRecord(short attrs, int underlyingTypeIndex, String name) {
-            super(LF_STMEMBER, (short) (attrs + MPROP_STATIC), name);
+            super(LF_STMEMBER, attrs, name);
             this.underlyingTypeIndex = underlyingTypeIndex;
         }
 
@@ -888,11 +888,11 @@ abstract class CVTypeRecord {
         CVOneMethodRecord(short attrs, int funcIdx, int vtbleOffset, String name) {
             super(LF_ONEMETHOD, attrs, name);
             this.funcIdx = funcIdx;
-            this.vtbleOffset = hasVtableOffset(attrs) ? vtbleOffset : 0;
+            this.vtbleOffset = vtbleOffset;
         }
 
-        static boolean hasVtableOffset(short attrs) {
-            return ((attrs & MPROP_VSF_MASK) == MPROP_IVIRTUAL || (attrs & MPROP_VSF_MASK) == MPROP_PURE_IVIRTUAL);
+        boolean hasVtableOffset() {
+            return vtbleOffset >= 0 && ((attrs & MPROP_VSF_MASK) == MPROP_IVIRTUAL || (attrs & MPROP_VSF_MASK) == MPROP_PURE_IVIRTUAL);
         }
 
         @Override
@@ -900,7 +900,7 @@ abstract class CVTypeRecord {
             int pos = CVUtil.putShort(type, buffer, initialPos);
             pos = CVUtil.putShort(attrs, buffer, pos);
             pos = CVUtil.putInt(funcIdx, buffer, pos);
-            if (hasVtableOffset(attrs)) {
+            if (hasVtableOffset()) {
                 pos = CVUtil.putInt(vtbleOffset, buffer, pos);
             }
             pos = CVUtil.putUTF8StringBytes(name, buffer, pos);
