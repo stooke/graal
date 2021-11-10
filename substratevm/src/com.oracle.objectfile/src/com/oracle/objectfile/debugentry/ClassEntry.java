@@ -379,4 +379,9 @@ public class ClassEntry extends StructureTypeEntry {
     public List<MethodEntry> getMethods() {
         return methods;
     }
+
+    public String getSimpleName() {
+        int idx = typeName.lastIndexOf('.');
+        return idx == -1 ? typeName : typeName.substring(idx + 1);
+    }
 }

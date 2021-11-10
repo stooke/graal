@@ -167,7 +167,7 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
     }
 
     int getIndexForPointer(TypeEntry typeEntry) {
-        return builder.getIndexForPointerOrPrimitive(typeEntry, false);
+        return builder.getIndexForPointerOrPrimitive(typeEntry);
     }
 
     void definePrimitiveType(String typename, short typeId, int length, short pointerTypeId) {
