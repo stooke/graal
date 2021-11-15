@@ -26,23 +26,22 @@
 
 package com.oracle.objectfile.pecoff.cv;
 
-import com.oracle.objectfile.ObjectFile;
 import com.oracle.objectfile.SectionName;
 import com.oracle.objectfile.debugentry.ClassEntry;
 import com.oracle.objectfile.debugentry.FieldEntry;
 import com.oracle.objectfile.debugentry.PrimaryEntry;
 import com.oracle.objectfile.debugentry.Range;
 import com.oracle.objectfile.debugentry.TypeEntry;
-import com.oracle.objectfile.pecoff.PECoffObjectFile;
 
 import java.lang.reflect.Modifier;
+
+import static com.oracle.objectfile.pecoff.cv.CVConstants.CV_AMD64_R8;
 
 final class CVSymbolSubsectionBuilder {
 
     private final CVDebugInfo cvDebugInfo;
     private final CVSymbolSubsection cvSymbolSubsection;
     private CVLineRecordBuilder lineRecordBuilder;
-    private ObjectFile.Section rwSection;
 
     private boolean noMainFound = true;
 
@@ -60,17 +59,6 @@ final class CVSymbolSubsectionBuilder {
      */
     void build() {
         this.lineRecordBuilder = new CVLineRecordBuilder(cvDebugInfo);
-
-        /* Find the heap section; static member variables are offset from __svm_heap_begin */
-        ObjectFile objectFile = cvDebugInfo.getCVTypeSection().getOwner();
-        String rwSectionName = SectionName.SVM_HEAP.getFormatDependentName(objectFile.getFormat());
-        rwSection = null;
-        for (ObjectFile.Section s : objectFile.getSections()) {
-            if (s.getName().equals(rwSectionName)) {
-                rwSection = s;
-                break;
-            }
-        }
 
         /* Loop over all classes defined in this module. */
         for (TypeEntry typeEntry : cvDebugInfo.getTypes()) {
@@ -102,17 +90,18 @@ final class CVSymbolSubsectionBuilder {
         addTypeRecords(classEntry);
 
         /* Add manifested static fields as S_GDATA32 records. */
-        final short sectionId = (short) ((PECoffObjectFile.PECoffSection) rwSection).getSectionID();
         classEntry.fields().filter(CVSymbolSubsectionBuilder::isManifestedStaticField).forEach(f -> {
             int typeIndex = cvDebugInfo.getCVTypeSection().getIndexForPointer(f.getValueType());
             String displayName = CVNames.fieldNameToCodeViewName(f);
             if (cvDebugInfo.useHeapBase()) {
-                /* REL32 offset from heap base register. */
-                addToSymbolSubsection(new CVSymbolSubrecord.CVSymbolRegRel32Record(cvDebugInfo, displayName, typeIndex, f.getOffset(), cvDebugInfo.getHeapbaseRegister()));
+                /* REL32 offset from heap base register. Graal currently uses r14, this code will handle r8-r15. */
+                assert 8 <= cvDebugInfo.getHeapbaseRegister() && cvDebugInfo.getHeapbaseRegister() <= 15;
+                int heapRegister = CV_AMD64_R8 + cvDebugInfo.getHeapbaseRegister() - 8;
+                addToSymbolSubsection(new CVSymbolSubrecord.CVSymbolRegRel32Record(cvDebugInfo, displayName, typeIndex, f.getOffset(), (short) heapRegister));
             } else {
                 /* Offset from heap begin. */
                 String heapName = SectionName.SVM_HEAP.getFormatDependentName(cvDebugInfo.getCVSymbolSection().getOwner().getFormat());
-                addToSymbolSubsection(new CVSymbolSubrecord.CVSymbolGData32Record(cvDebugInfo, displayName, heapName, typeIndex, f.getOffset(), sectionId));
+                addToSymbolSubsection(new CVSymbolSubrecord.CVSymbolGData32Record(cvDebugInfo, displayName, heapName, typeIndex, f.getOffset(), (short) 0));
             }
         });
     }
