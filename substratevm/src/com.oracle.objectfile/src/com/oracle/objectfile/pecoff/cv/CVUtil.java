@@ -30,9 +30,6 @@ import com.oracle.objectfile.io.Utf8;
 
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_CHAR;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_LONG;
-import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_PAD1;
-import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_PAD2;
-import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_PAD3;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_QUADWORD;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_SHORT;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_ULONG;

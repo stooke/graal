@@ -136,8 +136,8 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
      *
      * @param entry primaryEntry containing entities whose type records must be added
      */
-    void addTypeRecords(TypeEntry entry) {
-        builder.buildType(entry);
+    CVTypeRecord addTypeRecords(TypeEntry entry) {
+        return builder.buildType(entry);
     }
 
     boolean hasType(String typename) {
@@ -191,15 +191,10 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
     <T extends CVTypeRecord> T addOrReference(T newRecord) {
         final T record;
         final boolean isInstance = newRecord.type == LF_CLASS || newRecord.type == LF_STRUCTURE;
-        /*
-         * Currently the hashes for identical class records do not always match. Until this is
-         * tracked down, use type name.
-         */
         if (typeMap.containsKey(newRecord)) {
             record = (T) typeMap.get(newRecord);
         } else if (isInstance) {
             CVTypeRecord.CVClassRecord cr = (CVTypeRecord.CVClassRecord) newRecord;
-            /* TODO should we use uniquename here? */
             /* Save off the class definition (or forward reference) */
             CVTypeRecord.CVClassRecord oldRecord = (CVTypeRecord.CVClassRecord) typeNameMap.get(cr.getClassName());
             if (oldRecord == null || (oldRecord.isForwardRef() && !cr.isForwardRef())) {

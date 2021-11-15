@@ -33,7 +33,6 @@ import com.oracle.objectfile.debugentry.HeaderTypeEntry;
 import com.oracle.objectfile.debugentry.InterfaceClassEntry;
 import com.oracle.objectfile.debugentry.MethodEntry;
 import com.oracle.objectfile.debugentry.PrimaryEntry;
-import com.oracle.objectfile.debugentry.Range;
 import com.oracle.objectfile.debugentry.StructureTypeEntry;
 import com.oracle.objectfile.debugentry.TypeEntry;
 
@@ -229,24 +228,7 @@ class CVTypeSectionBuilder {
      * @return type record for this function (may return existing matching record)
      */
     CVTypeRecord buildFunction(PrimaryEntry entry) {
-        Range primary = entry.getPrimary();
-
-        log("build primary start:" + primary.getFullMethodNameWithParams());
-
-        /* Build return type records. */
-        int returnTypeIndex = getIndexForPointerOrPrimitive(primary.getMethodEntry().getValueType());
-
-        /* Build arglist record. */
-        CVTypeRecord.CVTypeArglistRecord argListType = new CVTypeRecord.CVTypeArglistRecord();
-        for (TypeEntry paramType : primary.getMethodEntry().getParamTypes()) {
-            argListType.add(getIndexForPointerOrPrimitive(paramType));
-        }
-        argListType = addTypeRecord(argListType);
-
-        /* Build actual type record */
-        CVTypeRecord funcType = addTypeRecord(new CVTypeRecord.CVTypeProcedureRecord().returnType(returnTypeIndex).argList(argListType));
-        log("build primary end:" + primary.getFullMethodNameWithParams());
-        return funcType;
+        return buildMemberFunction(entry.getClassEntry(), entry.getPrimary().getMethodEntry());
     }
 
     private CVTypeRecord buildForwardReference(TypeEntry entry) {
@@ -291,10 +273,11 @@ class CVTypeSectionBuilder {
         return ptrRecord.getSequenceNumber();
     }
 
-    private int getIndexForType(TypeEntry entry) {
+    private int getIndexForTypeOrForwardRef(TypeEntry entry) {
         CVTypeRecord clsRecord = typeSection.getType(entry.getTypeName());
         if (clsRecord == null) {
-            clsRecord = buildType(entry);
+            clsRecord = addTypeRecord(new CVTypeRecord.CVClassRecord((short) ATTR_FORWARD_REF, entry.getTypeName(), null));
+            typeInfoMap.put(entry.getTypeName(), new TypeInfo(clsRecord, entry));
         }
         return clsRecord.getSequenceNumber();
     }
@@ -308,13 +291,7 @@ class CVTypeSectionBuilder {
         ClassEntry superClass = classEntry.getSuperClass();
         final int superTypeIndex;
         if (superClass != null) {
-            if (typeSection.hasType(superClass.getTypeName())) {
-                superTypeIndex = typeSection.getType(superClass.getTypeName()).getSequenceNumber();
-            } else {
-                log("building superclass %s", superClass.getTypeName());
-                superTypeIndex = getIndexForType(superClass);
-                log("finished superclass %s idx=0x%x", superClass.getTypeName(), superTypeIndex);
-            }
+            superTypeIndex = getIndexForTypeOrForwardRef(superClass);
         } else if (classEntry.getTypeName().equals(JAVA_LANG_OBJECT)) {
             superTypeIndex = objectHeaderRecordIndex;
         } else {
@@ -330,9 +307,6 @@ class CVTypeSectionBuilder {
         final String typeName = typeEntry.getTypeName();
 
         if (typeEntry.isClass()) {
-            if (typeName.equals(JAVA_LANG_OBJECT)) {
-                int j = 99;
-            }
             classEntry = (ClassEntry) typeEntry;
             methods = classEntry.getMethods();
         } else {
@@ -502,7 +476,7 @@ class CVTypeSectionBuilder {
         short attr = Modifier.isPublic(member.getModifiers()) ? MPROP_PUBLIC : (Modifier.isPrivate(member.getModifiers())) ? MPROP_PRIVATE : MPROP_PROTECTED;
         boolean isStatic = Modifier.isStatic(member.getModifiers());
         /* TODO take abstract (= pure) and vtableOffset into account */
-        if (Modifier.isStatic(member.getModifiers())) {
+        if (isStatic) {
             attr += MPROP_STATIC;
         } else if (member.getVtableOffset() < 0) {
             attr += MPROP_VANILLA;
@@ -526,13 +500,13 @@ class CVTypeSectionBuilder {
         return new CVTypeRecord.CVOneMethodRecord(attr, funcRecord.getSequenceNumber(), methodEntry.getVtableOffset(), methodEntry.methodName());
     }
 
-    private CVTypeRecord.CVTypeMFunctionRecord buildMemberFunction(ClassEntry classEntry, MethodEntry methodEntry) {
+    CVTypeRecord.CVTypeMFunctionRecord buildMemberFunction(ClassEntry classEntry, MethodEntry methodEntry) {
         CVTypeRecord.CVTypeMFunctionRecord mFunctionRecord = new CVTypeRecord.CVTypeMFunctionRecord();
-        mFunctionRecord.setClassType(getIndexForType(classEntry));
+        mFunctionRecord.setClassType(getIndexForTypeOrForwardRef(classEntry));
         mFunctionRecord.setCallType((byte) (CV_CALL_NEAR_C));
         mFunctionRecord.setThisType(Modifier.isStatic(methodEntry.getModifiers()) ? T_NOTYPE : getIndexForPointerOrPrimitive(classEntry));
         /* 'attr' is CV_funcattr_t and if set to 2 indicates a constructor function. */
-        /* Figure out if function is a constructor (by name = "<init>") */
+        /* Figure out if function is a constructor (name is name of owner class) (=funcAttr 2) */
         byte attr = methodEntry.methodName().equals(classEntry.getSimpleName()) ? (byte) 2 : 0;
         mFunctionRecord.setFuncAttr(attr);
         mFunctionRecord.setReturnType(getIndexForPointerOrPrimitive(methodEntry.getValueType()));

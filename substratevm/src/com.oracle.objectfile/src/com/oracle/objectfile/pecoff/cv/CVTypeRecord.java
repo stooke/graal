@@ -63,8 +63,6 @@ import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_IVIRTUAL;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_PPP_MASK;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_PSEUDO;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_PURE_IVIRTUAL;
-import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_STATIC;
-import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_VIRTUAL;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_VSF_MASK;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_NOTYPE;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_UINT8;
@@ -422,17 +420,17 @@ abstract class CVTypeRecord {
             super(LF_PROCEDURE);
         }
 
-        public CVTypeProcedureRecord returnType(int leaf) {
+        public CVTypeProcedureRecord setReturnType(int leaf) {
             this.returnType = leaf;
             return this;
         }
 
-        public CVTypeProcedureRecord returnType(CVTypeRecord leaf) {
+        public CVTypeProcedureRecord setReturnType(CVTypeRecord leaf) {
             this.returnType = leaf.getSequenceNumber();
             return this;
         }
 
-        CVTypeProcedureRecord argList(CVTypeArglistRecord leaf) {
+        CVTypeProcedureRecord setArgList(CVTypeArglistRecord leaf) {
             this.argList = leaf;
             return this;
         }
@@ -440,7 +438,7 @@ abstract class CVTypeRecord {
         @Override
         public int computeContents(byte[] buffer, int initialPos) {
             int pos = CVUtil.putInt(returnType, buffer, initialPos);
-            pos = CVUtil.putByte((byte) 0, buffer, pos); /* TODO callType */
+            pos = CVUtil.putByte((byte) CV_CALL_NEAR_C, buffer, pos);
             pos = CVUtil.putByte((byte) 0, buffer, pos); /* TODO funcAttr */
             pos = CVUtil.putShort((short) argList.getSize(), buffer, pos);
             pos = CVUtil.putInt(argList.getSequenceNumber(), buffer, pos);
@@ -457,7 +455,7 @@ abstract class CVTypeRecord {
             int h = type;
             h = 31 * h + returnType;
             h = 31 * h + argList.hashCode();
-            /* callType and funcAttr are always zero so do not add them to the hash */
+            /* callType and funcAttr are always the same so do not add them to the hash */
             return h;
         }
 
@@ -542,32 +540,40 @@ abstract class CVTypeRecord {
             super(LF_MFUNCTION);
         }
 
-        public void setReturnType(int returnType) {
+        public CVTypeMFunctionRecord setReturnType(int returnType) {
             this.returnType = returnType;
+            return this;
         }
 
-        void setClassType(int classType) {
+        CVTypeMFunctionRecord setClassType(int classType) {
             this.classType = classType;
+            return this;
         }
 
-        void setThisType(int thisType) {
+        CVTypeMFunctionRecord setThisType(int thisType) {
             this.thisType = thisType;
+            return this;
         }
 
-        void setCallType(byte callType) {
+        CVTypeMFunctionRecord setCallType(byte callType) {
             this.callType = callType;
+            return this;
         }
 
-        void setFuncAttr(byte funcAttr) {
+        CVTypeMFunctionRecord setFuncAttr(byte funcAttr) {
             this.funcAttr = funcAttr;
+            return this;
         }
 
-        public void setThisAdjust(int thisAdjust) {
+        @SuppressWarnings("unused")
+        CVTypeMFunctionRecord setThisAdjust(int thisAdjust) {
             this.thisAdjust = thisAdjust;
+            return this;
         }
 
-        void setArgList(CVTypeArglistRecord argList) {
+        CVTypeMFunctionRecord setArgList(CVTypeArglistRecord argList) {
             this.argList = argList;
+            return this;
         }
 
         @Override
@@ -1034,12 +1040,12 @@ abstract class CVTypeRecord {
         @Override
         public int computeContents(byte[] buffer, int initialPos) {
             int pos = CVUtil.putShort(count, buffer, initialPos);
-            pos = CVUtil.putShort((short) (propertyAttributes | ATTR_HAS_UNIQUENAME), buffer, pos);
+            pos = CVUtil.putShort(propertyAttributes, buffer, pos);
             pos = CVUtil.putInt(fieldIndex, buffer, pos);
             pos = CVUtil.putInt(derivedFromIndex, buffer, pos);
             pos = CVUtil.putInt(vshapeIndex, buffer, pos);
             pos = CVUtil.putLfNumeric(size, buffer, pos);
-            String fixedName = className.replace('.', '_').replace("[]", "_array").replace('$', '_');
+            String fixedName = CVNames.typeNameToCodeViewName(className);
             pos = CVUtil.putUTF8StringBytes(fixedName, buffer, pos);
             if (uniqueName != null) {
                 pos = CVUtil.putUTF8StringBytes(uniqueName, buffer, pos);

@@ -74,10 +74,11 @@ final class CVSymbolSubsectionBuilder {
 
         /* Loop over all classes defined in this module. */
         for (TypeEntry typeEntry : cvDebugInfo.getTypes()) {
-            /* add type records for the class, it's superclass, and instance variables */
-            addTypeRecords(typeEntry);
+            /* Add type record for this entry. */
             if (typeEntry.isClass()) {
-                build((ClassEntry) typeEntry);
+                buildClass((ClassEntry) typeEntry);
+            } else {
+                addTypeRecords(typeEntry);
             }
         }
         cvDebugInfo.getCVSymbolSection().addRecord(cvSymbolSubsection);
@@ -88,16 +89,23 @@ final class CVSymbolSubsectionBuilder {
      *
      * @param classEntry current class
      */
-    private void build(ClassEntry classEntry) {
+    private void buildClass(ClassEntry classEntry) {
+        /* Define the MFUNCTION records first and then the class itself.
+           If the class is defined first, MFUNCTION records that reference a forwardRef are generated,
+           and then later (after the class is defined) duplicate MFUCTINO records that reference the class itself
+           will be generated in buildFunction().
+         */
         /* Loop over all functions defined in this class. */
         for (PrimaryEntry primaryEntry : classEntry.getPrimaryEntries()) {
-            build(primaryEntry);
+            buildFunction(primaryEntry);
         }
+        addTypeRecords(classEntry);
+
         /* Add manifested static fields as S_GDATA32 records. */
         final short sectionId = (short) ((PECoffObjectFile.PECoffSection) rwSection).getSectionID();
         classEntry.fields().filter(CVSymbolSubsectionBuilder::isManifestedStaticField).forEach(f -> {
             int typeIndex = cvDebugInfo.getCVTypeSection().getIndexForPointer(f.getValueType());
-            String displayName = fieldNameToCodeViewName(classEntry, f);
+            String displayName = CVNames.fieldNameToCodeViewName(f);
             if (cvDebugInfo.useHeapBase()) {
                 /* REL32 offset from heap base register. */
                 addToSymbolSubsection(new CVSymbolSubrecord.CVSymbolRegRel32Record(cvDebugInfo, displayName, typeIndex, f.getOffset(), cvDebugInfo.getHeapbaseRegister()));
@@ -113,17 +121,13 @@ final class CVSymbolSubsectionBuilder {
         return Modifier.isStatic(fieldEntry.getModifiers()) && fieldEntry.getOffset() >= 0;
     }
 
-    private static String fieldNameToCodeViewName(ClassEntry classEntry, FieldEntry fieldEntry) {
-        return classEntry.getTypeName().replace(".", "_") + "::" + fieldEntry.fieldName();
-    }
-
     /**
      * Emit records for each function: PROC32 S_FRAMEPROC S_END and line number records. (later:
      * type records as required).
      *
      * @param primaryEntry primary entry for this function
      */
-    private void build(PrimaryEntry primaryEntry) {
+    private void buildFunction(PrimaryEntry primaryEntry) {
         final Range primaryRange = primaryEntry.getPrimary();
 
         /* The name as it will appear in the debugger. */
@@ -160,27 +164,21 @@ final class CVSymbolSubsectionBuilder {
     /**
      * Rename function names for usability or functionality.
      *
-     * First encountered main function becomes class.main. This is for usability.
-     *
-     * All other functions become class.function.999 (where 999 is a hash of the arglist). This is
-     * because The standard link.exe can't handle odd characters (parentheses or commas, for
-     * example) in debug information.
-     *
+     * First encountered static main function becomes class_main. This is for usability.
+     * All other functions become package_class_function_arglist.
      * This does not affect external symbols used by linker.
-     *
-     * TODO: strip illegal characters from arg lists instead ("link.exe" - safe names)
      *
      * @param range Range contained in the method of interest
      * @return user debugger friendly method name
      */
     private String getDebuggerName(Range range) {
         final String methodName;
-        if (noMainFound && range.getMethodName().equals("main")) {
+        if (noMainFound && Modifier.isStatic(range.getMethodEntry().getModifiers()) && range.getMethodName().equals("main")) {
             noMainFound = false;
-            methodName = range.getFullMethodName();
+            methodName = CVNames.functionNameToCodeViewName(range.getMethodEntry());
         } else {
-            /* In the future, use a more user-friendly name instead of a hash function. */
-            methodName = range.getSymbolName();
+            /* Use a more user-friendly name instead of a hash function. */
+            methodName = CVNames.functionNameAndArgsToCodeViewName(range.getMethodEntry());
         }
         return methodName;
     }
