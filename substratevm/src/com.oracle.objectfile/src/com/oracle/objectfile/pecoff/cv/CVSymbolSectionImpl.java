@@ -26,6 +26,7 @@
 
 package com.oracle.objectfile.pecoff.cv;
 
+import com.oracle.objectfile.ObjectFile;
 import org.graalvm.compiler.debug.DebugContext;
 
 import com.oracle.objectfile.io.Utf8;
@@ -184,5 +185,30 @@ public final class CVSymbolSectionImpl extends CVSectionImpl {
 
     void addRecord(CVSymbolRecord record) {
         cvRecords.add(record);
+    }
+
+
+    /**
+     * Mark an offset:segment relocation site for linker or loader fixup.
+     *
+     * @param buffer output buffer
+     * @param initialPos position of fixup in output buffer
+     * @param offset offset to add to the fixup
+     * @param symbolName symbolname to reference
+     * @return new position in output buffer
+     */
+    public int markRelocationSite(byte[] buffer, int initialPos, Long offset, String symbolName) {
+        int pos = initialPos;
+        if (buffer != null) {
+            markRelocationSite(pos, ObjectFile.RelocationKind.SECREL_4, symbolName, false, offset);
+            pos += ObjectFile.RelocationKind.getRelocationSize(ObjectFile.RelocationKind.SECREL_4);
+            markRelocationSite(pos, ObjectFile.RelocationKind.SECTION_2, symbolName, false, (long) 0);
+            pos += ObjectFile.RelocationKind.getRelocationSize(ObjectFile.RelocationKind.SECTION_2);
+        } else {
+            pos = CVUtil.putInt(0, buffer, pos);
+            // or was that pos = CVUtil.putInt(offset, buffer, pos);
+            pos = CVUtil.putShort((short) 0, buffer, pos);
+        }
+        return pos;
     }
 }

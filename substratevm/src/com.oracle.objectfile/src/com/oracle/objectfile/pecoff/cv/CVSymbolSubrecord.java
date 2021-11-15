@@ -27,6 +27,7 @@
 package com.oracle.objectfile.pecoff.cv;
 
 import com.oracle.objectfile.ObjectFile;
+import com.oracle.objectfile.ObjectFile.RelocationKind;
 import com.oracle.objectfile.debugentry.ClassEntry;
 
 import java.util.HashMap;
@@ -267,16 +268,7 @@ abstract class CVSymbolSubrecord {
         protected int computeContents(byte[] buffer, int initialPos) {
             int pos = CVUtil.putInt(typeIndex, buffer, initialPos);
             String extname = symbolName != null ? symbolName : displayName;
-            if (buffer != null) {
-                cvDebugInfo.getCVSymbolSection().markRelocationSite(pos, ObjectFile.RelocationKind.SECREL_4, extname, false, (long) offset);
-            }
-            /* Placeholder for offset. */
-            pos = CVUtil.putInt(offset, buffer, pos);
-            if (buffer != null) {
-                cvDebugInfo.getCVSymbolSection().markRelocationSite(pos, ObjectFile.RelocationKind.SECTION_2, extname, false, (long) 0);
-            }
-            /* Placeholder for segment. */
-            pos = CVUtil.putShort((short) 0, buffer, pos);
+            pos = cvDebugInfo.getCVSymbolSection().markRelocationSite(buffer, pos, (long) offset, extname);
             pos = CVUtil.putUTF8StringBytes(displayName, buffer, pos);
             return pos;
         }
@@ -388,14 +380,7 @@ abstract class CVSymbolSubrecord {
             pos = CVUtil.putInt(debugStart, buffer, pos);
             pos = CVUtil.putInt(debugEnd, buffer, pos);
             pos = CVUtil.putInt(typeIndex, buffer, pos);
-            if (buffer != null) {
-                cvDebugInfo.getCVSymbolSection().markRelocationSite(pos, ObjectFile.RelocationKind.SECREL_4, symbolName, false, 0L);
-            }
-            pos = CVUtil.putInt(0, buffer, pos);
-            if (buffer != null) {
-                cvDebugInfo.getCVSymbolSection().markRelocationSite(pos, ObjectFile.RelocationKind.SECTION_2, symbolName, false, 0L);
-            }
-            pos = CVUtil.putShort((short) 0, buffer, pos);
+            pos = cvDebugInfo.getCVSymbolSection().markRelocationSite(buffer, pos, (long) 0, symbolName);
             pos = CVUtil.putByte(flags, buffer, pos);
             pos = CVUtil.putUTF8StringBytes(displayName, buffer, pos);
             return pos;
