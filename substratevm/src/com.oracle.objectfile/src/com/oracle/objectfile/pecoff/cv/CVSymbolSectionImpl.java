@@ -200,9 +200,9 @@ public final class CVSymbolSectionImpl extends CVSectionImpl {
     public int markRelocationSite(byte[] buffer, int initialPos, Long offset, String symbolName) {
         int pos = initialPos;
         if (buffer != null) {
-            markRelocationSite(pos, ObjectFile.RelocationKind.SECREL_4, symbolName, false, offset);
+            markRelocationSite(pos, ObjectFile.RelocationKind.SECREL_4, symbolName, offset);
             pos += ObjectFile.RelocationKind.getRelocationSize(ObjectFile.RelocationKind.SECREL_4);
-            markRelocationSite(pos, ObjectFile.RelocationKind.SECTION_2, symbolName, false, (long) 0);
+            markRelocationSite(pos, ObjectFile.RelocationKind.SECTION_2, symbolName, (long) 0);
             pos += ObjectFile.RelocationKind.getRelocationSize(ObjectFile.RelocationKind.SECTION_2);
         } else {
             pos = CVUtil.putInt(0, buffer, pos);

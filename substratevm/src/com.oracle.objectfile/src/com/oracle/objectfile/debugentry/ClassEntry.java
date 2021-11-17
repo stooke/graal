@@ -311,7 +311,7 @@ public class ClassEntry extends StructureTypeEntry {
          */
         FileEntry methodFileEntry = debugInfoBase.ensureFileEntry(debugMethodInfo);
         MethodEntry methodEntry = new MethodEntry(debugInfoBase, debugMethodInfo, methodFileEntry, methodName,
-                        this, resultType, paramTypeArray, paramNameArray);
+                        this, resultType, paramTypeArray, paramNameArray, debugMethodInfo.vtableOffset());
         indexMethodEntry(methodEntry);
 
         return methodEntry;
