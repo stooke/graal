@@ -72,7 +72,7 @@ import org.graalvm.compiler.phases.common.CanonicalizerPhase.CustomSimplificatio
 import org.graalvm.compiler.phases.common.inlining.InliningUtil;
 import org.graalvm.compiler.printer.GraalDebugHandlersFactory;
 
-import com.oracle.graal.pointsto.BigBang;
+import com.oracle.graal.pointsto.PointsToAnalysis;
 import com.oracle.graal.pointsto.flow.InvokeTypeFlow;
 import com.oracle.graal.pointsto.flow.MethodFlowsGraph;
 import com.oracle.graal.pointsto.flow.MethodTypeFlow;
@@ -82,7 +82,6 @@ import com.oracle.graal.pointsto.meta.AnalysisField;
 import com.oracle.graal.pointsto.meta.AnalysisMethod;
 import com.oracle.graal.pointsto.meta.AnalysisType;
 import com.oracle.graal.pointsto.typestate.TypeState;
-
 import com.oracle.svm.util.ImageBuildStatistics;
 
 import jdk.vm.ci.meta.JavaKind;
@@ -109,7 +108,7 @@ import jdk.vm.ci.meta.ResolvedJavaType;
  */
 public abstract class StrengthenGraphs extends AbstractAnalysisResultsBuilder {
 
-    public StrengthenGraphs(BigBang bb, Universe converter) {
+    public StrengthenGraphs(PointsToAnalysis bb, Universe converter) {
         super(bb, converter);
     }
 
@@ -284,7 +283,7 @@ public abstract class StrengthenGraphs extends AbstractAnalysisResultsBuilder {
         }
 
         private void handleInvoke(Invoke invoke, SimplifierTool tool) {
-            FixedNode node = invoke.asNode();
+            FixedNode node = invoke.asFixedNode();
             MethodCallTargetNode callTarget = (MethodCallTargetNode) invoke.callTarget();
 
             InvokeTypeFlow invokeFlow = originalFlows.getInvokeFlow(invoke);
@@ -391,7 +390,7 @@ public abstract class StrengthenGraphs extends AbstractAnalysisResultsBuilder {
                 InliningUtil.nonNullReceiver(invoke);
             }
 
-            makeUnreachable(invoke.asNode(), tool, () -> "method " + graph.method().format("%H.%n(%p)") + ", node " + invoke +
+            makeUnreachable(invoke.asFixedNode(), tool, () -> "method " + graph.method().format("%H.%n(%p)") + ", node " + invoke +
                             ": empty list of callees for call to " + invoke.callTarget().targetMethod().format("%H.%n(%P)"));
         }
 
@@ -496,7 +495,7 @@ public abstract class StrengthenGraphs extends AbstractAnalysisResultsBuilder {
              * stamp is already more precise than the static analysis results.
              */
             List<AnalysisType> typeStateTypes = new ArrayList<>(nodeTypeState.typesCount());
-            for (AnalysisType typeStateType : nodeTypeState.types()) {
+            for (AnalysisType typeStateType : nodeTypeState.types(bb)) {
                 if (oldType == null || (oldStamp.isExactType() ? oldType.equals(typeStateType) : oldType.isAssignableFrom(typeStateType))) {
                     typeStateTypes.add(typeStateType);
                 }

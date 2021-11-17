@@ -2,8 +2,13 @@
 
 This changelog summarizes major changes between GraalVM SDK versions. The main focus is on APIs exported by GraalVM SDK.
 
+## Version 22.0.0
+* (GR-33657) Native Image API: Added `CEntryPoint#include` attribute which can be used to controll if the entry point should be automatically added to the shared library.
+* (GR-33207) Native image language libraries: languages can now be deployed as native image libraries, facilitating native embedding scenarios. In this case, a native launcher loads the library dynamically.
+
 ## Version 21.3.0
 * Added the ability to share values between contexts. Please see  `Context.Builder.allowValueSharing(boolean)` for further details. 
+* (GR-20286) Polyglot API: Added support for scoped values in guest-to-host callbacks. [Scoped values](https://www.graalvm.org/reference-manual/embed-languages/#controlling-host-callback-parameter-scoping) are automatically released when the callback returns. They can be configured in `HostAccess`.
 
 ## Version 21.2.0
 * `AllowVMInspection` is enabled in the native launchers, `SIGQUIT` can be used to generate thread dumps. Performance counters are disabled by default, they can be enabled in the graalvm enterprise by the `--vm.XX:+UsePerfData` option.

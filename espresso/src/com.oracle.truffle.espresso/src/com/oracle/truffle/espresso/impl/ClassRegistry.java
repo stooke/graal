@@ -24,11 +24,11 @@
 package com.oracle.truffle.espresso.impl;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Supplier;
 
 import com.oracle.truffle.espresso.classfile.ClassfileParser;
 import com.oracle.truffle.espresso.classfile.ClassfileStream;
@@ -44,6 +44,7 @@ import com.oracle.truffle.espresso.perf.DebugTimer;
 import com.oracle.truffle.espresso.redefinition.DefineKlassListener;
 import com.oracle.truffle.espresso.runtime.EspressoContext;
 import com.oracle.truffle.espresso.runtime.EspressoException;
+import com.oracle.truffle.espresso.runtime.EspressoThreadLocalState;
 import com.oracle.truffle.espresso.runtime.StaticObject;
 import com.oracle.truffle.espresso.substitutions.JavaType;
 
@@ -109,9 +110,10 @@ public abstract class ClassRegistry implements ContextAccess {
         public final StaticObject classData;
         public final boolean isHidden;
         public final boolean isStrongHidden;
+        public int klassID = -1;
 
         public boolean addedToRegistry() {
-            return !isAnonymousClass() && (!isHidden() || isStrongHidden());
+            return !isAnonymousClass() && !isHidden();
         }
 
         public boolean isAnonymousClass() {
@@ -133,6 +135,10 @@ public abstract class ClassRegistry implements ContextAccess {
             }
             return flags;
         }
+
+        public void initKlassID(int futureKlassID) {
+            this.klassID = futureKlassID;
+        }
     }
 
     private static final DebugTimer KLASS_PROBE = DebugTimer.create("klass probe");
@@ -146,7 +152,6 @@ public abstract class ClassRegistry implements ContextAccess {
      * circularity error.
      */
     // TODO: Rework this, a thread local is certainly less than optimal.
-    static final ThreadLocal<TypeStack> stack = ThreadLocal.withInitial(TypeStack.supplier);
 
     private DefineKlassListener defineKlassListener;
 
@@ -154,14 +159,11 @@ public abstract class ClassRegistry implements ContextAccess {
         defineKlassListener = listener;
     }
 
-    static final class TypeStack {
-        static final Supplier<TypeStack> supplier = new Supplier<TypeStack>() {
-            @Override
-            public TypeStack get() {
-                return new TypeStack();
-            }
-        };
-        Node head = null;
+    public static final class TypeStack {
+        Node head;
+
+        public TypeStack() {
+        }
 
         static final class Node {
             Symbol<Type> entry;
@@ -200,9 +202,6 @@ public abstract class ClassRegistry implements ContextAccess {
         void push(Symbol<Type> type) {
             head = new Node(type, head);
         }
-
-        private TypeStack() {
-        }
     }
 
     private final EspressoContext context;
@@ -236,6 +235,26 @@ public abstract class ClassRegistry implements ContextAccess {
      * a whole class registry and all its contained classes.
      */
     protected final ConcurrentHashMap<Symbol<Type>, ClassRegistries.RegistryEntry> classes = new ConcurrentHashMap<>();
+
+    /**
+     * Strong hidden classes must be referenced by the class loader data to prevent them from being
+     * reclaimed, while not appearing in the actual registry. This field simply keeps those hidden
+     * classes strongly reachable from the class registry.
+     */
+    private volatile Collection<Klass> strongHiddenKlasses = null;
+
+    private Object getStrongHiddenClassRegistrationLock() {
+        return this;
+    }
+
+    private void registerStrongHiddenClass(Klass klass) {
+        synchronized (getStrongHiddenClassRegistrationLock()) {
+            if (strongHiddenKlasses == null) {
+                strongHiddenKlasses = new ArrayList<>();
+            }
+            strongHiddenKlasses.add(klass);
+        }
+    }
 
     @Override
     public final EspressoContext getContext() {
@@ -338,10 +357,9 @@ public abstract class ClassRegistry implements ContextAccess {
     @SuppressWarnings("try")
     public ObjectKlass defineKlass(Symbol<Type> typeOrNull, final byte[] bytes, ClassDefinitionInfo info) {
         Meta meta = getMeta();
-        String strType = typeOrNull == null ? null : typeOrNull.toString();
         ParserKlass parserKlass;
         try (DebugCloseable parse = KLASS_PARSE.scope(getContext().getTimers())) {
-            parserKlass = getParserKlass(bytes, strType, info);
+            parserKlass = getParserKlass(bytes, typeOrNull, info);
         }
         Symbol<Type> type = typeOrNull == null ? parserKlass.getType() : typeOrNull;
 
@@ -357,13 +375,15 @@ public abstract class ClassRegistry implements ContextAccess {
         ObjectKlass klass = createKlass(meta, parserKlass, type, superKlassType, info);
         if (info.addedToRegistry()) {
             registerKlass(klass, type);
+        } else if (info.isStrongHidden()) {
+            registerStrongHiddenClass(klass);
         }
         return klass;
     }
 
-    private ParserKlass getParserKlass(byte[] bytes, String strType, ClassDefinitionInfo info) {
+    private ParserKlass getParserKlass(byte[] bytes, Symbol<Type> typeOrNull, ClassDefinitionInfo info) {
         // May throw guest ClassFormatError, NoClassDefFoundError.
-        ParserKlass parserKlass = ClassfileParser.parse(new ClassfileStream(bytes, null), getClassLoader(), strType, context, info);
+        ParserKlass parserKlass = ClassfileParser.parse(new ClassfileStream(bytes, null), getClassLoader(), typeOrNull, context, info);
         Meta meta = getMeta();
         if (!loaderIsBootOrPlatform(getClassLoader(), meta) && parserKlass.getName().toString().startsWith("java/")) {
             throw meta.throwExceptionWithMessage(meta.java_lang_SecurityException, "Define class in prohibited package name: " + parserKlass.getName());
@@ -378,7 +398,8 @@ public abstract class ClassRegistry implements ContextAccess {
 
     @SuppressWarnings("try")
     private ObjectKlass createKlass(Meta meta, ParserKlass parserKlass, Symbol<Type> type, Symbol<Type> superKlassType, ClassDefinitionInfo info) {
-        TypeStack chain = stack.get();
+        EspressoThreadLocalState threadLocalState = meta.getContext().getLanguage().getThreadLocalState();
+        TypeStack chain = threadLocalState.getTypeStack();
 
         ObjectKlass superKlass = null;
         ObjectKlass[] superInterfaces = null;
@@ -426,7 +447,7 @@ public abstract class ClassRegistry implements ContextAccess {
 
         try (DebugCloseable define = KLASS_DEFINE.scope(getContext().getTimers())) {
             // FIXME(peterssen): Do NOT create a LinkedKlass every time, use a global cache.
-            LinkedKlass linkedKlass = LinkedKlass.create(getEspressoLanguage(), parserKlass, superKlass == null ? null : superKlass.getLinkedKlass(), linkedInterfaces);
+            LinkedKlass linkedKlass = LinkedKlass.create(context.getLanguage(), context.getJavaVersion(), parserKlass, superKlass == null ? null : superKlass.getLinkedKlass(), linkedInterfaces);
             klass = new ObjectKlass(context, linkedKlass, superKlass, superInterfaces, getClassLoader(), info);
         }
 

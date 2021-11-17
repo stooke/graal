@@ -41,7 +41,6 @@ import com.oracle.truffle.api.frame.FrameInstance;
 import com.oracle.truffle.api.frame.FrameInstanceVisitor;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
-import com.oracle.truffle.espresso.classfile.Constants;
 import com.oracle.truffle.espresso.descriptors.Symbol.Name;
 import com.oracle.truffle.espresso.impl.ArrayKlass;
 import com.oracle.truffle.espresso.impl.ContextAccess;
@@ -61,6 +60,7 @@ import com.oracle.truffle.espresso.runtime.StaticObject;
 import com.oracle.truffle.espresso.substitutions.JavaType;
 import com.oracle.truffle.espresso.substitutions.Target_java_lang_Thread;
 import com.oracle.truffle.espresso.substitutions.Throws;
+import com.oracle.truffle.espresso.threads.State;
 
 public final class InterpreterToVM implements ContextAccess {
 
@@ -400,7 +400,7 @@ public final class InterpreterToVM implements ContextAccess {
         EspressoContext context = meta.getContext();
         if (!monitorTryLock(lock)) {
             StaticObject thread = context.getCurrentThread();
-            Target_java_lang_Thread.fromRunnable(thread, meta, Target_java_lang_Thread.State.BLOCKED);
+            meta.getThreadAccess().fromRunnable(thread, State.BLOCKED);
             if (context.EnableManagement) {
                 // Locks bookkeeping.
                 meta.HIDDEN_THREAD_BLOCKED_OBJECT.setHiddenObject(thread, obj);
@@ -418,7 +418,7 @@ public final class InterpreterToVM implements ContextAccess {
             if (context.EnableManagement) {
                 meta.HIDDEN_THREAD_BLOCKED_OBJECT.setHiddenObject(thread, null);
             }
-            Target_java_lang_Thread.toRunnable(thread, meta, Target_java_lang_Thread.State.RUNNABLE);
+            meta.getThreadAccess().toRunnable(thread);
         }
     }
 
@@ -744,7 +744,7 @@ public final class InterpreterToVM implements ContextAccess {
 
                             // Methods annotated with java.lang.invoke.LambdaForm.Hidden are
                             // ignored.
-                            if ((method.getModifiers() & Constants.ACC_LAMBDA_FORM_HIDDEN) == 0) {
+                            if (!method.isHidden()) {
                                 if (!c.checkFillIn(method)) {
                                     if (!c.checkThrowableInit(method)) {
                                         int bci = espressoNode.readBCI(frameInstance.getFrame(FrameInstance.FrameAccess.READ_ONLY));

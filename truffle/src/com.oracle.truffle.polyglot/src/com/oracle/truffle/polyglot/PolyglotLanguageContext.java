@@ -70,6 +70,7 @@ import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.dsl.Cached;
@@ -218,6 +219,7 @@ final class PolyglotLanguageContext implements PolyglotImpl.VMObject {
     private volatile Thread creatingThread;
     private volatile boolean initialized;
     volatile boolean finalized;
+    volatile boolean exited;
     @CompilationFinal private volatile Value hostBindings;
     @CompilationFinal private volatile Lazy lazy;
     @CompilationFinal volatile Env env; // effectively final
@@ -304,8 +306,9 @@ final class PolyglotLanguageContext implements PolyglotImpl.VMObject {
     }
 
     Object getContextImpl() {
-        if (env != null) {
-            return LANGUAGE.getContext(env);
+        Env localEnv = env;
+        if (localEnv != null) {
+            return LANGUAGE.getContext(localEnv);
         } else {
             CompilerDirectives.transferToInterpreterAndInvalidate();
             return null;
@@ -374,7 +377,7 @@ final class PolyglotLanguageContext implements PolyglotImpl.VMObject {
     }
 
     @SuppressWarnings("deprecation")
-    boolean finalizeContext(boolean cancelOperation, boolean notifyInstruments) {
+    boolean finalizeContext(boolean cancelOrExitOperation, boolean notifyInstruments) {
         ReentrantLock lock = lazy.operationLock;
         lock.lock();
         try {
@@ -386,7 +389,7 @@ final class PolyglotLanguageContext implements PolyglotImpl.VMObject {
                 try {
                     LANGUAGE.finalizeContext(env);
                 } catch (Throwable t) {
-                    if (cancelOperation) {
+                    if (cancelOrExitOperation) {
                         /*
                          * finalizeContext can run guest code, and so truffle and cancel exceptions
                          * are expected. However, they must not fail the cancel operation, and so we
@@ -394,9 +397,10 @@ final class PolyglotLanguageContext implements PolyglotImpl.VMObject {
                          */
                         assert context.state.isClosing();
                         assert context.state.isInvalidOrClosed();
-                        if (t instanceof com.oracle.truffle.api.TruffleException || t instanceof PolyglotEngineImpl.CancelExecution) {
+                        if (t instanceof com.oracle.truffle.api.TruffleException || t instanceof PolyglotEngineImpl.CancelExecution || t instanceof PolyglotContextImpl.ExitException) {
                             context.engine.getEngineLogger().log(Level.FINE,
-                                            "Exception was thrown while finalizing a polyglot context that is being cancelled. Such exceptions are expected during cancelling.", t);
+                                            "Exception was thrown while finalizing a polyglot context that is being cancelled or exited. Such exceptions are expected during cancelling or exiting.",
+                                            t);
                         } else {
                             throw t;
                         }
@@ -406,6 +410,41 @@ final class PolyglotLanguageContext implements PolyglotImpl.VMObject {
                 }
                 if (eventsEnabled && notifyInstruments) {
                     EngineAccessor.INSTRUMENT.notifyLanguageContextFinalized(context.engine, context.creatorTruffleContext, language.info);
+                }
+                return true;
+            }
+        } finally {
+            lock.unlock();
+        }
+        return false;
+    }
+
+    @SuppressWarnings("deprecation")
+    boolean exitContext(TruffleLanguage.ExitMode exitMode, int exitCode) {
+        ReentrantLock lock = lazy.operationLock;
+        lock.lock();
+        try {
+            if (!initialized) {
+                return false;
+            }
+            if (!exited) {
+                exited = true;
+                try {
+                    LANGUAGE.exitContext(env, exitMode, exitCode);
+                } catch (Throwable t) {
+                    if (exitMode == TruffleLanguage.ExitMode.HARD) {
+                        if (t instanceof com.oracle.truffle.api.TruffleException || t instanceof PolyglotContextImpl.ExitException) {
+                            if (t instanceof com.oracle.truffle.api.TruffleException && !context.state.isCancelling()) {
+                                context.engine.getEngineLogger().log(Level.WARNING, "TruffleException thrown during exit notification! Languages are supposed to handle this kind of exceptions.", t);
+                            } else {
+                                context.engine.getEngineLogger().log(Level.FINE, "Exception thrown during exit notification!", t);
+                            }
+                        } else {
+                            throw t;
+                        }
+                    } else {
+                        throw t;
+                    }
                 }
                 return true;
             }
@@ -454,7 +493,7 @@ final class PolyglotLanguageContext implements PolyglotImpl.VMObject {
                 }
                 LANGUAGE.dispose(localEnv);
             } catch (Throwable t) {
-                if (t instanceof com.oracle.truffle.api.TruffleException || t instanceof PolyglotEngineImpl.CancelExecution) {
+                if (t instanceof com.oracle.truffle.api.TruffleException || t instanceof PolyglotEngineImpl.CancelExecution || t instanceof PolyglotContextImpl.ExitException) {
                     throw new IllegalStateException("Guest language code was run during language disposal!", t);
                 }
                 throw t;
@@ -787,8 +826,8 @@ final class PolyglotLanguageContext implements PolyglotImpl.VMObject {
         return getAPIAccess().newValue(cache, this, guestValue);
     }
 
-    public Object toGuestValue(Object receiver) {
-        return context.toGuestValue(receiver);
+    public Object toGuestValue(Node node, Object receiver) {
+        return context.toGuestValue(node, receiver, false);
     }
 
     static final class ToHostValueNode {
@@ -980,18 +1019,18 @@ final class PolyglotLanguageContext implements PolyglotImpl.VMObject {
 
         @Specialization(guards = "receiver == null")
         Object doNull(PolyglotLanguageContext context, @SuppressWarnings("unused") Object receiver) {
-            return context.toGuestValue(receiver);
+            return context.toGuestValue(this, receiver);
         }
 
         @Specialization(guards = {"receiver != null", "receiver.getClass() == cachedReceiver"}, limit = "3")
         Object doCached(PolyglotLanguageContext context, Object receiver, @Cached("receiver.getClass()") Class<?> cachedReceiver) {
-            return context.toGuestValue(cachedReceiver.cast(receiver));
+            return context.toGuestValue(this, cachedReceiver.cast(receiver));
         }
 
         @Specialization(replaces = "doCached")
         @TruffleBoundary
         Object doUncached(PolyglotLanguageContext context, Object receiver) {
-            return context.toGuestValue(receiver);
+            return context.toGuestValue(this, receiver);
         }
     }
 
@@ -1010,9 +1049,9 @@ final class PolyglotLanguageContext implements PolyglotImpl.VMObject {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 nodes = new ToGuestValueNode[args.length];
                 for (int i = 0; i < nodes.length; i++) {
-                    nodes[i] = PolyglotLanguageContextFactory.ToGuestValueNodeGen.create();
+                    nodes[i] = insert(PolyglotLanguageContextFactory.ToGuestValueNodeGen.create());
                 }
-                toGuestValue = insert(nodes);
+                toGuestValue = nodes;
             }
             if (args.length == nodes.length) {
                 // fast path
@@ -1027,9 +1066,9 @@ final class PolyglotLanguageContext implements PolyglotImpl.VMObject {
                     CompilerDirectives.transferToInterpreterAndInvalidate();
                     nodes = Arrays.copyOf(nodes, 1);
                     if (nodes[0] == null) {
-                        nodes[0] = PolyglotLanguageContextFactory.ToGuestValueNodeGen.create();
+                        nodes[0] = insert(PolyglotLanguageContextFactory.ToGuestValueNodeGen.create());
                     }
-                    this.toGuestValue = insert(nodes);
+                    this.toGuestValue = nodes;
                     this.generic = true;
                 }
                 if (args.length == 0) {

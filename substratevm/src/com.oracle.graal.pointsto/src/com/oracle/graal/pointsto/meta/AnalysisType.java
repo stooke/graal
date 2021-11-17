@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -45,7 +45,8 @@ import org.graalvm.util.GuardedAnnotationAccess;
 import org.graalvm.word.WordBase;
 
 import com.oracle.graal.pointsto.BigBang;
-import com.oracle.graal.pointsto.BigBang.ConstantObjectsProfiler;
+import com.oracle.graal.pointsto.PointsToAnalysis;
+import com.oracle.graal.pointsto.PointsToAnalysis.ConstantObjectsProfiler;
 import com.oracle.graal.pointsto.api.DefaultUnsafePartition;
 import com.oracle.graal.pointsto.api.PointstoOptions;
 import com.oracle.graal.pointsto.constraints.UnsupportedFeatureException;
@@ -102,9 +103,8 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
      */
     private volatile ConcurrentHashMap<UnsafePartitionKind, Collection<AnalysisField>> unsafeAccessedFields;
 
-    private static final AnalysisType[] EMPTY_ARRAY = {};
-
-    AnalysisType[] subTypes;
+    /** Immediate subtypes and this type itself. */
+    private final Set<AnalysisType> subTypes;
     AnalysisType superClass;
 
     private final int id;
@@ -142,7 +142,7 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
     private final AnalysisType[] interfaces;
 
     /* isArray is an expensive operation so we eagerly compute it */
-    private boolean isArray;
+    private final boolean isArray;
 
     private final int dimension;
 
@@ -180,10 +180,24 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
              */
         }
 
-        subTypes = EMPTY_ARRAY;
         /* Ensure the super types as well as the component type (for arrays) is created too. */
         superClass = universe.lookup(wrapped.getSuperclass());
         interfaces = convertTypes(wrapped.getInterfaces());
+
+        subTypes = ConcurrentHashMap.newKeySet();
+        addSubType(this);
+
+        /* Build subtypes. */
+        if (superClass != null) {
+            superClass.addSubType(this);
+        }
+        if (isInterface() && interfaces.length == 0) {
+            objectType.addSubType(this);
+        }
+        for (AnalysisType interf : interfaces) {
+            interf.addSubType(this);
+        }
+
         if (isArray()) {
             this.componentType = universe.lookup(wrapped.getComponentType());
             int dim = 0;
@@ -262,7 +276,7 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
         return uniqueConstant;
     }
 
-    public AnalysisObject getCachedConstantObject(BigBang bb, JavaConstant constant) {
+    public AnalysisObject getCachedConstantObject(PointsToAnalysis bb, JavaConstant constant) {
 
         /*
          * Constant caching is only used we certain analysis policies. Ideally we would store the
@@ -301,7 +315,7 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
         return result;
     }
 
-    private void mergeConstantObjects(BigBang bb) {
+    private void mergeConstantObjects(PointsToAnalysis bb) {
         ConstantContextSensitiveObject uConstant = new ConstantContextSensitiveObject(bb, this, null);
         if (UNIQUE_CONSTANT_UPDATER.compareAndSet(this, null, uConstant)) {
             constantObjectsCache.values().stream().forEach(constantObject -> {
@@ -414,7 +428,7 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
         assert isArray() || (isInstanceClass() && !Modifier.isAbstract(getModifiers())) : this;
         universe.hostVM.checkForbidden(this, usageKind);
 
-        BigBang bb = universe.getBigbang();
+        PointsToAnalysis bb = ((PointsToAnalysis) universe.getBigbang());
         TypeState typeState = TypeState.forExactType(bb, this, true);
         TypeState typeStateNonNull = TypeState.forExactType(bb, this, false);
 
@@ -431,7 +445,7 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
      * through type flows.
      */
     public void registerAsAssignable(BigBang bb) {
-        TypeState typeState = TypeState.forType(bb, this, true);
+        TypeState typeState = TypeState.forType(((PointsToAnalysis) bb), this, true);
         /*
          * Register the assignable type with its super types. Skip this type, it can lead to a
          * deadlock when this is called when the type is created.
@@ -461,7 +475,7 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
                  */
                 registerAsAllocated(null);
             }
-            universe.hostVM.executor().execute(initializationTask);
+            ensureInitialized();
         }
     }
 
@@ -512,8 +526,8 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
     }
 
     private synchronized void addAssignableType(BigBang bb, TypeState typeState) {
-        assignableTypesState = TypeState.forUnion(bb, assignableTypesState, typeState);
-        assignableTypesNonNullState = assignableTypesState.forNonNull(bb);
+        assignableTypesState = TypeState.forUnion(((PointsToAnalysis) bb), assignableTypesState, typeState);
+        assignableTypesNonNullState = assignableTypesState.forNonNull(((PointsToAnalysis) bb));
     }
 
     public void ensureInitialized() {
@@ -786,6 +800,15 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
         return this;
     }
 
+    /** Get the immediate subtypes, including this type itself. */
+    public Set<AnalysisType> getSubTypes() {
+        return subTypes;
+    }
+
+    private void addSubType(AnalysisType subType) {
+        this.subTypes.add(subType);
+    }
+
     @Override
     public AnalysisType findLeastCommonAncestor(ResolvedJavaType otherType) {
         ResolvedJavaType subst = universe.substitutions.resolve(((AnalysisType) otherType).wrapped);
@@ -812,7 +835,8 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
     }
 
     public boolean hasSubTypes() {
-        return subTypes != null ? subTypes.length > 0 : false;
+        /* subTypes always includes this type itself. */
+        return subTypes.size() > 1;
     }
 
     @Override
@@ -872,56 +896,40 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
         return universe.lookup(wrapped.findInstanceFieldWithOffset(offset, expectedKind));
     }
 
-    /**
-     * Cache to ensure that the final contents of AnalysisField[] are visible after the array gets
-     * visible.
+    /*
+     * Cache is volatile to ensure that the final contents of AnalysisField[] are visible after the
+     * array gets visible.
      */
-    private static class InstanceFieldsCache {
-        private volatile AnalysisField[] withSuper;
-        private volatile AnalysisField[] local;
-
-        public AnalysisField[] get(boolean includeSuperclasses) {
-            if (includeSuperclasses) {
-                return withSuper;
-            } else {
-                return local;
-            }
-        }
-
-        public AnalysisField[] put(boolean includeSuperclasses, AnalysisField[] value) {
-            if (includeSuperclasses) {
-                withSuper = value;
-            } else {
-                local = value;
-            }
-            return value;
-        }
-    }
-
-    private final InstanceFieldsCache instanceFieldsCache = new InstanceFieldsCache();
+    private volatile AnalysisField[] instanceFieldsWithSuper;
+    private volatile AnalysisField[] instanceFieldsWithoutSuper;
 
     public void clearInstanceFieldsCache() {
-        instanceFieldsCache.withSuper = null;
-        instanceFieldsCache.local = null;
+        instanceFieldsWithSuper = null;
+        instanceFieldsWithoutSuper = null;
     }
 
     @Override
     public AnalysisField[] getInstanceFields(boolean includeSuperclasses) {
-        InstanceFieldsCache cache = instanceFieldsCache;
-        AnalysisField[] result = cache.get(includeSuperclasses);
+        AnalysisField[] result = includeSuperclasses ? instanceFieldsWithSuper : instanceFieldsWithoutSuper;
         if (result != null) {
             return result;
         } else {
-            return cache.put(includeSuperclasses, convertInstanceFields(includeSuperclasses));
+            return initializeInstanceFields(includeSuperclasses);
         }
     }
 
-    private AnalysisField[] convertInstanceFields(boolean includeSupeclasses) {
+    private AnalysisField[] initializeInstanceFields(boolean includeSuperclasses) {
         List<AnalysisField> list = new ArrayList<>();
-        if (includeSupeclasses && getSuperclass() != null) {
+        if (includeSuperclasses && getSuperclass() != null) {
             list.addAll(Arrays.asList(getSuperclass().getInstanceFields(true)));
         }
-        return convertFields(interceptInstanceFields(wrapped.getInstanceFields(false)), list, includeSupeclasses);
+        AnalysisField[] result = convertFields(interceptInstanceFields(wrapped.getInstanceFields(false)), list, includeSuperclasses);
+        if (includeSuperclasses) {
+            instanceFieldsWithSuper = result;
+        } else {
+            instanceFieldsWithoutSuper = result;
+        }
+        return result;
     }
 
     private AnalysisField[] convertFields(ResolvedJavaField[] original, List<AnalysisField> list, boolean listIncludesSuperClassesFields) {

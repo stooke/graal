@@ -30,13 +30,13 @@ import org.graalvm.compiler.api.replacements.SnippetReflectionProvider;
 import org.graalvm.compiler.debug.DebugHandlersFactory;
 import org.graalvm.compiler.graph.Node;
 import org.graalvm.compiler.nodes.StructuredGraph;
-import org.graalvm.compiler.nodes.extended.ForeignCallNode;
 import org.graalvm.compiler.nodes.extended.ForeignCallWithExceptionNode;
 import org.graalvm.compiler.nodes.java.ArrayLengthNode;
 import org.graalvm.compiler.nodes.spi.LoweringTool;
 import org.graalvm.compiler.options.OptionValues;
 import org.graalvm.compiler.phases.util.Providers;
 import org.graalvm.compiler.replacements.Snippets;
+import org.graalvm.compiler.replacements.arraycopy.ArrayCopyNode;
 import org.graalvm.word.LocationIdentity;
 
 import com.oracle.svm.core.JavaMemoryUtil;
@@ -54,15 +54,14 @@ public final class SubstrateArraycopySnippets extends SubstrateTemplates impleme
     private static final SubstrateForeignCallDescriptor ARRAYCOPY = SnippetRuntime.findForeignCall(SubstrateArraycopySnippets.class, "doArraycopy", false, LocationIdentity.any());
     private static final SubstrateForeignCallDescriptor[] FOREIGN_CALLS = new SubstrateForeignCallDescriptor[]{ARRAYCOPY};
 
-    public static void registerForeignCalls(Providers providers, SubstrateForeignCallsProvider foreignCalls) {
-        foreignCalls.register(providers, FOREIGN_CALLS);
+    public static void registerForeignCalls(SubstrateForeignCallsProvider foreignCalls) {
+        foreignCalls.register(FOREIGN_CALLS);
     }
 
     protected SubstrateArraycopySnippets(OptionValues options, Iterable<DebugHandlersFactory> factories, Providers providers, SnippetReflectionProvider snippetReflection,
                     Map<Class<? extends Node>, NodeLoweringProvider<?>> lowerings) {
         super(options, factories, providers, snippetReflection);
-        lowerings.put(SubstrateArraycopyNode.class, new SubstrateArraycopyLowering());
-        lowerings.put(SubstrateArraycopyWithExceptionNode.class, new SubstrateArraycopyWithExceptionLowering());
+        lowerings.put(ArrayCopyNode.class, new SubstrateArrayCopyLowering());
     }
 
     /**
@@ -112,21 +111,9 @@ public final class SubstrateArraycopySnippets extends SubstrateTemplates impleme
         }
     }
 
-    static final class SubstrateArraycopyLowering implements NodeLoweringProvider<SubstrateArraycopyNode> {
+    static final class SubstrateArrayCopyLowering implements NodeLoweringProvider<ArrayCopyNode> {
         @Override
-        public void lower(SubstrateArraycopyNode node, LoweringTool tool) {
-            StructuredGraph graph = node.graph();
-            ForeignCallNode call = graph.add(new ForeignCallNode(ARRAYCOPY, node.getSource(), node.getSourcePosition(), node.getDestination(),
-                            node.getDestinationPosition(), node.getLength()));
-            call.setStateAfter(node.stateAfter());
-            call.setBci(node.getBci());
-            graph.replaceFixedWithFixed(node, call);
-        }
-    }
-
-    static final class SubstrateArraycopyWithExceptionLowering implements NodeLoweringProvider<SubstrateArraycopyWithExceptionNode> {
-        @Override
-        public void lower(SubstrateArraycopyWithExceptionNode node, LoweringTool tool) {
+        public void lower(ArrayCopyNode node, LoweringTool tool) {
             StructuredGraph graph = node.graph();
             ForeignCallWithExceptionNode call = graph.add(new ForeignCallWithExceptionNode(ARRAYCOPY, node.getSource(), node.getSourcePosition(), node.getDestination(),
                             node.getDestinationPosition(), node.getLength()));

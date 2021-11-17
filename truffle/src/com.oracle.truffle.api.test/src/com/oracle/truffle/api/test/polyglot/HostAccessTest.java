@@ -70,6 +70,7 @@ import java.util.function.Predicate;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.HostAccess;
+import org.graalvm.polyglot.HostAccess.Builder;
 import org.graalvm.polyglot.HostAccess.Export;
 import org.graalvm.polyglot.HostAccess.Implementable;
 import org.graalvm.polyglot.HostAccess.TargetMappingPrecedence;
@@ -114,6 +115,7 @@ public class HostAccessTest {
     public void constantsCanBeCopied() {
         verifyObjectImpl(HostAccess.NONE);
         verifyObjectImpl(HostAccess.EXPLICIT);
+        verifyObjectImpl(HostAccess.SCOPED);
         verifyObjectImpl(HostAccess.ALL);
     }
 
@@ -350,7 +352,7 @@ public class HostAccessTest {
             fail();
         } catch (UnsupportedOperationException e) {
         }
-        assertEquals(0, value.getMemberKeys().size());
+        assertEquals(2 /* arr.length and arr.clone(). */, value.getMemberKeys().size());
         ValueAssert.assertValue(value, false, Trait.ARRAY_ELEMENTS, Trait.ITERABLE, Trait.MEMBERS, Trait.HOST_OBJECT);
     }
 
@@ -406,6 +408,30 @@ public class HostAccessTest {
         Value value = context.asValue(buffer);
         assertSame(buffer, value.asHostObject());
         ValueAssert.assertValue(value, false, Trait.MEMBERS, Trait.HOST_OBJECT);
+    }
+
+    /*
+     * Test for GR-32346.
+     */
+    @Test
+    public void testBuilderCannotChangeMembersAndTargetMappingsOfHostAccess() throws Exception {
+        // Set up hostAccess
+        Builder builder = HostAccess.newBuilder();
+        builder.allowAccess(OK.class.getField("value"));
+        builder.targetTypeMapping(Value.class, String.class, (v) -> v.isString(), (v) -> "foo");
+        HostAccess hostAccess = builder.build();
+
+        // Try to change members or targetMappings through child builder
+        Builder childBuilder = HostAccess.newBuilder(hostAccess);
+        childBuilder.allowAccess(Ban.class.getField("value"));
+        childBuilder.targetTypeMapping(Value.class, Integer.class, null, (v) -> 42);
+
+        // Ensure hostAccess has not been altered by child builder
+        try (Context c = Context.newBuilder().allowHostAccess(hostAccess).build()) {
+            assertAccess(c);
+            assertEquals("foo", c.asValue("a string").as(String.class));
+            assertEquals(123, (int) c.asValue(123).as(Integer.class));
+        }
     }
 
     @Test

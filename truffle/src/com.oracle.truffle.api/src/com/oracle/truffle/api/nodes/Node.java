@@ -416,6 +416,8 @@ public abstract class Node implements NodeInterface, Cloneable {
             boolean consumed = false;
             if (node instanceof ReplaceObserver) {
                 consumed = ((ReplaceObserver) node).nodeReplaced(oldNode, newNode, reason);
+            } else if (node instanceof BytecodeOSRNode) {
+                NodeAccessor.RUNTIME.onOSRNodeReplaced((BytecodeOSRNode) node, oldNode, newNode, reason);
             } else if (node instanceof RootNode) {
                 CallTarget target = ((RootNode) node).getCallTarget();
                 if (target instanceof ReplaceObserver) {
@@ -516,13 +518,21 @@ public abstract class Node implements NodeInterface, Cloneable {
         return getRootNodeImpl();
     }
 
+    /** Protect against parent cycles and extremely long parent chains. */
+    private static final int PARENT_LIMIT = 100000;
+
     @ExplodeLoop
     private RootNode getRootNodeImpl() {
         Node node = this;
         Node prev;
+        int parentsVisited = 0;
         do {
+            if (parentsVisited++ > PARENT_LIMIT) {
+                assert false : "getRootNode() did not terminate in " + PARENT_LIMIT + " iterations.";
+                return null;
+            }
             prev = node;
-            node = node.getParent();
+            node = node.parent;
         } while (node != null);
 
         if (prev instanceof RootNode) {

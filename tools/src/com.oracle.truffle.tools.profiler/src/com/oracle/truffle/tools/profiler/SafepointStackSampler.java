@@ -80,9 +80,6 @@ final class SafepointStackSampler {
     }
 
     List<StackSample> sample(Env env, TruffleContext context, CPUSampler.MutableSamplerData mutableSamplerData, boolean useSyntheticFrames) {
-        if (context.isActive()) {
-            throw new IllegalArgumentException("Cannot sample a context that is currently active on the current thread.");
-        }
         if (context.isClosed()) {
             return Collections.emptyList();
         }
@@ -101,7 +98,7 @@ final class SafepointStackSampler {
             return Collections.emptyList();
         }
         try {
-            future.get(10 * period, TimeUnit.MILLISECONDS);
+            future.get(period, TimeUnit.MILLISECONDS);
         } catch (InterruptedException | ExecutionException e) {
             env.getLogger(getClass()).log(Level.SEVERE, "Sampling failed", e);
             return null;
@@ -167,7 +164,8 @@ final class SafepointStackSampler {
     private class StackVisitor implements FrameInstanceVisitor<FrameInstance>, CollectionResult {
 
         private final CallTarget[] targets;
-        private final byte[] states;
+        private final int[] tiers;
+        private final boolean[] roots;
         private Thread thread;
         private int nextFrameIndex;
         private long startTime;
@@ -176,27 +174,9 @@ final class SafepointStackSampler {
 
         StackVisitor(int stackLimit) {
             assert stackLimit > 0;
-            this.states = new byte[stackLimit];
+            this.tiers = new int[stackLimit];
+            this.roots = new boolean[stackLimit];
             this.targets = new CallTarget[stackLimit];
-        }
-
-        private byte state(FrameInstance frameInstance) {
-            switch (frameInstance.getCompilationTier()) {
-                case 0:
-                    return StackTraceEntry.STATE_INTERPRETED;
-                case 1:
-                    if (frameInstance.isCompilationRoot()) {
-                        return StackTraceEntry.STATE_FIRST_TIER_COMPILATION_ROOT;
-                    } else {
-                        return StackTraceEntry.STATE_FIRST_TIER_COMPILED;
-                    }
-                default:
-                    if (frameInstance.isCompilationRoot()) {
-                        return StackTraceEntry.STATE_LAST_TIER_COMPILED;
-                    } else {
-                        return StackTraceEntry.STATE_LAST_TIER_COMPILATION_ROOT;
-                    }
-            }
         }
 
         final void iterateFrames() {
@@ -220,7 +200,8 @@ final class SafepointStackSampler {
         }
 
         public FrameInstance visitFrame(FrameInstance frameInstance) {
-            states[nextFrameIndex] = state(frameInstance);
+            tiers[nextFrameIndex] = frameInstance.getCompilationTier();
+            roots[nextFrameIndex] = frameInstance.isCompilationRoot();
             targets[nextFrameIndex] = frameInstance.getCallTarget();
             nextFrameIndex++;
             if (nextFrameIndex >= targets.length) {
@@ -232,7 +213,8 @@ final class SafepointStackSampler {
         }
 
         void resetAndReturn() {
-            Arrays.fill(states, 0, nextFrameIndex, (byte) 0);
+            Arrays.fill(tiers, 0, nextFrameIndex, 0);
+            Arrays.fill(roots, 0, nextFrameIndex, false);
             Arrays.fill(targets, 0, nextFrameIndex, null);
             nextFrameIndex = 0;
             thread = null;
@@ -250,7 +232,7 @@ final class SafepointStackSampler {
                 RootNode root = ((RootCallTarget) target).getRootNode();
                 SourceSection sourceSection = root.getSourceSection();
                 if (filter.includes(root, sourceSection, null)) {
-                    entries.add(new StackTraceEntry(VISITOR_TAGS, sourceSection, root, root, states[i]));
+                    entries.add(new StackTraceEntry(VISITOR_TAGS, sourceSection, root, root, tiers[i], roots[i]));
                 }
             }
             return entries;

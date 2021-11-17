@@ -485,17 +485,17 @@ public abstract class AArch64LIRGenerator extends LIRGenerator {
 
     @Override
     public void emitStrategySwitch(SwitchStrategy strategy, Variable key, LabelRef[] keyTargets, LabelRef defaultTarget) {
-        append(createStrategySwitchOp(strategy, keyTargets, defaultTarget, key, newVariable(key.getValueKind()), AArch64LIRGenerator::toIntConditionFlag));
+        append(createStrategySwitchOp(strategy, keyTargets, defaultTarget, key, AArch64LIRGenerator::toIntConditionFlag));
     }
 
-    protected StrategySwitchOp createStrategySwitchOp(SwitchStrategy strategy, LabelRef[] keyTargets, LabelRef defaultTarget, Variable key, AllocatableValue scratchValue,
+    protected StrategySwitchOp createStrategySwitchOp(SwitchStrategy strategy, LabelRef[] keyTargets, LabelRef defaultTarget, Variable key,
                     Function<Condition, ConditionFlag> converter) {
-        return new StrategySwitchOp(strategy, keyTargets, defaultTarget, key, scratchValue, converter);
+        return new StrategySwitchOp(strategy, keyTargets, defaultTarget, key, converter);
     }
 
     @Override
     protected void emitTableSwitch(int lowKey, LabelRef defaultTarget, LabelRef[] targets, Value key) {
-        append(new TableSwitchOp(lowKey, defaultTarget, targets, key, newVariable(LIRKind.value(target().arch.getWordKind())), newVariable(key.getValueKind())));
+        append(new TableSwitchOp(lowKey, defaultTarget, targets, asAllocatable(key)));
     }
 
     @Override
@@ -531,14 +531,16 @@ public abstract class AArch64LIRGenerator extends LIRGenerator {
     public Variable emitArrayIndexOf(int arrayBaseOffset, JavaKind valueKind, boolean findTwoConsecutive, Value arrayPointer, Value arrayLength, Value fromIndex, Value... searchValues) {
         assert searchValues.length == 1;
         Variable result = newVariable(LIRKind.value(AArch64Kind.DWORD));
-        append(new AArch64ArrayIndexOfOp(arrayBaseOffset, valueKind, this, result, asAllocatable(arrayPointer), asAllocatable(arrayLength), asAllocatable(fromIndex), asAllocatable(searchValues[0])));
+        append(new AArch64ArrayIndexOfOp(arrayBaseOffset, valueKind, findTwoConsecutive, this, result, asAllocatable(arrayPointer), asAllocatable(arrayLength), asAllocatable(fromIndex),
+                        asAllocatable(searchValues[0])));
         return result;
     }
 
     @Override
     protected JavaConstant zapValueForKind(PlatformKind kind) {
         long dead = 0xDEADDEADDEADDEADL;
-        switch ((AArch64Kind) kind) {
+        AArch64Kind aarch64Kind = (AArch64Kind) kind;
+        switch (aarch64Kind) {
             case BYTE:
                 return JavaConstant.forByte((byte) dead);
             case WORD:
@@ -547,12 +549,18 @@ public abstract class AArch64LIRGenerator extends LIRGenerator {
                 return JavaConstant.forInt((int) dead);
             case QWORD:
                 return JavaConstant.forLong(dead);
-            case SINGLE:
-                return JavaConstant.forFloat(Float.intBitsToFloat((int) dead));
-            case DOUBLE:
-                return JavaConstant.forDouble(Double.longBitsToDouble(dead));
             default:
-                throw GraalError.shouldNotReachHere();
+                /*
+                 * Floating Point and SIMD values are assigned either a float or a double constant
+                 * based on their size. Note that in the case of a 16 byte SIMD value, such as
+                 * V128_Byte, only the bottom 8 bytes are zapped.
+                 */
+                assert aarch64Kind.isSIMD();
+                if (aarch64Kind.getSizeInBytes() <= AArch64Kind.SINGLE.getSizeInBytes()) {
+                    return JavaConstant.forFloat(Float.intBitsToFloat((int) dead));
+                } else {
+                    return JavaConstant.forDouble(Double.longBitsToDouble(dead));
+                }
         }
     }
 

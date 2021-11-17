@@ -60,6 +60,7 @@ import com.oracle.truffle.espresso.substitutions.Inject;
 import com.oracle.truffle.espresso.substitutions.JavaType;
 import com.oracle.truffle.espresso.substitutions.SubstitutionProfiler;
 import com.oracle.truffle.espresso.substitutions.Target_java_lang_Thread;
+import com.oracle.truffle.espresso.threads.State;
 
 @GenerateNativeEnv(target = ManagementImpl.class, prependEnv = true)
 public final class Management extends NativeEnv {
@@ -297,7 +298,7 @@ public final class Management extends NativeEnv {
             StaticObject thread = StaticObject.NULL;
 
             for (int j = 0; j < activeThreads.length; ++j) {
-                if (Target_java_lang_Thread.getThreadId(meta, activeThreads[j]) == id) {
+                if (getThreadAccess().getThreadId(activeThreads[j]) == id) {
                     thread = activeThreads[j];
                     break;
                 }
@@ -310,7 +311,7 @@ public final class Management extends NativeEnv {
                 int threadStatus = meta.java_lang_Thread_threadStatus.getInt(thread);
                 StaticObject lockObj = StaticObject.NULL;
                 StaticObject lockOwner = StaticObject.NULL;
-                int mask = Target_java_lang_Thread.State.BLOCKED.value | Target_java_lang_Thread.State.WAITING.value | Target_java_lang_Thread.State.TIMED_WAITING.value;
+                int mask = State.BLOCKED.value | State.WAITING.value | State.TIMED_WAITING.value;
                 if ((threadStatus & mask) != 0) {
                     lockObj = (StaticObject) meta.HIDDEN_THREAD_BLOCKED_OBJECT.getHiddenObject(thread);
                     if (lockObj == null) {
@@ -433,7 +434,7 @@ public final class Management extends NativeEnv {
     }
 
     @ManagementImpl
-    @TruffleBoundary // Lots of SVM + Windows blacklisted methods.
+    @TruffleBoundary // Lots of SVM + Windows methods blocked for PE.
     public long GetLongAttribute(@SuppressWarnings("unused") @JavaType(Object.class) StaticObject obj,
                     /* jmmLongAttribute */ int att) {
         switch (att) {
@@ -466,7 +467,28 @@ public final class Management extends NativeEnv {
             case JMM_THREAD_TOTAL_COUNT:
                 return getContext().getCreatedThreadCount();
         }
-        throw EspressoError.unimplemented("GetLongAttribute " + att);
+        getLogger().warning(() -> "Unknown long attribute: " + att);
+        return -1L;
+    }
+
+    @ManagementImpl
+    @TruffleBoundary
+    public int GetLongAttributes(@SuppressWarnings("unused") @JavaType(Object.class) StaticObject obj,
+                    /* jmmLongAttribute* */ @Pointer TruffleObject atts,
+                    int count,
+                    /* long* */ @Pointer TruffleObject result) {
+        int numAtts = 0;
+        ByteBuffer attsBuffer = NativeUtils.directByteBuffer(atts, count, JavaKind.Int);
+        ByteBuffer resBuffer = NativeUtils.directByteBuffer(result, count, JavaKind.Long);
+        for (int i = 0; i < count; i++) {
+            int att = attsBuffer.getInt();
+            long res = GetLongAttribute(obj, att);
+            resBuffer.putLong(res);
+            if (res != -1L) {
+                numAtts++;
+            }
+        }
+        return numAtts;
     }
 
     private boolean JMM_VERBOSE_GC_state = false;
@@ -489,7 +511,8 @@ public final class Management extends NativeEnv {
             case JMM_THREAD_ALLOCATED_MEMORY:
                 return JMM_THREAD_ALLOCATED_MEMORY_state;
         }
-        throw EspressoError.unimplemented("GetBoolAttribute ", att);
+        getLogger().warning(() -> "Unknown bool attribute: " + att);
+        return false;
     }
 
     @ManagementImpl
@@ -506,7 +529,8 @@ public final class Management extends NativeEnv {
             case JMM_THREAD_ALLOCATED_MEMORY:
                 return JMM_THREAD_ALLOCATED_MEMORY_state = flag;
         }
-        throw EspressoError.unimplemented("SetBoolAttribute ", att);
+        getLogger().warning(() -> "Unknown bool attribute: " + att);
+        return false;
     }
 
     @ManagementImpl
@@ -529,7 +553,7 @@ public final class Management extends NativeEnv {
                     profiler.profile(2);
                     throw meta.throwNullPointerException();
                 }
-                getLogger().fine("GetVMGlobals: " + meta.toHostString(entry));
+                getLogger().fine(() -> "GetVMGlobals: " + meta.toHostString(entry));
             }
         }
         return 0;
@@ -544,7 +568,7 @@ public final class Management extends NativeEnv {
             StaticObject[] activeThreads = getContext().getActiveThreads();
             threadIds = InterpreterToVM.allocatePrimitiveArray((byte) JavaKind.Long.getBasicType(), activeThreads.length, getMeta());
             for (int j = 0; j < activeThreads.length; ++j) {
-                long tid = Target_java_lang_Thread.getThreadId(getMeta(), activeThreads[j]);
+                long tid = getThreadAccess().getThreadId(activeThreads[j]);
                 getInterpreterToVM().setArrayLong(tid, j, threadIds);
             }
         }
@@ -563,7 +587,7 @@ public final class Management extends NativeEnv {
         StaticObject thread = StaticObject.NULL;
 
         for (int j = 0; j < activeThreads.length; ++j) {
-            if (Target_java_lang_Thread.getThreadId(getMeta(), activeThreads[j]) == threadId) {
+            if (getThreadAccess().getThreadId(activeThreads[j]) == threadId) {
                 thread = activeThreads[j];
                 break;
             }
@@ -597,7 +621,7 @@ public final class Management extends NativeEnv {
             StaticObject thread = StaticObject.NULL;
 
             for (int j = 0; j < activeThreads.length; ++j) {
-                if (Target_java_lang_Thread.getThreadId(meta, activeThreads[j]) == id) {
+                if (getThreadAccess().getThreadId(activeThreads[j]) == id) {
                     thread = activeThreads[j];
                     break;
                 }

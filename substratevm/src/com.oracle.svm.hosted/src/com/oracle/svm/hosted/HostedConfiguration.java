@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -37,8 +37,10 @@ import org.graalvm.compiler.debug.DebugContext;
 import org.graalvm.compiler.nodes.StructuredGraph;
 import org.graalvm.compiler.options.OptionValues;
 import org.graalvm.nativeimage.ImageSingletons;
+import org.graalvm.nativeimage.Platform;
 
 import com.oracle.graal.pointsto.BigBang;
+import com.oracle.graal.pointsto.PointsToAnalysis;
 import com.oracle.graal.pointsto.flow.MethodTypeFlow;
 import com.oracle.graal.pointsto.flow.MethodTypeFlowBuilder;
 import com.oracle.graal.pointsto.meta.AnalysisField;
@@ -51,6 +53,8 @@ import com.oracle.svm.core.SubstrateTargetDescription;
 import com.oracle.svm.core.config.ConfigurationValues;
 import com.oracle.svm.core.config.ObjectLayout;
 import com.oracle.svm.core.monitor.MultiThreadedMonitorSupport;
+import com.oracle.svm.core.util.VMError;
+import com.oracle.svm.hosted.analysis.Inflation;
 import com.oracle.svm.hosted.analysis.flow.SVMMethodTypeFlowBuilder;
 import com.oracle.svm.hosted.classinitialization.ClassInitializationSupport;
 import com.oracle.svm.hosted.code.CompileQueue;
@@ -64,7 +68,6 @@ import com.oracle.svm.hosted.meta.HostedUniverse;
 import com.oracle.svm.hosted.substitute.UnsafeAutomaticSubstitutionProcessor;
 
 import jdk.vm.ci.meta.JavaKind;
-import org.graalvm.nativeimage.Platform;
 
 public class HostedConfiguration {
 
@@ -129,9 +132,9 @@ public class HostedConfiguration {
         return new ObjectLayout(target, referenceSize, objectAlignment, hubOffset, firstFieldOffset, arrayLengthOffset, arrayBaseOffset, identityHashCodeOffset);
     }
 
-    public SVMHost createHostVM(OptionValues options, ForkJoinPool buildExecutor, ClassLoader classLoader, ClassInitializationSupport classInitializationSupport,
+    public SVMHost createHostVM(OptionValues options, ClassLoader classLoader, ClassInitializationSupport classInitializationSupport,
                     UnsafeAutomaticSubstitutionProcessor automaticSubstitutions, Platform platform) {
-        return new SVMHost(options, buildExecutor, classLoader, classInitializationSupport, automaticSubstitutions, platform);
+        return new SVMHost(options, classLoader, classInitializationSupport, automaticSubstitutions, platform);
     }
 
     public CompileQueue createCompileQueue(DebugContext debug, FeatureHandler featureHandler, HostedUniverse hostedUniverse,
@@ -140,11 +143,11 @@ public class HostedConfiguration {
         return new CompileQueue(debug, featureHandler, hostedUniverse, runtime, deoptimizeAll, aSnippetReflection, executor);
     }
 
-    public MethodTypeFlowBuilder createMethodTypeFlowBuilder(BigBang bb, MethodTypeFlow methodTypeFlow) {
+    public MethodTypeFlowBuilder createMethodTypeFlowBuilder(PointsToAnalysis bb, MethodTypeFlow methodTypeFlow) {
         return new SVMMethodTypeFlowBuilder(bb, methodTypeFlow);
     }
 
-    public MethodTypeFlowBuilder createMethodTypeFlowBuilder(BigBang bb, StructuredGraph graph) {
+    public MethodTypeFlowBuilder createMethodTypeFlowBuilder(PointsToAnalysis bb, StructuredGraph graph) {
         return new SVMMethodTypeFlowBuilder(bb, graph);
     }
 
@@ -170,11 +173,17 @@ public class HostedConfiguration {
         }
     }
 
-    public AbstractAnalysisResultsBuilder createStaticAnalysisResultsBuilder(BigBang bb, HostedUniverse universe) {
-        if (SubstrateOptions.parseOnce()) {
-            return new SubstrateStrengthenGraphs(bb, universe);
+    public AbstractAnalysisResultsBuilder createStaticAnalysisResultsBuilder(Inflation bb, HostedUniverse universe) {
+        if (bb instanceof PointsToAnalysis) {
+            PointsToAnalysis pointsToAnalysis = (PointsToAnalysis) bb;
+            if (SubstrateOptions.parseOnce()) {
+                return new SubstrateStrengthenGraphs(pointsToAnalysis, universe);
+            } else {
+                return new StaticAnalysisResultsBuilder(pointsToAnalysis, universe);
+            }
         } else {
-            return new StaticAnalysisResultsBuilder(bb, universe);
+            /*- A custom result builder for Reachability analysis will probably have to be created */
+            throw VMError.shouldNotReachHere("Unsupported analysis type: " + bb.getClass());
         }
     }
 
@@ -198,7 +207,7 @@ public class HostedConfiguration {
     /** Process the types that the analysis found as needing synchronization. */
     protected void processedSynchronizedTypes(BigBang bb, HostedUniverse hUniverse, Set<AnalysisType> immutableTypes) {
         TypeState allSynchronizedTypeState = bb.getAllSynchronizedTypeState();
-        for (AnalysisType type : allSynchronizedTypeState.types()) {
+        for (AnalysisType type : allSynchronizedTypeState.types(bb)) {
             maybeSetMonitorField(hUniverse, immutableTypes, type);
         }
     }

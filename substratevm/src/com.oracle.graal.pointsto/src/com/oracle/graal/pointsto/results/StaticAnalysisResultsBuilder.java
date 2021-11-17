@@ -31,7 +31,7 @@ import java.util.Map.Entry;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import com.oracle.graal.pointsto.BigBang;
+import com.oracle.graal.pointsto.PointsToAnalysis;
 import com.oracle.graal.pointsto.api.PointstoOptions;
 import com.oracle.graal.pointsto.flow.FormalParamTypeFlow;
 import com.oracle.graal.pointsto.flow.InstanceOfTypeFlow;
@@ -47,13 +47,14 @@ import com.oracle.graal.pointsto.meta.AnalysisMethod;
 import com.oracle.graal.pointsto.meta.AnalysisType;
 import com.oracle.graal.pointsto.results.StaticAnalysisResults.BytecodeEntry;
 import com.oracle.graal.pointsto.typestate.TypeState;
+import com.oracle.graal.pointsto.typestate.TypeStateUtils;
 
 import jdk.vm.ci.meta.JavaMethodProfile;
 import jdk.vm.ci.meta.JavaTypeProfile;
 
 public class StaticAnalysisResultsBuilder extends AbstractAnalysisResultsBuilder {
 
-    public StaticAnalysisResultsBuilder(BigBang bb, Universe converter) {
+    public StaticAnalysisResultsBuilder(PointsToAnalysis bb, Universe converter) {
         super(bb, converter);
     }
 
@@ -162,8 +163,8 @@ public class StaticAnalysisResultsBuilder extends AbstractAnalysisResultsBuilder
                             .sorted(Comparator.comparingInt(m2 -> m2.getState().typesCount()))
                             .forEach(monitorEnter -> {
                                 TypeState monitorEntryState = monitorEnter.getState();
-                                String typesString = monitorEntryState.closeToAllInstantiated(bb) ? "close to all instantiated"
-                                                : StreamSupport.stream(monitorEntryState.types().spliterator(), false).map(AnalysisType::getName).collect(Collectors.joining(", "));
+                                String typesString = TypeStateUtils.closeToAllInstantiated(bb, monitorEntryState) ? "close to all instantiated"
+                                                : StreamSupport.stream(monitorEntryState.types(bb).spliterator(), false).map(AnalysisType::getName).collect(Collectors.joining(", "));
                                 StringBuilder strb = new StringBuilder();
                                 strb.append("Location: ");
                                 String methodName = method.format("%h.%n(%p)");

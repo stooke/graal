@@ -40,10 +40,8 @@
  */
 package com.oracle.truffle.polyglot;
 
-import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
-import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -91,7 +89,14 @@ abstract class HostToGuestRootNode extends RootNode {
     public final Object execute(VirtualFrame frame) {
         Object[] args = frame.getArguments();
         PolyglotLanguageContext languageContext = (PolyglotLanguageContext) args[0];
-        PolyglotContextImpl context = profileContext(languageContext);
+        PolyglotContextImpl constantContext = engine.singleContextValue.getConstant();
+        if (constantContext == null) {
+            constantContext = languageContext.context;
+        } else {
+            assert languageContext.context == constantContext;
+        }
+
+        PolyglotContextImpl context = constantContext;
 
         Object[] prev;
         boolean needsEnter;
@@ -133,16 +138,6 @@ abstract class HostToGuestRootNode extends RootNode {
         }
     }
 
-    private PolyglotContextImpl profileContext(PolyglotLanguageContext languageContext) {
-        PolyglotContextImpl context = engine.singleContextValue.getConstant();
-        if (context == null) {
-            context = languageContext.context;
-        } else {
-            assert languageContext.context == context;
-        }
-        return context;
-    }
-
     @SuppressWarnings({"unchecked", "unused"})
     private <E extends Throwable> E handleException(PolyglotLanguageContext languageContext, Throwable e, boolean entered, Class<E> exceptionType) throws E {
         if (!seenError) {
@@ -153,10 +148,6 @@ abstract class HostToGuestRootNode extends RootNode {
     }
 
     protected abstract Object executeImpl(PolyglotLanguageContext languageContext, Object receiver, Object[] args);
-
-    protected static CallTarget createTarget(HostToGuestRootNode node) {
-        return Truffle.getRuntime().createCallTarget(node);
-    }
 
     static <T> T installHostCodeCache(PolyglotLanguageContext languageContext, Object key, T value, Class<T> expectedType) {
         T result = expectedType.cast(languageContext.getLanguageInstance().hostToGuestCodeCache.putIfAbsent(key, value));

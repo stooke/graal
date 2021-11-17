@@ -178,7 +178,7 @@ public final class PolyglotCompilerOptions {
             try {
                 return ExceptionAction.valueOf(s);
             } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException(ExceptionAction.HELP);
+                throw new IllegalArgumentException(String.format(ExceptionAction.HELP));
             }
         }
     });
@@ -365,10 +365,10 @@ public final class PolyglotCompilerOptions {
     private static final String EXPANSION_VALUES = "Accepted values are:%n" +
                     "    true - Collect data for the default tier 'truffleTier'.%n" +
                     "    false - No data will be collected.%n" +
-                    "Or one or multiple tiers separated by comma (e.g. truffleTier,lowTier) :%n" +
+                    "Or one or multiple tiers separated by comma (e.g. truffleTier,lowTier):%n" +
                     "    peTier - After partial evaluation without additional phases applied.%n" +
                     "    truffleTier - After partial evaluation with additional phases applied.%n" +
-                    "    lowTier - After low tier phases were applied.%n";
+                    "    lowTier - After low tier phases were applied.";
 
     @Option(help = "Print a tree of all expanded Java methods with statistics after each compilation. " + EXPANSION_VALUES, category = OptionCategory.INTERNAL)
     public static final OptionKey<Set<CompilationTier>> TraceMethodExpansion = new OptionKey<>(Collections.emptySet(), COMPILATION_TIERS_TYPE);
@@ -430,7 +430,8 @@ public final class PolyglotCompilerOptions {
     public static final OptionKey<Boolean> OSR = new OptionKey<>(true);
 
     @Option(help = "Number of loop iterations until on-stack-replacement compilation is triggered.", category = OptionCategory.INTERNAL)
-    public static final OptionKey<Integer> OSRCompilationThreshold = new OptionKey<>(100000);
+    // Note: default value is a multiple of the bytecode OSR polling interval.
+    public static final OptionKey<Integer> OSRCompilationThreshold = new OptionKey<>(100352);
 
     @Option(help = "Enable partial compilation for BlockNode.", category = OptionCategory.EXPERT)
     public static final OptionKey<Boolean> PartialBlockCompilation = new OptionKey<>(true);
@@ -497,7 +498,7 @@ public final class PolyglotCompilerOptions {
             "On runtimes which doesn't support it the option has no effect.",
             category = OptionCategory.EXPERT)
     public static final OptionKey<Integer> EncodedGraphCachePurgeDelay = new OptionKey<>(10_000);
-    
+
     @Option(help = "Forces the frame clearing mechanism to be executed, even if Frame.clear() is not used.",
             category = OptionCategory.EXPERT)
     public static final OptionKey<Boolean> ForceFrameLivenessAnalysis = new OptionKey<>(false);
@@ -513,7 +514,10 @@ public final class PolyglotCompilerOptions {
     public static final OptionKey<Boolean> TraversingQueueWeightingBothTiers = new OptionKey<>(true);
 
     @Option(help = "Traversing queue gives first tier compilations priority.", category = OptionCategory.INTERNAL)
-    public static final OptionKey<Boolean> TraversingQueueFirstTierPriority = new OptionKey<>(true);
+    public static final OptionKey<Boolean> TraversingQueueFirstTierPriority = new OptionKey<>(false);
+
+    @Option(help = "Controls how much of a priority should be given to first tier compilations.", category = OptionCategory.INTERNAL)
+    public static final OptionKey<Double > TraversingQueueFirstTierBonus = new OptionKey<>(15.0);
 
     @Option(help = "Reduce or increase the compilation threshold depending on the size of the compilation queue.", category = OptionCategory.INTERNAL)
     public static final OptionKey<Boolean> DynamicCompilationThresholds = new OptionKey<>(true);
