@@ -26,7 +26,6 @@
 
 package com.oracle.objectfile.pecoff.cv;
 
-import com.oracle.objectfile.ObjectFile;
 import com.oracle.objectfile.ObjectFile.RelocationKind;
 import com.oracle.objectfile.debugentry.ClassEntry;
 
@@ -268,7 +267,7 @@ abstract class CVSymbolSubrecord {
         protected int computeContents(byte[] buffer, int initialPos) {
             int pos = CVUtil.putInt(typeIndex, buffer, initialPos);
             String extname = symbolName != null ? symbolName : displayName;
-            pos = cvDebugInfo.getCVSymbolSection().markRelocationSite(buffer, pos, (long) offset, extname);
+            pos = cvDebugInfo.getCVSymbolSection().markRelocationSite(buffer, pos, extname, (long) offset);
             pos = CVUtil.putUTF8StringBytes(displayName, buffer, pos);
             return pos;
         }
@@ -380,7 +379,7 @@ abstract class CVSymbolSubrecord {
             pos = CVUtil.putInt(debugStart, buffer, pos);
             pos = CVUtil.putInt(debugEnd, buffer, pos);
             pos = CVUtil.putInt(typeIndex, buffer, pos);
-            pos = cvDebugInfo.getCVSymbolSection().markRelocationSite(buffer, pos, (long) 0, symbolName);
+            pos = cvDebugInfo.getCVSymbolSection().markRelocationSite(buffer, pos, symbolName, (long) 0);
             pos = CVUtil.putByte(flags, buffer, pos);
             pos = CVUtil.putUTF8StringBytes(displayName, buffer, pos);
             return pos;

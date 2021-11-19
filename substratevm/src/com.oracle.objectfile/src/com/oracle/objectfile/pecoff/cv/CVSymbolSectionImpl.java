@@ -197,7 +197,7 @@ public final class CVSymbolSectionImpl extends CVSectionImpl {
      * @param symbolName symbolname to reference
      * @return new position in output buffer
      */
-    public int markRelocationSite(byte[] buffer, int initialPos, Long offset, String symbolName) {
+    public int markRelocationSite(byte[] buffer, int initialPos, String symbolName, Long offset) {
         int pos = initialPos;
         if (buffer != null) {
             markRelocationSite(pos, ObjectFile.RelocationKind.SECREL_4, symbolName, offset);

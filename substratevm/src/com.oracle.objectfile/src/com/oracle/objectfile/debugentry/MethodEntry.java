@@ -42,7 +42,7 @@ public class MethodEntry extends MemberEntry {
 
     public MethodEntry(DebugInfoBase debugInfoBase, DebugMethodInfo debugMethodInfo,
                     FileEntry fileEntry, String methodName, ClassEntry ownerType,
-                    TypeEntry valueType, TypeEntry[] paramTypes, String[] paramNames, int vtableOffset) {
+                    TypeEntry valueType, TypeEntry[] paramTypes, String[] paramNames) {
         super(fileEntry, methodName, ownerType, valueType, debugMethodInfo.modifiers());
         assert ((paramTypes == null && paramNames == null) ||
                         (paramTypes != null && paramNames != null && paramTypes.length == paramNames.length));
@@ -50,11 +50,11 @@ public class MethodEntry extends MemberEntry {
         this.paramNames = paramNames;
         this.symbolName = debugMethodInfo.symbolNameForMethod();
         this.flags = 0;
+        this.vtableOffset = debugMethodInfo.vtableOffset();
         if (debugMethodInfo.isDeoptTarget()) {
             setIsDeopt();
         }
         updateRangeInfo(debugInfoBase, debugMethodInfo);
-        this.vtableOffset = vtableOffset;
     }
 
     public String methodName() {
