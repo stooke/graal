@@ -1199,6 +1199,7 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
                 throw debugContext.handle(e);
             }
         }
+
         @Override
         public int vtableOffset() {
             assert false;

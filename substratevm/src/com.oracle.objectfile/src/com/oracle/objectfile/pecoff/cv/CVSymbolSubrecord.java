@@ -26,7 +26,6 @@
 
 package com.oracle.objectfile.pecoff.cv;
 
-import com.oracle.objectfile.ObjectFile.RelocationKind;
 import com.oracle.objectfile.debugentry.ClassEntry;
 
 import java.util.HashMap;
@@ -349,7 +348,7 @@ abstract class CVSymbolSubrecord {
         private final String displayName;
 
         CVSymbolGProc32Record(CVDebugInfo cvDebugInfo, short cmd, String symbolName, String displayName, int pparent, int pend, int pnext, int proclen, int debugStart, int debugEnd, int typeIndex,
-                              int offset, short segment, byte flags) {
+                        int offset, short segment, byte flags) {
             super(cvDebugInfo, cmd);
             this.symbolName = symbolName;
             this.displayName = displayName;
@@ -366,7 +365,7 @@ abstract class CVSymbolSubrecord {
         }
 
         CVSymbolGProc32Record(CVDebugInfo cvDebugInfo, String symbolName, String displayName, int pparent, int pend, int pnext, int proclen, int debugStart, int debugEnd, int typeIndex, int offset,
-                              short segment, byte flags) {
+                        short segment, byte flags) {
             this(cvDebugInfo, CVDebugConstants.S_GPROC32, symbolName, displayName, pparent, pend, pnext, proclen, debugStart, debugEnd, typeIndex, offset, segment, flags);
         }
 

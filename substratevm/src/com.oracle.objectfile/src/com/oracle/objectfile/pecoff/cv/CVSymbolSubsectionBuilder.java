@@ -78,10 +78,11 @@ final class CVSymbolSubsectionBuilder {
      * @param classEntry current class
      */
     private void buildClass(ClassEntry classEntry) {
-        /* Define the MFUNCTION records first and then the class itself.
-           If the class is defined first, MFUNCTION records that reference a forwardRef are generated,
-           and then later (after the class is defined) duplicate MFUCTINO records that reference the class itself
-           will be generated in buildFunction().
+        /*
+         * Define the MFUNCTION records first and then the class itself. If the class is defined
+         * first, MFUNCTION records that reference a forwardRef are generated, and then later (after
+         * the class is defined) duplicate MFUCTINO records that reference the class itself will be
+         * generated in buildFunction().
          */
         /* Loop over all functions defined in this class. */
         for (PrimaryEntry primaryEntry : classEntry.getPrimaryEntries()) {
@@ -94,7 +95,10 @@ final class CVSymbolSubsectionBuilder {
             int typeIndex = cvDebugInfo.getCVTypeSection().getIndexForPointer(f.getValueType());
             String displayName = CVNames.fieldNameToCodeViewName(f);
             if (cvDebugInfo.useHeapBase()) {
-                /* REL32 offset from heap base register. Graal currently uses r14, this code will handle r8-r15. */
+                /*
+                 * REL32 offset from heap base register. Graal currently uses r14, this code will
+                 * handle r8-r15.
+                 */
                 assert 8 <= cvDebugInfo.getHeapbaseRegister() && cvDebugInfo.getHeapbaseRegister() <= 15;
                 int heapRegister = CV_AMD64_R8 + cvDebugInfo.getHeapbaseRegister() - 8;
                 addToSymbolSubsection(new CVSymbolSubrecord.CVSymbolRegRel32Record(cvDebugInfo, displayName, typeIndex, f.getOffset(), (short) heapRegister));
@@ -153,9 +157,9 @@ final class CVSymbolSubsectionBuilder {
     /**
      * Rename function names for usability or functionality.
      *
-     * First encountered static main function becomes class_main. This is for usability.
-     * All other functions become package_class_function_arglist.
-     * This does not affect external symbols used by linker.
+     * First encountered static main function becomes class_main. This is for usability. All other
+     * functions become package_class_function_arglist. This does not affect external symbols used
+     * by linker.
      *
      * @param range Range contained in the method of interest
      * @return user debugger friendly method name

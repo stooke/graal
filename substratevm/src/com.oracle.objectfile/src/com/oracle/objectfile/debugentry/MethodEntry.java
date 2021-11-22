@@ -156,10 +156,12 @@ public class MethodEntry extends MemberEntry {
     }
 
     /**
-     * Returns true if this is a newly introduced virtual method.
-     * Walks the class heirarchy looking methods that looke like itself.
-     * This is an odd requirement, but used in the Windows CodeView output.
-     * @return true if this is a virtual method and is defined for the first time (from base class) in the call heirarchy.
+     * Returns true if this is a newly introduced virtual method. Walks the class heirarchy looking
+     * methods that looke like itself. This is an odd requirement, but used in the Windows CodeView
+     * output.
+     *
+     * @return true if this is a virtual method and is defined for the first time (from base class)
+     *         in the call heirarchy.
      */
     public boolean isFirstSighting() {
         ClassEntry parentClass = ownerType().getSuperClass();

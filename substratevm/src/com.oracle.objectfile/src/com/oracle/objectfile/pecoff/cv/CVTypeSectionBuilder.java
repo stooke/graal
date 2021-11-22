@@ -204,7 +204,6 @@ class CVTypeSectionBuilder {
                              * derive from it
                              */
                             log("Object header size=%d kind=%s %s", typeEntry.getSize(), typeEntry.typeKind().name(), typeEntry.getTypeName());
-                            //typeRecord = buildStruct((HeaderTypeEntry) typeEntry, 0, null);
                             typeRecord = buildStructureTypeEntry(globalHeaderEntry, 0, null);
                             objectHeaderRecordIndex = typeRecord.getSequenceNumber();
                         } else {
@@ -220,9 +219,8 @@ class CVTypeSectionBuilder {
         return typeRecord;
     }
 
-
     /**
-     * Add type records for function.  In the future add local types when they become available.
+     * Add type records for function. In the future add local types when they become available.
      *
      * @param entry primaryEntry containing entities whose type records must be added
      * @return type record for this function (may return existing matching record)
@@ -244,10 +242,10 @@ class CVTypeSectionBuilder {
     /**
      * Return a CV type index for a pointer to a java type, or the type itself if a primitive.
      *
-     * @param entry The java type to return a typeindex for.
-     *              If the type has not been seen, a forward reference is generated.
-     * @return The index for the typeentry for a pointer to the type.
-     *         If the type is a primitive type, the index returned is for the type, not a pointer to the type.
+     * @param entry The java type to return a typeindex for. If the type has not been seen, a
+     *            forward reference is generated.
+     * @return The index for the typeentry for a pointer to the type. If the type is a primitive
+     *         type, the index returned is for the type, not a pointer to the type.
      */
     int getIndexForPointerOrPrimitive(TypeEntry entry) {
         if (entry.isPrimitive()) {
@@ -284,6 +282,7 @@ class CVTypeSectionBuilder {
 
     /**
      * Build a class or Enum.
+     *
      * @param classEntry class to be defined
      * @return record of defined class
      */

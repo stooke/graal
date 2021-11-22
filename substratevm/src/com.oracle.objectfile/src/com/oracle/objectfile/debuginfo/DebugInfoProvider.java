@@ -226,8 +226,8 @@ public interface DebugInfoProvider {
         int vtableOffset();
     }
 
-    /**`
-     * Access details of a compiled method producing the code in a specific
+    /**
+     * ` Access details of a compiled method producing the code in a specific
      * {@link com.oracle.objectfile.debugentry.Range}.
      */
     interface DebugRangeInfo extends DebugMethodInfo {

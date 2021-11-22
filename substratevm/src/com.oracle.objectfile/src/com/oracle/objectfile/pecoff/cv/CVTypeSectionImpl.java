@@ -71,7 +71,9 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
     private final CVTypeSectionBuilder builder;
 
     CVTypeSectionImpl(CVDebugInfo cvDebugInfo) {
-        /* At this point, there is no debugContext in debugInfo, so no logging should be attempted. */
+        /*
+         * At this point, there is no debugContext in debugInfo, so no logging should be attempted.
+         */
         super(cvDebugInfo);
         builder = new CVTypeSectionBuilder(this);
     }

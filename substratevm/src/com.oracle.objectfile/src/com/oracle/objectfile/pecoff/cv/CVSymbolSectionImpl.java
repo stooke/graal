@@ -187,7 +187,6 @@ public final class CVSymbolSectionImpl extends CVSectionImpl {
         cvRecords.add(record);
     }
 
-
     /**
      * Mark an offset:segment relocation site for linker or loader fixup.
      *
@@ -202,7 +201,7 @@ public final class CVSymbolSectionImpl extends CVSectionImpl {
         if (buffer != null) {
             markRelocationSite(pos, ObjectFile.RelocationKind.SECREL_4, symbolName, offset);
             pos += ObjectFile.RelocationKind.getRelocationSize(ObjectFile.RelocationKind.SECREL_4);
-            markRelocationSite(pos, ObjectFile.RelocationKind.SECTION_2, symbolName, (long) 0);
+            markRelocationSite(pos, ObjectFile.RelocationKind.SECTION_2, symbolName, 0);
             pos += ObjectFile.RelocationKind.getRelocationSize(ObjectFile.RelocationKind.SECTION_2);
         } else {
             pos = CVUtil.putInt(0, buffer, pos);

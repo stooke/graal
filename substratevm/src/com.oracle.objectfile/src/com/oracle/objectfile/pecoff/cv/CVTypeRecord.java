@@ -614,13 +614,8 @@ abstract class CVTypeRecord {
                 return false;
             }
             CVTypeMFunctionRecord other = (CVTypeMFunctionRecord) obj;
-            return this.returnType == other.returnType
-                    && this.classType == other.classType
-                    && this.thisType == other.thisType
-                    && this.callType == other.callType
-                    && this.funcAttr == other.funcAttr
-                    && this.thisAdjust == other.thisAdjust
-                    && this.argList.getSequenceNumber() == other.argList.getSequenceNumber();
+            return this.returnType == other.returnType && this.classType == other.classType && this.thisType == other.thisType && this.callType == other.callType && this.funcAttr == other.funcAttr &&
+                            this.thisAdjust == other.thisAdjust && this.argList.getSequenceNumber() == other.argList.getSequenceNumber();
         }
     }
 
@@ -1097,14 +1092,9 @@ abstract class CVTypeRecord {
                 return false;
             }
             CVClassRecord other = (CVClassRecord) obj;
-            return this.count == other.count
-                    && this.propertyAttributes == other.propertyAttributes
-                    && this.fieldIndex == other.fieldIndex
-                    && this.derivedFromIndex == other.derivedFromIndex
-                    && this.size == other.size
-                    && this.className.equals(other.className)
-                    && (this.uniqueName != null ? this.uniqueName.equals(other.uniqueName) : other.uniqueName == null)
-                    && this.vshapeIndex == other.vshapeIndex;
+            return this.count == other.count && this.propertyAttributes == other.propertyAttributes && this.fieldIndex == other.fieldIndex && this.derivedFromIndex == other.derivedFromIndex &&
+                            this.size == other.size && this.className.equals(other.className) && (this.uniqueName != null ? this.uniqueName.equals(other.uniqueName) : other.uniqueName == null) &&
+                            this.vshapeIndex == other.vshapeIndex;
         }
     }
 

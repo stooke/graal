@@ -40,6 +40,7 @@ abstract class CVUtil {
 
     /**
      * Store a byte value in the buffer.
+     *
      * @param value value to store
      * @param buffer buffer to store value in
      * @param initialPos initial position in buffer
@@ -56,6 +57,7 @@ abstract class CVUtil {
 
     /**
      * Store a short value in the buffer.
+     *
      * @param value value to store
      * @param buffer buffer to store value in
      * @param initialPos initial position in buffer
@@ -73,6 +75,7 @@ abstract class CVUtil {
 
     /**
      * Store an integer value in the buffer.
+     *
      * @param value value to store
      * @param buffer buffer to store value in
      * @param initialPos initial position in buffer
@@ -92,6 +95,7 @@ abstract class CVUtil {
 
     /**
      * Some CodeView numeric fields can be variable length, depending on the value.
+     *
      * @param value value to store
      * @param buffer buffer to store value in
      * @param initialPos initial position in buffer
@@ -123,6 +127,7 @@ abstract class CVUtil {
 
     /**
      * Store a long value in the buffer.
+     *
      * @param value value to store
      * @param buffer buffer to store value in
      * @param initialPos initial position in buffer
