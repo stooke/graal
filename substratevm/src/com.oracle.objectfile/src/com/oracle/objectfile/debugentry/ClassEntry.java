@@ -375,7 +375,7 @@ public class ClassEntry extends StructureTypeEntry {
         return methods;
     }
 
-    public String getSimpleName() {
+    public String getSimpleClassName() {
         int idx = typeName.lastIndexOf('.');
         return idx == -1 ? typeName : typeName.substring(idx + 1);
     }

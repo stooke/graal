@@ -506,7 +506,7 @@ class CVTypeSectionBuilder {
         mFunctionRecord.setThisType(Modifier.isStatic(methodEntry.getModifiers()) ? T_NOTYPE : getIndexForPointerOrPrimitive(classEntry));
         /* 'attr' is CV_funcattr_t and if set to 2 indicates a constructor function. */
         /* Figure out if function is a constructor (name is name of owner class) (=funcAttr 2) */
-        byte attr = methodEntry.methodName().equals(classEntry.getSimpleName()) ? (byte) 2 : 0;
+        byte attr = methodEntry.methodName().equals(classEntry.getSimpleClassName()) ? (byte) 2 : 0;
         mFunctionRecord.setFuncAttr(attr);
         mFunctionRecord.setReturnType(getIndexForPointerOrPrimitive(methodEntry.getValueType()));
         CVTypeRecord.CVTypeArglistRecord argListType = new CVTypeRecord.CVTypeArglistRecord();
