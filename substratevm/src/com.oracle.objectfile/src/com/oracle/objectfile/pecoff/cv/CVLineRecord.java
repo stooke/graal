@@ -26,8 +26,6 @@
 
 package com.oracle.objectfile.pecoff.cv;
 
-import com.oracle.objectfile.ObjectFile;
-
 import java.util.ArrayList;
 
 /*
@@ -92,10 +90,7 @@ final class CVLineRecord extends CVSymbolRecord {
         int pos = initialPos;
 
         /* Emit addr:section relocation records. */
-        cvDebugInfo.getCVSymbolSection().markRelocationSite(pos, ObjectFile.RelocationKind.SECREL_4, symbolName, false, 0L);
-        pos = CVUtil.putInt(0, buffer, pos);
-        cvDebugInfo.getCVSymbolSection().markRelocationSite(pos, ObjectFile.RelocationKind.SECTION_2, symbolName, false, 0L);
-        pos = CVUtil.putShort((short) 0, buffer, pos);
+        pos = cvDebugInfo.getCVSymbolSection().markRelocationSite(buffer, pos, symbolName, (long) 0);
 
         /* Emit flags. */
         pos = CVUtil.putShort(CB_HAS_NO_COLUMNS_FLAG, buffer, pos);

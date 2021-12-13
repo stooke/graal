@@ -60,7 +60,7 @@ public class VMThreadLocalInfos {
         }
     }
 
-    public static void dumpToLog(Log log, IsolateThread thread, boolean allowJavaHeapAccess) {
+    public static void dumpToLog(Log log, IsolateThread thread, boolean isJavaHeapAccessAllowed) {
         for (VMThreadLocalInfo info : ImageSingletons.lookup(VMThreadLocalInfos.class).infos) {
             log.signed(info.offset).string(" (").signed(info.sizeInBytes).string(" bytes): ").string(info.name).string(" = ");
             if (info.threadLocalClass == FastThreadLocalInt.class) {
@@ -73,7 +73,7 @@ public class VMThreadLocalInfos {
                 WordBase value = primitiveData(thread).readWord(WordFactory.signed(info.offset));
                 log.string("(Word) ").signed(value).string(" (").zhex(value.rawValue()).string(")");
             } else if (info.threadLocalClass == FastThreadLocalObject.class) {
-                if (allowJavaHeapAccess) {
+                if (isJavaHeapAccessAllowed) {
                     Object value = ObjectAccess.readObject(objectData(thread), WordFactory.signed(info.offset));
                     log.string("(Object) ");
                     if (value == null) {
@@ -114,7 +114,7 @@ public class VMThreadLocalInfos {
         }
     }
 
-    public static long getOffset(FastThreadLocal threadLocal) {
+    public static int getOffset(FastThreadLocal threadLocal) {
         VMThreadLocalInfos singleton = ImageSingletons.lookup(VMThreadLocalInfos.class);
         for (VMThreadLocalInfo info : singleton.infos) {
             if (threadLocal.getLocationIdentity().equals(info.locationIdentity)) {

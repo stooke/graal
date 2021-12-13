@@ -51,14 +51,15 @@ import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.host.HostMethodScope.ScopedObject;
 
 /*
  * Java host language implementation.
@@ -71,6 +72,7 @@ final class HostLanguage extends TruffleLanguage<HostContext> {
     final AbstractPolyglotImpl polyglot;
     final APIAccess api;
     final HostLanguageService service;
+    @CompilationFinal private boolean methodScopingEnabled;
 
     HostLanguage(AbstractPolyglotImpl polyglot, AbstractHostAccess hostAccess) {
         this.polyglot = polyglot;
@@ -90,6 +92,13 @@ final class HostLanguage extends TruffleLanguage<HostContext> {
         return new HostContext(this, env);
     }
 
+    static Object unwrapIfScoped(HostLanguage language, Object o) {
+        if (language == null || !language.methodScopingEnabled) {
+            return o;
+        }
+        return language.unwrapIfScoped(o);
+    }
+
     @Override
     protected Object getScope(HostContext context) {
         return context.topScope;
@@ -107,6 +116,17 @@ final class HostLanguage extends TruffleLanguage<HostContext> {
             guestToHostCache = cache = new GuestToHostCodeCache(this);
         }
         return cache;
+    }
+
+    private Object unwrapIfScoped(Object obj) {
+        if (!methodScopingEnabled) {
+            return obj;
+        }
+        Object o = obj;
+        if (o instanceof ScopedObject) {
+            o = ((ScopedObject) o).unwrapForGuest();
+        }
+        return o;
     }
 
     void initializeHostAccess(HostAccess policy, ClassLoader cl) {
@@ -130,6 +150,8 @@ final class HostLanguage extends TruffleLanguage<HostContext> {
         } else {
             this.hostClassCache = cache;
         }
+
+        this.methodScopingEnabled = api.isMethodScopingEnabled(policy);
     }
 
     @Override
@@ -153,13 +175,19 @@ final class HostLanguage extends TruffleLanguage<HostContext> {
     @Override
     protected CallTarget parse(ParsingRequest request) throws Exception {
         String sourceString = request.getSource().getCharacters().toString();
-        return Truffle.getRuntime().createCallTarget(new RootNode(this) {
+        return new RootNode(this) {
 
             @Override
             public Object execute(VirtualFrame frame) {
                 return service.findDynamicClass(HostContext.get(this), sourceString);
             }
-        });
+        }.getCallTarget();
+    }
+
+    static final LanguageReference<HostLanguage> REFERENCE = LanguageReference.create(HostLanguage.class);
+
+    static HostLanguage get(Node node) {
+        return REFERENCE.get(node);
     }
 
     @Override

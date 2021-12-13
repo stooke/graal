@@ -43,7 +43,6 @@ package com.oracle.truffle.nfi;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.ImportStatic;
@@ -76,6 +75,21 @@ final class NFISignature implements TruffleObject {
 
     final int nativeArgCount;
     final int managedArgCount;
+
+    static final NFISignature NO_SIGNATURE = new NFISignature();
+
+    /**
+     * Only for NO_SIGNATURE marker object.
+     */
+    private NFISignature() {
+        backendId = null;
+        cachedState = null;
+        nativeSignature = null;
+        retType = null;
+        argTypes = null;
+        nativeArgCount = -1;
+        managedArgCount = -1;
+    }
 
     NFISignature(String backendId, SignatureCachedState cachedState, Object nativeSignature, NFIType retType, NFIType[] argTypes, int nativeArgCount, int managedArgCount) {
         this.backendId = backendId;
@@ -190,7 +204,7 @@ final class NFISignature implements TruffleObject {
             if (polymorphicSignatureCall == null) {
                 CallSignatureNode call = createOptimizedSignatureCall();
                 CallSignatureRootNode rootNode = new CallSignatureRootNode(NFILanguage.get(null), call);
-                polymorphicSignatureCall = Truffle.getRuntime().createCallTarget(rootNode);
+                polymorphicSignatureCall = rootNode.getCallTarget();
             }
         }
 
@@ -207,7 +221,7 @@ final class NFISignature implements TruffleObject {
             if (polymorphicClosureCall == null) {
                 CallSignatureNode call = createOptimizedClosureCall();
                 CallSignatureRootNode rootNode = new CallSignatureRootNode(NFILanguage.get(null), call);
-                polymorphicClosureCall = Truffle.getRuntime().createCallTarget(rootNode);
+                polymorphicClosureCall = rootNode.getCallTarget();
             }
         }
 

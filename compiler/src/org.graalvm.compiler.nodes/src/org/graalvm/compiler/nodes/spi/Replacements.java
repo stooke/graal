@@ -25,6 +25,7 @@
 package org.graalvm.compiler.nodes.spi;
 
 import org.graalvm.compiler.api.replacements.MethodSubstitution;
+import org.graalvm.compiler.api.replacements.Snippet;
 import org.graalvm.compiler.api.replacements.SnippetTemplateCache;
 import org.graalvm.compiler.bytecode.BytecodeProvider;
 import org.graalvm.compiler.core.common.CompilationIdentifier;
@@ -42,6 +43,7 @@ import org.graalvm.compiler.nodes.graphbuilderconf.InvocationPlugin;
 import org.graalvm.compiler.nodes.graphbuilderconf.MethodSubstitutionPlugin;
 import org.graalvm.compiler.options.OptionValues;
 
+import jdk.vm.ci.meta.JavaKind;
 import jdk.vm.ci.meta.ResolvedJavaMethod;
 
 /**
@@ -61,6 +63,12 @@ public interface Replacements extends GeneratedPluginInjectionProvider {
      * Gets the plugin type that intrinsifies calls to {@code method}.
      */
     Class<? extends GraphBuilderPlugin> getIntrinsifyingPlugin(ResolvedJavaMethod method);
+
+    /**
+     * Create a {@link DebugContext} for use with {@link Snippet} related work. Snippet processingis
+     * hidden by default using the flags {@code DebugStubsAndSnippets}.
+     */
+    DebugContext openSnippetDebugContext(DebugContext.Description description, DebugContext outer, OptionValues options);
 
     /**
      * Gets the snippet graph derived from a given method.
@@ -192,4 +200,9 @@ public interface Replacements extends GeneratedPluginInjectionProvider {
      */
     default void closeSnippetRegistration() {
     }
+
+    /**
+     * Gets the JavaKind corresponding to word values.
+     */
+    JavaKind getWordKind();
 }

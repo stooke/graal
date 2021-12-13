@@ -135,6 +135,11 @@ import com.oracle.truffle.api.test.polyglot.ProxyLanguage;
 
 public class InstrumentationTest extends AbstractInstrumentationTest {
 
+    public InstrumentationTest() {
+        needsLanguageEnv = true;
+        needsInstrumentEnv = true;
+    }
+
     /*
      * Test that metadata is properly propagated to Instrument handles.
      */
@@ -409,7 +414,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
 
         @Override
         protected CallTarget parse(ParsingRequest request) {
-            return Truffle.getRuntime().createCallTarget(new RootNode(this) {
+            return new RootNode(this) {
 
                 @Child private BaseNode base = parse(request.getSource());
 
@@ -417,7 +422,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
                 public Object execute(VirtualFrame frame) {
                     return base.execute(frame);
                 }
-            });
+            }.getCallTarget();
         }
 
     }
@@ -1577,7 +1582,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
 
         @Override
         protected CallTarget parse(ParsingRequest request) {
-            return Truffle.getRuntime().createCallTarget(new RootNode(this) {
+            return new RootNode(this) {
 
                 @Child private BaseNode base = parse(request.getSource());
 
@@ -1585,7 +1590,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
                 public Object execute(VirtualFrame frame) {
                     return base.execute(frame);
                 }
-            });
+            }.getCallTarget();
         }
 
     }
@@ -2004,11 +2009,12 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
     }
 
     @Test
+    @Ignore("We didn't use to support throwing on create of execution event node, can we now?")
     public void testErrorPropagationCreate() throws Exception {
         Source source = Source.create(InstrumentationTestLanguage.ID, "EXPRESSION");
         instrumentEnv.getInstrumenter().attachExecutionEventFactory(SourceSectionFilter.ANY, new ExecutionEventNodeFactory() {
             public ExecutionEventNode create(EventContext c) {
-                throw c.createError(new TestException(c.getInstrumentedNode()));
+                throw new TestException(c.getInstrumentedNode());
             }
         });
         try {
@@ -2034,7 +2040,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
             }
 
             public void onEnter(EventContext c, VirtualFrame frame) {
-                throw c.createError(new TestException(c.getInstrumentedNode()));
+                throw new TestException(c.getInstrumentedNode());
             }
         });
         try {
@@ -2053,7 +2059,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
         Source source = Source.create(InstrumentationTestLanguage.ID, "EXPRESSION");
         EventBinding<?> b = instrumentEnv.getInstrumenter().attachExecutionEventListener(SourceSectionFilter.ANY, new ExecutionEventListener() {
             public void onReturnValue(EventContext c, VirtualFrame frame, Object result) {
-                throw c.createError(new TestException(c.getInstrumentedNode()));
+                throw new TestException(c.getInstrumentedNode());
             }
 
             public void onReturnExceptional(EventContext c, VirtualFrame frame, Throwable exception) {
@@ -2081,7 +2087,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
             }
 
             public void onReturnExceptional(EventContext c, VirtualFrame frame, Throwable exception) {
-                throw c.createError(new TestException(c.getInstrumentedNode()));
+                throw new TestException(c.getInstrumentedNode());
             }
 
             public void onEnter(EventContext c, VirtualFrame frame) {
@@ -2105,7 +2111,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
             return new ExecutionEventNode() {
                 @Override
                 protected void onInputValue(VirtualFrame frame, EventContext inputContext, int inputIndex, Object inputValue) {
-                    throw c.createError(new TestException(c.getInstrumentedNode()));
+                    throw new TestException(c.getInstrumentedNode());
                 }
             };
         });
@@ -2135,7 +2141,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
                 @TruffleBoundary
                 protected Object onUnwind(VirtualFrame frame, Object info) {
                     assertEquals("test", info);
-                    throw c.createError(new TestException(c.getInstrumentedNode()));
+                    throw new TestException(c.getInstrumentedNode());
                 }
             };
         });
@@ -2158,7 +2164,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
 
                 @Override
                 public void onReturnValue(VirtualFrame frame, Object result) {
-                    throw c.createError(new TestException(c.getInstrumentedNode()));
+                    throw new TestException(c.getInstrumentedNode());
                 }
             };
         });
@@ -2168,7 +2174,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
 
                 @Override
                 public void onReturnValue(VirtualFrame frame, Object result) {
-                    throw c.createError(new TestException(c.getInstrumentedNode()));
+                    throw new TestException(c.getInstrumentedNode());
                 }
             };
         });
@@ -2298,7 +2304,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
                 return 42;
             }
         };
-        Truffle.getRuntime().createCallTarget(root);
+        root.getCallTarget();
         Frame frame = Truffle.getRuntime().createMaterializedFrame(new Object[]{}, root.getFrameDescriptor());
         List<TruffleStackTraceElement> stack = TruffleStackTrace.getAsynchronousStackTrace(root.getCallTarget(), frame);
         // No asynchronous stack by default
@@ -2310,7 +2316,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
         ProxyLanguage.setDelegate(new ProxyLanguage() {
             @Override
             protected CallTarget parse(ParsingRequest request) throws Exception {
-                return Truffle.getRuntime().createCallTarget(new AsyncRootNode(language, 0));
+                return new AsyncRootNode(language, 0).getCallTarget();
             }
 
             class AsyncRootNode extends RootNode {
@@ -2355,7 +2361,7 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
                 protected List<TruffleStackTraceElement> findAsynchronousFrames(Frame frame) {
                     assertSame(this.getFrameDescriptor(), frame.getFrameDescriptor());
                     AsyncRootNode invoker = new AsyncRootNode(language, level + 1);
-                    RootCallTarget invokerTarget = Truffle.getRuntime().createCallTarget(invoker);
+                    RootCallTarget invokerTarget = invoker.getCallTarget();
                     Frame invokerFrame = Truffle.getRuntime().createMaterializedFrame(new Object[]{level + 1}, invoker.getFrameDescriptor());
                     TruffleStackTraceElement element = TruffleStackTraceElement.create(invoker.child, invokerTarget, invokerFrame);
                     return Collections.singletonList(element);
@@ -2499,17 +2505,17 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
                             checkNull(asyncStack);
                             break;
                         case 1:
-                            checkEquals(testDepth, asyncStack.size());
-                            TruffleStackTraceElement lastElement = asyncStack.get(testDepth - 1);
+                            checkEquals(testDepth, listSize(asyncStack));
+                            TruffleStackTraceElement lastElement = listGet(asyncStack, testDepth - 1);
                             checkNull(lastElement.getFrame());
                             env.setAsynchronousStackDepth(Integer.MAX_VALUE);
                             break;
                         case 2:
-                            checkEquals(prgDepth, asyncStack.size());
-                            lastElement = asyncStack.get(prgDepth - 1);
+                            checkEquals(prgDepth, listSize(asyncStack));
+                            lastElement = listGet(asyncStack, prgDepth - 1);
                             asyncStack = TruffleStackTrace.getAsynchronousStackTrace(lastElement.getTarget(), lastElement.getFrame());
-                            checkEquals(testDepth, asyncStack.size());
-                            lastElement = asyncStack.get(testDepth - 1);
+                            checkEquals(testDepth, listSize(asyncStack));
+                            lastElement = listGet(asyncStack, testDepth - 1);
                             checkNull(lastElement.getFrame());
                             instrumentationFinished.countDown();
                             break;
@@ -2517,6 +2523,16 @@ public class InstrumentationTest extends AbstractInstrumentationTest {
                             illegalState();
                     }
                     count++;
+                }
+
+                @TruffleBoundary
+                private int listSize(List<TruffleStackTraceElement> list) {
+                    return list.size();
+                }
+
+                @TruffleBoundary
+                private TruffleStackTraceElement listGet(List<TruffleStackTraceElement> list, int i) {
+                    return list.get(i);
                 }
 
                 @TruffleBoundary

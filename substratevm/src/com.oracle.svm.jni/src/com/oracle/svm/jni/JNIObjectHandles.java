@@ -43,7 +43,6 @@ import com.oracle.svm.core.handles.ThreadLocalHandles;
 import com.oracle.svm.core.heap.Heap;
 import com.oracle.svm.core.threadlocal.FastThreadLocalFactory;
 import com.oracle.svm.core.threadlocal.FastThreadLocalObject;
-import com.oracle.svm.core.util.ExceptionHelpers;
 import com.oracle.svm.jni.nativeapi.JNIObjectHandle;
 import com.oracle.svm.jni.nativeapi.JNIObjectRefType;
 
@@ -81,7 +80,7 @@ public final class JNIObjectHandles {
     static final int NATIVE_CALL_MIN_LOCAL_HANDLE_CAPACITY = 16;
 
     @SuppressWarnings("rawtypes") private static final FastThreadLocalObject<ThreadLocalHandles> handles //
-                    = FastThreadLocalFactory.createObject(ThreadLocalHandles.class);
+                    = FastThreadLocalFactory.createObject(ThreadLocalHandles.class, "JNIObjectHandles.handles");
 
     @Fold
     static boolean useImageHeapHandles() {
@@ -141,7 +140,12 @@ public final class JNIObjectHandles {
             return JNIGlobalHandles.getObject(handle);
         }
 
-        throw ExceptionHelpers.throwIllegalArgumentException("Invalid object handle");
+        throw throwIllegalArgumentException();
+    }
+
+    @NeverInline("Exception slow path")
+    private static IllegalArgumentException throwIllegalArgumentException() {
+        throw new IllegalArgumentException("Invalid object handle");
     }
 
     public static JNIObjectRefType getHandleType(JNIObjectHandle handle) {

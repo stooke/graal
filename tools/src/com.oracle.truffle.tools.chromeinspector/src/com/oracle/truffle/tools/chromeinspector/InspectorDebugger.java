@@ -429,11 +429,7 @@ public final class InspectorDebugger extends DebuggerDomain {
                 // should not be, double-check
                 continue;
             }
-            int scriptId = scriptsHandler.assureLoaded(source);
-            if (scriptId < 0) {
-                continue;
-            }
-            Script script = scriptsHandler.getScript(scriptId);
+            Script script = scriptsHandler.assureLoaded(source);
             List<Scope> scopes = new ArrayList<>();
             DebugScope dscope;
             try {
@@ -727,7 +723,7 @@ public final class InspectorDebugger extends DebuggerDomain {
                     }
                     CallFrame cf = suspendedInfo.getCallFrames()[frameId];
                     JSONObject json = new JSONObject();
-                    if (runSpecialFunctions(expression, cf, generatePreview, json)) {
+                    if (runSpecialFunctions(expression, cf, json)) {
                         return json;
                     }
                     DebugValue value = getVarValue(expression, cf);
@@ -744,7 +740,7 @@ public final class InspectorDebugger extends DebuggerDomain {
                         if (languageInfo == null || !languageInfo.isInteractive()) {
                             String errorMessage = getEvalNonInteractiveMessage();
                             ExceptionDetails exceptionDetails = new ExceptionDetails(errorMessage);
-                            json.put("exceptionDetails", exceptionDetails.createJSON(context, generatePreview));
+                            json.put("exceptionDetails", exceptionDetails.createJSON(context));
                             JSONObject err = new JSONObject();
                             err.putOpt("value", errorMessage);
                             err.putOpt("type", "string");
@@ -768,7 +764,7 @@ public final class InspectorDebugger extends DebuggerDomain {
                 @Override
                 public JSONObject processException(DebugException dex) {
                     JSONObject json = new JSONObject();
-                    InspectorRuntime.fillExceptionDetails(json, dex, context, generatePreview);
+                    InspectorRuntime.fillExceptionDetails(json, dex, context);
                     DebugValue exceptionObject = dex.getExceptionObject();
                     if (exceptionObject != null) {
                         RemoteObject ro = context.createAndRegister(exceptionObject, generatePreview);
@@ -791,7 +787,7 @@ public final class InspectorDebugger extends DebuggerDomain {
         return new Params(jsonResult);
     }
 
-    private boolean runSpecialFunctions(String expression, CallFrame cf, boolean generatePreview, JSONObject json) {
+    private boolean runSpecialFunctions(String expression, CallFrame cf, JSONObject json) {
         // Test whether code-completion on an object was requested:
         Matcher completionMatcher = FUNCTION_COMPLETION_PATTERN.matcher(expression);
         if (completionMatcher.matches()) {
@@ -805,7 +801,7 @@ public final class InspectorDebugger extends DebuggerDomain {
                 }
             }
             if (value != null) {
-                JSONObject result = InspectorRuntime.createCodecompletion(value, null, generatePreview, context, false);
+                JSONObject result = InspectorRuntime.createCodecompletion(value, null, context, false);
                 json.put("result", result);
                 return true;
             }
@@ -1270,6 +1266,7 @@ public final class InspectorDebugger extends DebuggerDomain {
 
         private final ThreadGroup group;
 
+        @SuppressWarnings("deprecation")
         SchedulerThreadFactory() {
             SecurityManager s = System.getSecurityManager();
             this.group = (s != null) ? s.getThreadGroup() : Thread.currentThread().getThreadGroup();

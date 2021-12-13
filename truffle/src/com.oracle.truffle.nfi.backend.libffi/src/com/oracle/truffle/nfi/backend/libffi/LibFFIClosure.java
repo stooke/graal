@@ -40,12 +40,9 @@
  */
 package com.oracle.truffle.nfi.backend.libffi;
 
-import java.nio.ByteBuffer;
-
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -117,7 +114,7 @@ final class LibFFIClosure implements TruffleObject {
         final CallTarget closureCallTarget;
 
         CachedClosureInfo(RootNode rootNode) {
-            this.closureCallTarget = Truffle.getRuntime().createCallTarget(rootNode);
+            this.closureCallTarget = rootNode.getCallTarget();
         }
     }
 
@@ -229,7 +226,7 @@ final class LibFFIClosure implements TruffleObject {
             this.nativeArguments = NativeArgumentLibrary.getFactory().create(this.retType);
         }
 
-        RetPatches execute(Object ret, ByteBuffer retBuffer) {
+        RetPatches execute(Object ret, NativeArgumentBuffer.Pointer retBuffer) {
             NativeArgumentBuffer nativeRetBuffer = new NativeArgumentBuffer.Direct(retBuffer, retType.objectCount);
             try {
                 nativeArguments.serialize(retType, nativeRetBuffer, ret);
@@ -293,7 +290,7 @@ final class LibFFIClosure implements TruffleObject {
         }
 
         @Specialization
-        public Object doBufferRet(VirtualFrame frame, ByteBuffer retBuffer) {
+        public Object doBufferRet(VirtualFrame frame, NativeArgumentBuffer.Pointer retBuffer) {
             Object ret = callClosure.execute(frame);
             return encodeRet.execute(ret, retBuffer);
         }

@@ -160,6 +160,8 @@ abstract class CVTypeConstants {
     static final short MPROP_STATIC = (2 << 2);
     static final short MPROP_FRIEND = (3 << 2);
     static final short MPROP_IVIRTUAL = (4 << 2);
+    static final short MPROP_PURE_VIRTUAL = (5 << 2);
+    static final short MPROP_PURE_IVIRTUAL = (6 << 2);
     static final short MPROP_VSF_MASK = 0x1c;
 
     static final short MPROP_PSEUDO = 0x20;
@@ -168,7 +170,6 @@ abstract class CVTypeConstants {
     static final short MPROP_COMPGENX = 0x100;
     static final short MPROP_FINAL_METHOD = 0x200;
 
-    static final int CV_CALL_TYPE_C = 0x01;
-    static final int CV_CALL_TYPE_THISCALL = 0x0b;
-
+    /* For x86_64, calling type is always CV_CALL_NEAR_C. */
+    static final int CV_CALL_NEAR_C = 0;
 }

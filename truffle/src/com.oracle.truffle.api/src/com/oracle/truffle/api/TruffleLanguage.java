@@ -52,7 +52,6 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.ref.WeakReference;
 import java.net.URI;
-import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.FileAttribute;
@@ -245,7 +244,6 @@ public abstract class TruffleLanguage<C> {
 
     // get and isFinal are frequent operations -> cache the engine access call
     @CompilationFinal LanguageInfo languageInfo;
-    @CompilationFinal ContextReference<Object> reference;
     @CompilationFinal Object polyglotLanguageInstance;
 
     List<ContextThreadLocal<?>> contextThreadLocals;
@@ -592,23 +590,42 @@ public abstract class TruffleLanguage<C> {
     /**
      * Performs language context finalization actions that are necessary before language contexts
      * are {@link #disposeContext(Object) disposed}. However, in case the underlying polyglot
-     * context is being cancelled, {@link #disposeContext(Object)} is called even if
+     * context is being cancelled or hard-exited, {@link #disposeContext(Object)} is called even if
      * {@link #finalizeContext(Object)} throws a {@link TruffleException} or a {@link ThreadDeath}
-     * exception. All installed languages must remain usable after finalization. The finalization
-     * order can be influenced by specifying {@link Registration#dependentLanguages() language
-     * dependencies}. By default internal languages are finalized last, otherwise the default order
-     * is unspecified but deterministic.
+     * cancel or exit exception.
      * <p>
-     * While finalization code is run, other language contexts may become initialized. In such a
+     * For the hard exit a language is supposed to run its finalization actions that require running
+     * guest code in {@link #exitContext(Object, ExitMode, int)}, but please note that after
+     * {@link #exitContext(Object, ExitMode, int)} runs for a language, the language can still be
+     * invoked from {@link #exitContext(Object, ExitMode, int)} for a different language. Therefore,
+     * for instance, finalization for standard streams should both flush and set them to unbuffered
+     * mode at the end of exitContext, so that running guest code is not required to dispose the
+     * streams after that point.
+     * <p>
+     * All installed languages must remain usable after finalization. The finalization order can be
+     * influenced by specifying {@link Registration#dependentLanguages() language dependencies}. By
+     * default internal languages are finalized last, otherwise, the default order is unspecified
+     * but deterministic.
+     * <p>
+     * While the finalization code is run, other language contexts may become initialized. In such a
      * case, the finalization order may be non-deterministic and/or not respect the order specified
      * by language dependencies.
      * <p>
-     * All threads {@link Env#createThread(Runnable) created} by a language must be stopped and
+     * All threads {@link Env#createThread(Runnable) created} by the language must be stopped and
      * joined during finalizeContext. The languages are responsible for fulfilling that contract,
-     * otherwise an {@link AssertionError} is thrown. It's not safe to use the
+     * otherwise, an {@link AssertionError} is thrown. It's not safe to use the
      * {@link ExecutorService#awaitTermination(long, java.util.concurrent.TimeUnit)} to detect
      * Thread termination as the polyglot thread may be cancelled before executing the executor
      * worker.
+     * <p>
+     * During finalizeContext, all unclosed inner contexts {@link Env#newContextBuilder() created}
+     * by the language must be left on all threads where the contexts are still active. No active
+     * inner context is allowed after {@link #finalizeContext(Object)} returns, otherwise it is an
+     * internal error.
+     * <p>
+     * Non-active inner contexts {@link Env#newContextBuilder() created} by the language that are
+     * still unclosed after {@link #finalizeContext(Object)} returns are automatically closed by
+     * Truffle.
      * <p>
      * Typical implementation looks like:
      *
@@ -620,6 +637,60 @@ public abstract class TruffleLanguage<C> {
      * @since 0.30
      */
     protected void finalizeContext(C context) {
+    }
+
+    /**
+     * Performs language exit event actions that are necessary before language contexts are
+     * {@link #finalizeContext(Object) finalized}. However, in case the underlying polyglot context
+     * is being cancelled, {@link #exitContext(Object, ExitMode, int) exit notifications} are not
+     * executed. Also, for {@link ExitMode#HARD hard exit}, {@link #finalizeContext(Object)} is
+     * called even if {@link #exitContext(Object, ExitMode, int)} throws a {@link TruffleException}
+     * or a {@link ThreadDeath} cancel or exit exception. All initialized language contexts must
+     * remain usable after exit notifications. In case a {@link TruffleException} or the
+     * {@link ThreadDeath} exit exception is thrown during a {@link ExitMode#HARD hard exit
+     * notification}, it is just logged and otherwise ignored and the notification process continues
+     * with the next language in order. In case the {@link ThreadDeath} cancel exception is thrown,
+     * it means the context is being cancelled in which case the exit notification process
+     * immediately stops. The exit notification order can be influenced by specifying
+     * {@link Registration#dependentLanguages() language dependencies} - The exit notification for
+     * language A that depends on language B is executed before the exit notification for language
+     * B. By default, notifications for internal languages are executed last, otherwise, the default
+     * order is unspecified but deterministic.
+     * <p>
+     * During {@link ExitMode#HARD hard exit} notification, a language is supposed to run its
+     * finalization actions that require running guest code instead of running them in
+     * {@link #finalizeContext(Object)}.
+     * <p>
+     * While the exit notification code is run, all languages remain fully functional. Also, other
+     * language contexts may become initialized. In such a case, the notification order may be
+     * non-deterministic and/or not respect the order specified by language dependencies.
+     * <p>
+     * In case {@link TruffleContext#closeExited(Node, int)} is called during a
+     * {@link ExitMode#NATURAL natural exit notification}, it is ignored. In case it is called
+     * during a {@link ExitMode#HARD hard exit notification}, it just throws the special
+     * {@link ThreadDeath} exit exception, which is then just logged as described above.
+     * <p>
+     * In case the underlying polyglot context is cancelled by e.g.
+     * {@link TruffleContext#closeCancelled(Node, String)} during exit notifications, guest code
+     * executed during exit notification is regularly cancelled, i.e., throws the
+     * {@link ThreadDeath} cancel exception, and the notification process does not continue as
+     * described above.
+     * <p>
+     * In the case of {@link ExitMode#HARD hard exit}, if the current context has inner contexts
+     * that are still active, the execution for them will be stopped as well after all language exit
+     * notifications are executed for the outer context, but the exit notifications for the inner
+     * contexts are not automatically executed. The language needs to take appropriate action to
+     * make sure inner contexts are exited properly.
+     *
+     * @param context language context.
+     * @param exitMode mode of exit.
+     * @param exitCode exit code that was specified for exit.
+     * @see <a href= "https://github.com/oracle/graal/blob/master/truffle/docs/Exit.md">Context
+     *      Exit</a>
+     *
+     * @since 22.0
+     */
+    protected void exitContext(C context, ExitMode exitMode, int exitCode) {
     }
 
     /**
@@ -1480,23 +1551,6 @@ public abstract class TruffleLanguage<C> {
         return null;
     }
 
-    /**
-     * @deprecated in 19.3 as this method is inefficient in many situations. Use context references
-     *             as described {@link ContextReference here}.
-     *
-     * @since 0.25
-     */
-    @SuppressWarnings("unchecked")
-    @Deprecated
-    public final ContextReference<C> getContextReference() {
-        ContextReference<Object> ref = this.reference;
-        if (ref == null) {
-            CompilerDirectives.transferToInterpreterAndInvalidate();
-            reference = ref = ContextReference.create(getClass());
-        }
-        return (ContextReference<C>) reference;
-    }
-
     CallTarget parse(Source source, String... argumentNames) {
         ParsingRequest request = new ParsingRequest(source, argumentNames);
         CallTarget target;
@@ -1589,7 +1643,7 @@ public abstract class TruffleLanguage<C> {
      *
      *     &#64;Override
      *     protected CallTarget parse(ParsingRequest request) throws Exception {
-     *         return Truffle.getRuntime().createCallTarget(new RootNode(this) {
+     *         return new RootNode(this) {
      *             &#64;Override
      *             public Object execute(VirtualFrame frame) {
      *                 // fast read
@@ -1597,7 +1651,7 @@ public abstract class TruffleLanguage<C> {
      *                 // access local
      *                 return "";
      *             }
-     *         });
+     *         }.getCallTarget();
      *     }
      *
      *     static final class ExampleLocal {
@@ -1629,14 +1683,14 @@ public abstract class TruffleLanguage<C> {
 
     /**
      * Creates a new context thread local reference for this Truffle language. Context thread locals
-     * for languages allow to store additional top-level values for each context and thread. The
+     * for languages allow storing additional top-level values for each context and thread. The
      * factory may be invoked on any thread other than the thread of the context thread local value.
      * <p>
      * Context thread local references must be created during the invocation in the
      * {@link TruffleLanguage} constructor. Calling this method at a later point in time will throw
      * an {@link IllegalStateException}. For each registered {@link TruffleLanguage} subclass it is
      * required to always produce the same number of context thread local references. The values
-     * produces by the factory must not be <code>null</code> and use a stable exact value type for
+     * produced by the factory must not be <code>null</code> and use a stable exact value type for
      * each instance of a registered language class. If the return value of the factory is not
      * stable or <code>null</code> then an {@link IllegalStateException} is thrown. These
      * restrictions allow the Truffle runtime to read the value more efficiently.
@@ -1659,7 +1713,7 @@ public abstract class TruffleLanguage<C> {
      *
      *     &#64;Override
      *     protected CallTarget parse(ParsingRequest request) throws Exception {
-     *         return Truffle.getRuntime().createCallTarget(new RootNode(this) {
+     *         return new RootNode(this) {
      *             &#64;Override
      *             public Object execute(VirtualFrame frame) {
      *                 // fast read
@@ -1667,7 +1721,7 @@ public abstract class TruffleLanguage<C> {
      *                 // access local
      *                 return "";
      *             }
-     *         });
+     *         }.getCallTarget();
      *     }
      *
      *     static final class ExampleLocal {
@@ -2175,7 +2229,7 @@ public abstract class TruffleLanguage<C> {
          */
         public Object asGuestValue(Object hostObject) {
             try {
-                return LanguageAccessor.engineAccess().toGuestValue(hostObject, polyglotLanguageContext);
+                return LanguageAccessor.engineAccess().toGuestValue(null, hostObject, polyglotLanguageContext);
             } catch (Throwable t) {
                 throw engineToLanguageException(t);
             }
@@ -2817,7 +2871,7 @@ public abstract class TruffleLanguage<C> {
             try {
                 return new TruffleFile(fs, fs.fileSystem.parsePath(uri));
             } catch (UnsupportedOperationException e) {
-                throw new FileSystemNotFoundException("FileSystem for: " + uri.getScheme() + " scheme is not supported.");
+                throw e;
             } catch (Throwable t) {
                 throw TruffleFile.wrapHostException(t, fs.fileSystem);
             }
@@ -2876,7 +2930,7 @@ public abstract class TruffleLanguage<C> {
             try {
                 return new TruffleFile(fs, fs.fileSystem.parsePath(uri));
             } catch (UnsupportedOperationException e) {
-                throw new FileSystemNotFoundException("FileSystem for: " + uri.getScheme() + " scheme is not supported.");
+                throw e;
             } catch (Throwable t) {
                 throw TruffleFile.wrapHostException(t, fs.fileSystem);
             }
@@ -3400,8 +3454,8 @@ public abstract class TruffleLanguage<C> {
          * logger must not be stored in a TruffleLanguage subclass. It is recommended to create all
          * language loggers in {@link TruffleLanguage#createContext(Env)}.
          *
-         * @param loggerName the the name of a {@link TruffleLogger}, if a {@code loggerName} is
-         *            null or empty a root logger for language or instrument is returned
+         * @param loggerName the name of a {@link TruffleLogger}, if a {@code loggerName} is null or
+         *            empty a root logger for language or instrument is returned
          * @return a {@link TruffleLogger}
          * @since 21.1
          *
@@ -3987,6 +4041,27 @@ public abstract class TruffleLanguage<C> {
 
     }
 
+    /**
+     * Mode of exit operation.
+     *
+     * @since 22.0
+     * @see #exitContext(Object, ExitMode, int)
+     */
+    public enum ExitMode {
+        /**
+         * Natural exit that occurs during normal context close.
+         *
+         * @since 22.0
+         *
+         */
+        NATURAL,
+        /**
+         * Hard exit triggered by {@link TruffleContext#closeExited(Node, int)}.
+         *
+         * @since 22.0
+         */
+        HARD
+    }
 }
 
 class TruffleLanguageSnippets {

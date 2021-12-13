@@ -30,6 +30,8 @@ import static com.oracle.truffle.espresso.bytecode.Bytecodes.MONITOREXIT;
 import static com.oracle.truffle.espresso.bytecode.Bytecodes.PUTFIELD;
 import static com.oracle.truffle.espresso.bytecode.Bytecodes.PUTSTATIC;
 import static com.oracle.truffle.espresso.bytecode.Bytecodes.RETURN;
+import static com.oracle.truffle.espresso.classfile.Constants.ACC_CALLER_SENSITIVE;
+import static com.oracle.truffle.espresso.classfile.Constants.ACC_HIDDEN;
 import static com.oracle.truffle.espresso.classfile.Constants.ACC_NATIVE;
 import static com.oracle.truffle.espresso.classfile.Constants.ACC_VARARGS;
 import static com.oracle.truffle.espresso.classfile.Constants.REF_invokeInterface;
@@ -55,6 +57,8 @@ import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.source.Source;
+import com.oracle.truffle.api.utilities.AlwaysValidAssumption;
+import com.oracle.truffle.api.utilities.NeverValidAssumption;
 import com.oracle.truffle.espresso.EspressoOptions;
 import com.oracle.truffle.espresso.bytecode.BytecodeStream;
 import com.oracle.truffle.espresso.bytecode.Bytecodes;
@@ -258,7 +262,16 @@ public final class Method extends Member<Signature> implements TruffleObject, Co
 
         initRefKind();
         this.proxy = null;
-        this.isLeaf = Truffle.getRuntime().createAssumption();
+
+        if (isAbstract()) {
+            // Disabled for abstract methods to reduce footprint.
+            this.isLeaf = NeverValidAssumption.INSTANCE;
+        } else if (isStatic() || isPrivate() || isFinalFlagSet() || getDeclaringKlass().isFinalFlagSet()) {
+            // Nothing to assume, spare an assumption.
+            this.isLeaf = AlwaysValidAssumption.INSTANCE;
+        } else {
+            this.isLeaf = Truffle.getRuntime().createAssumption();
+        }
     }
 
     public int getRefKind() {
@@ -442,7 +455,7 @@ public final class Method extends Member<Signature> implements TruffleObject, Co
                 // Look in libjava
                 TruffleObject nativeMethod = lookupAndBind(getVM().getJavaLibrary(), mangledName);
                 if (nativeMethod != null) {
-                    return Truffle.getRuntime().createCallTarget(EspressoRootNode.create(null, new NativeMethodNode(nativeMethod, getMethodVersion())));
+                    return EspressoRootNode.create(null, new NativeMethodNode(nativeMethod, getMethodVersion())).getCallTarget();
                 }
             }
         }
@@ -455,7 +468,7 @@ public final class Method extends Member<Signature> implements TruffleObject, Co
             String mangledName = Mangle.mangleMethod(this, withSignature);
             TruffleObject nativeMethod = getContext().bindToAgent(this, mangledName);
             if (nativeMethod != null) {
-                return Truffle.getRuntime().createCallTarget(EspressoRootNode.create(null, new NativeMethodNode(nativeMethod, getMethodVersion())));
+                return EspressoRootNode.create(null, new NativeMethodNode(nativeMethod, getMethodVersion())).getCallTarget();
             }
         }
         return null;
@@ -481,7 +494,7 @@ public final class Method extends Member<Signature> implements TruffleObject, Co
         }
         TruffleObject symbol = getVM().getFunction(handle);
         TruffleObject nativeMethod = bind(symbol);
-        return Truffle.getRuntime().createCallTarget(EspressoRootNode.create(null, new NativeMethodNode(nativeMethod, this.getMethodVersion())));
+        return EspressoRootNode.create(null, new NativeMethodNode(nativeMethod, this.getMethodVersion())).getCallTarget();
     }
 
     public boolean isConstructor() {
@@ -617,6 +630,14 @@ public final class Method extends Member<Signature> implements TruffleObject, Co
     @Override
     public int getModifiers() {
         return getLinkedMethod().getFlags();
+    }
+
+    public boolean isCallerSensitive() {
+        return (getModifiers() & ACC_CALLER_SENSITIVE) != 0;
+    }
+
+    public boolean isHidden() {
+        return (getModifiers() & ACC_HIDDEN) != 0;
     }
 
     public int getMethodModifiers() {
@@ -843,6 +864,10 @@ public final class Method extends Member<Signature> implements TruffleObject, Co
         return false;
     }
 
+    public Assumption getLeafAssumption() {
+        return isLeaf;
+    }
+
     public boolean leafAssumption() {
         return isLeaf.isValid();
     }
@@ -900,6 +925,7 @@ public final class Method extends Member<Signature> implements TruffleObject, Co
         return localSource;
     }
 
+    @TruffleBoundary
     public void checkLoadingConstraints(StaticObject loader1, StaticObject loader2) {
         for (Symbol<Type> type : getParsedSignature()) {
             getContext().getRegistries().checkLoadingConstraint(type, loader1, loader2);
@@ -944,7 +970,7 @@ public final class Method extends Member<Signature> implements TruffleObject, Co
         Method result = new Method(this, getCodeAttribute());
         FrameDescriptor frameDescriptor = new FrameDescriptor();
         EspressoRootNode root = EspressoRootNode.create(frameDescriptor, new BytecodeNode(result.getMethodVersion(), frameDescriptor));
-        result.getMethodVersion().callTarget = Truffle.getRuntime().createCallTarget(root);
+        result.getMethodVersion().callTarget = root.getCallTarget();
         return result;
     }
 
@@ -1227,7 +1253,6 @@ public final class Method extends Member<Signature> implements TruffleObject, Co
                         /* modifiers */ getMethodModifiers(),
                         /* slot */ getVTableIndex(),
                         /* signature */ guestGenericSignature,
-
                         /* annotations */ runtimeVisibleAnnotations,
                         /* parameterAnnotations */ runtimeVisibleParameterAnnotations,
                         /* annotationDefault */ annotationDefault);
@@ -1332,7 +1357,7 @@ public final class Method extends Member<Signature> implements TruffleObject, Co
                      */
                     EspressoRootNode redirectedMethod = getSubstitutions().get(getMethod());
                     if (redirectedMethod != null) {
-                        callTarget = Truffle.getRuntime().createCallTarget(redirectedMethod);
+                        callTarget = redirectedMethod.getCallTarget();
                         return callTarget;
                     }
 
@@ -1370,7 +1395,7 @@ public final class Method extends Member<Signature> implements TruffleObject, Co
                      * The method was obtained through a regular lookup (since it is in the declared
                      * methods). Delegate it to a polysignature method lookup.
                      */
-                    target = declaringKlass.lookupPolysigMethod(getName(), getRawSignature()).getCallTarget();
+                    target = declaringKlass.lookupPolysigMethod(getName(), getRawSignature(), Klass.LookupMode.ALL).getCallTarget();
                 }
 
                 if (target == null) {
@@ -1386,7 +1411,7 @@ public final class Method extends Member<Signature> implements TruffleObject, Co
                 }
                 FrameDescriptor frameDescriptor = new FrameDescriptor();
                 EspressoRootNode rootNode = EspressoRootNode.create(frameDescriptor, new BytecodeNode(this, frameDescriptor));
-                target = Truffle.getRuntime().createCallTarget(rootNode);
+                target = rootNode.getCallTarget();
             }
             return target;
         }
@@ -1596,4 +1621,5 @@ public final class Method extends Member<Signature> implements TruffleObject, Co
         }
     }
     // endregion jdwp-specific
+
 }

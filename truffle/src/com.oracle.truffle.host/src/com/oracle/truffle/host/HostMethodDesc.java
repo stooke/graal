@@ -43,6 +43,7 @@ package com.oracle.truffle.host;
 import java.lang.annotation.Annotation;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Executable;
 import java.lang.reflect.InvocationTargetException;
@@ -75,14 +76,59 @@ abstract class HostMethodDesc {
 
     abstract static class SingleMethod extends HostMethodDesc {
 
+        static final int[] EMTPY_SCOPED_PARAMETERS = new int[0];
+        static final int NO_SCOPE = -1;
+
         private final boolean varArgs;
         @CompilationFinal(dimensions = 1) private final Class<?>[] parameterTypes;
         @CompilationFinal(dimensions = 1) private final Type[] genericParameterTypes;
+        @CompilationFinal(dimensions = 1) private final int[] scopedStaticParameters;
+        private final int scopedStaticParameterCount;
+        private static final Class<?>[] UNSCOPED_TYPES = {Boolean.class, Byte.class, Short.class, Character.class, Integer.class, Long.class, Float.class, Double.class, String.class};
 
-        protected SingleMethod(Executable executable) {
+        protected SingleMethod(Executable executable, boolean parametersScoped) {
             this.varArgs = executable.isVarArgs();
             this.parameterTypes = executable.getParameterTypes();
             this.genericParameterTypes = executable.getGenericParameterTypes();
+            int[] scopedParams = null;
+            int count = 0;
+            if (parametersScoped) {
+                scopedParams = new int[parameterTypes.length];
+                for (int i = 0; i < parameterTypes.length; i++) {
+                    if (isScoped(parameterTypes[i])) {
+                        scopedParams[i] = count++;
+                    } else {
+                        scopedParams[i] = NO_SCOPE;
+                    }
+                }
+            }
+            this.scopedStaticParameterCount = count;
+            if (count > 0) {
+                assert scopedParams != null;
+                this.scopedStaticParameters = scopedParams;
+            } else {
+                this.scopedStaticParameters = EMTPY_SCOPED_PARAMETERS;
+            }
+        }
+
+        private SingleMethod(boolean varArgs, Class<?>[] parameterTypes, Type[] genericParameterTypes, int[] scopedStaticParameters, int scopedStaticParameterCount) {
+            this.varArgs = varArgs;
+            this.parameterTypes = parameterTypes;
+            this.genericParameterTypes = genericParameterTypes;
+            this.scopedStaticParameters = scopedStaticParameters;
+            this.scopedStaticParameterCount = scopedStaticParameterCount;
+        }
+
+        private static boolean isScoped(Class<?> c) {
+            if (c.isPrimitive()) {
+                return false;
+            }
+            for (Class<?> unscopedType : UNSCOPED_TYPES) {
+                if (c.isAssignableFrom(unscopedType)) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         public abstract Executable getReflectionMethod();
@@ -90,8 +136,6 @@ abstract class HostMethodDesc {
         public final boolean isVarArgs() {
             return varArgs;
         }
-
-        public abstract Class<?> getReturnType();
 
         public final Class<?>[] getParameterTypes() {
             return parameterTypes;
@@ -103,6 +147,18 @@ abstract class HostMethodDesc {
 
         public Type[] getGenericParameterTypes() {
             return genericParameterTypes;
+        }
+
+        public final boolean hasScopedParameters() {
+            return scopedStaticParameterCount > 0;
+        }
+
+        public final int[] getScopedParameters() {
+            return this.scopedStaticParameters;
+        }
+
+        public final int getScopedParameterCount() {
+            return scopedStaticParameterCount;
         }
 
         @Override
@@ -129,21 +185,21 @@ abstract class HostMethodDesc {
             return getReflectionMethod() instanceof Constructor<?>;
         }
 
-        static SingleMethod unreflect(Method reflectionMethod) {
+        static SingleMethod unreflect(Method reflectionMethod, boolean scoped) {
             assert isAccessible(reflectionMethod);
             if (TruffleOptions.AOT || isCallerSensitive(reflectionMethod)) {
-                return new MethodReflectImpl(reflectionMethod);
+                return new MethodReflectImpl(reflectionMethod, scoped);
             } else {
-                return new MethodMHImpl(reflectionMethod);
+                return new MethodMHImpl(reflectionMethod, scoped);
             }
         }
 
-        static SingleMethod unreflect(Constructor<?> reflectionConstructor) {
+        static SingleMethod unreflect(Constructor<?> reflectionConstructor, boolean scoped) {
             assert isAccessible(reflectionConstructor);
             if (TruffleOptions.AOT || isCallerSensitive(reflectionConstructor)) {
-                return new ConstructorReflectImpl(reflectionConstructor);
+                return new ConstructorReflectImpl(reflectionConstructor, scoped);
             } else {
-                return new ConstructorMHImpl(reflectionConstructor);
+                return new ConstructorMHImpl(reflectionConstructor, scoped);
             }
         }
 
@@ -170,8 +226,8 @@ abstract class HostMethodDesc {
 
         abstract static class ReflectBase extends SingleMethod {
 
-            ReflectBase(Executable executable) {
-                super(executable);
+            ReflectBase(Executable executable, boolean scoped) {
+                super(executable, scoped);
             }
 
             @Override
@@ -185,8 +241,8 @@ abstract class HostMethodDesc {
         private static final class MethodReflectImpl extends ReflectBase {
             private final Method reflectionMethod;
 
-            MethodReflectImpl(Method reflectionMethod) {
-                super(reflectionMethod);
+            MethodReflectImpl(Method reflectionMethod, boolean scoped) {
+                super(reflectionMethod, scoped);
                 this.reflectionMethod = reflectionMethod;
             }
 
@@ -214,11 +270,6 @@ abstract class HostMethodDesc {
             }
 
             @Override
-            public Class<?> getReturnType() {
-                return getReflectionMethod().getReturnType();
-            }
-
-            @Override
             public boolean isInternal() {
                 return getReflectionMethod().getDeclaringClass() == Object.class;
             }
@@ -227,8 +278,8 @@ abstract class HostMethodDesc {
         private static final class ConstructorReflectImpl extends ReflectBase {
             private final Constructor<?> reflectionConstructor;
 
-            ConstructorReflectImpl(Constructor<?> reflectionConstructor) {
-                super(reflectionConstructor);
+            ConstructorReflectImpl(Constructor<?> reflectionConstructor, boolean scoped) {
+                super(reflectionConstructor, scoped);
                 this.reflectionConstructor = reflectionConstructor;
             }
 
@@ -255,17 +306,13 @@ abstract class HostMethodDesc {
                 return reflectionConstructor.newInstance(arguments);
             }
 
-            @Override
-            public Class<?> getReturnType() {
-                return getReflectionMethod().getDeclaringClass();
-            }
         }
 
         abstract static class MHBase extends SingleMethod {
             @CompilationFinal private MethodHandle methodHandle;
 
-            MHBase(Executable executable) {
-                super(executable);
+            MHBase(Executable executable, boolean scoped) {
+                super(executable, scoped);
             }
 
             @Override
@@ -320,8 +367,8 @@ abstract class HostMethodDesc {
         private static final class MethodMHImpl extends MHBase {
             private final Method reflectionMethod;
 
-            MethodMHImpl(Method reflectionMethod) {
-                super(reflectionMethod);
+            MethodMHImpl(Method reflectionMethod, boolean scoped) {
+                super(reflectionMethod, scoped);
                 this.reflectionMethod = reflectionMethod;
             }
 
@@ -329,11 +376,6 @@ abstract class HostMethodDesc {
             public Method getReflectionMethod() {
                 CompilerAsserts.neverPartOfCompilation();
                 return reflectionMethod;
-            }
-
-            @Override
-            public Class<?> getReturnType() {
-                return getReflectionMethod().getReturnType();
             }
 
             @Override
@@ -357,8 +399,8 @@ abstract class HostMethodDesc {
         private static final class ConstructorMHImpl extends MHBase {
             private final Constructor<?> reflectionConstructor;
 
-            ConstructorMHImpl(Constructor<?> reflectionConstructor) {
-                super(reflectionConstructor);
+            ConstructorMHImpl(Constructor<?> reflectionConstructor, boolean scoped) {
+                super(reflectionConstructor, scoped);
                 this.reflectionConstructor = reflectionConstructor;
             }
 
@@ -366,11 +408,6 @@ abstract class HostMethodDesc {
             public Constructor<?> getReflectionMethod() {
                 CompilerAsserts.neverPartOfCompilation();
                 return reflectionConstructor;
-            }
-
-            @Override
-            public Class<?> getReturnType() {
-                return getReflectionMethod().getDeclaringClass();
             }
 
             @Override
@@ -383,6 +420,44 @@ abstract class HostMethodDesc {
                 } catch (IllegalAccessException e) {
                     throw new IllegalStateException(e);
                 }
+            }
+        }
+
+        static final class SyntheticArrayCloneMethod extends SingleMethod {
+            static final SyntheticArrayCloneMethod SINGLETON = new SyntheticArrayCloneMethod();
+
+            private SyntheticArrayCloneMethod() {
+                super(false, new Class<?>[0], new Type[0], EMTPY_SCOPED_PARAMETERS, 0);
+            }
+
+            @Override
+            public String getName() {
+                return "clone";
+            }
+
+            @Override
+            public String toString() {
+                return "Method[clone]";
+            }
+
+            @Override
+            public Executable getReflectionMethod() {
+                throw CompilerDirectives.shouldNotReachHere();
+            }
+
+            @Override
+            public Object invoke(Object receiver, Object[] arguments) {
+                assert receiver != null && receiver.getClass().isArray() && arguments.length == 0;
+                // Object#clone() is protected so clone the array via reflection.
+                int length = Array.getLength(receiver);
+                Object copy = Array.newInstance(receiver.getClass().getComponentType(), length);
+                System.arraycopy(receiver, 0, copy, 0, length);
+                return copy;
+            }
+
+            @Override
+            public Object invokeGuestToHost(Object receiver, Object[] arguments, GuestToHostCodeCache cache, HostContext context, Node node) {
+                return HostObject.forObject(invoke(receiver, arguments), context);
             }
         }
     }

@@ -35,9 +35,9 @@ suite = {
       "packedResource": True,
     },
 
-    "MICRONAUT_HW_1.0.1": {
-      "urls": ["https://lafo.ssw.uni-linz.ac.at/pub/graal-external-deps/micronaut-hello-world-1.0.1.zip"],
-      "sha1": "d933a93ac89a6b351e8fb12a32e990a3213e55ae",
+    "MICRONAUT_HW_1.0.2": {
+      "urls": ["https://lafo.ssw.uni-linz.ac.at/pub/graal-external-deps/micronaut-hello-world-1.0.2.zip"],
+      "sha1": "daba8f34099dfd884b59fe73855e74d139efe18d",
       "packedResource": True,
     },
 
@@ -75,6 +75,16 @@ suite = {
     "RENAISSANCE_0.11.0" : {
       "urls" : ["https://lafo.ssw.uni-linz.ac.at/pub/graal-external-deps/renaissance/renaissance-gpl-0.11.0.jar"],
       "sha1" : "613f7615179ea364116cdd68aa41ad44a9cc49e4",
+    },
+
+    "RENAISSANCE_0.12.0" : {
+      "urls" : ["https://lafo.ssw.uni-linz.ac.at/pub/graal-external-deps/renaissance/renaissance-gpl-0.12.0.jar"],
+      "sha1" : "5bf404f875622a714f9b5c772b52ad857b97658d",
+    },
+
+    "RENAISSANCE_0.13.0" : {
+      "urls" : ["https://lafo.ssw.uni-linz.ac.at/pub/graal-external-deps/renaissance/renaissance-gpl-0.13.0.jar"],
+      "sha1" : "65eaca6ec6ba4c7293b82644bbdefd5cb2178825",
     },
 
     "UBENCH_AGENT_DIST" : {

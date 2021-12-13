@@ -26,6 +26,7 @@ package com.oracle.truffle.tools.profiler;
 
 import java.io.Closeable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -35,18 +36,17 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
-import com.oracle.truffle.api.TruffleRuntime;
-import com.oracle.truffle.api.TruffleSafepoint;
-import com.oracle.truffle.api.frame.FrameInstanceVisitor;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
 
 import com.oracle.truffle.api.TruffleContext;
+import com.oracle.truffle.api.TruffleRuntime;
+import com.oracle.truffle.api.TruffleSafepoint;
+import com.oracle.truffle.api.frame.FrameInstanceVisitor;
 import com.oracle.truffle.api.instrumentation.ContextsListener;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.instrumentation.StandardTags.RootTag;
@@ -73,32 +73,12 @@ import com.oracle.truffle.tools.profiler.impl.ProfilerToolFactory;
 public final class CPUSampler implements Closeable {
 
     static final SourceSectionFilter DEFAULT_FILTER = SourceSectionFilter.newBuilder().tagIs(RootTag.class).build();
-    private static final Supplier<Payload> PAYLOAD_FACTORY = new Supplier<Payload>() {
-        @Override
-        public Payload get() {
-            return new Payload();
-        }
-    };
-    private static final BiConsumer<Payload, Payload> MERGE_PAYLOAD = new BiConsumer<Payload, Payload>() {
-        @Override
-        public void accept(Payload sourcePayload, Payload destinationPayload) {
-            destinationPayload.selfCompiledHitCount += sourcePayload.selfCompiledHitCount;
-            destinationPayload.selfInterpretedHitCount += sourcePayload.selfInterpretedHitCount;
-            destinationPayload.compiledHitCount += sourcePayload.compiledHitCount;
-            destinationPayload.interpretedHitCount += sourcePayload.interpretedHitCount;
-            for (Long timestamp : sourcePayload.getSelfHitTimes()) {
-                destinationPayload.addSelfHitTime(timestamp);
-            }
-        }
-    };
     private static final Function<Payload, Payload> COPY_PAYLOAD = new Function<Payload, Payload>() {
         @Override
         public Payload apply(Payload sourcePayload) {
             Payload destinationPayload = new Payload();
-            destinationPayload.selfCompiledHitCount = sourcePayload.selfCompiledHitCount;
-            destinationPayload.selfInterpretedHitCount = sourcePayload.selfInterpretedHitCount;
-            destinationPayload.compiledHitCount = sourcePayload.compiledHitCount;
-            destinationPayload.interpretedHitCount = sourcePayload.interpretedHitCount;
+            destinationPayload.selfTierCount = Arrays.copyOf(sourcePayload.selfTierCount, sourcePayload.selfTierCount.length);
+            destinationPayload.tierCount = Arrays.copyOf(sourcePayload.tierCount, sourcePayload.tierCount.length);
             for (Long timestamp : sourcePayload.getSelfHitTimes()) {
                 destinationPayload.addSelfHitTime(timestamp);
             }
@@ -126,8 +106,20 @@ public final class CPUSampler implements Closeable {
     private SourceSectionFilter filter = DEFAULT_FILTER;
     private Timer samplerThread;
     private SamplingTimerTask samplerTask;
+    private Thread processingThread;
+    private ResultProcessingRunnable processingThreadRunnable;
+
     private volatile SafepointStackSampler safepointStackSampler = new SafepointStackSampler(stackLimit, filter, period);
     private boolean gatherSelfHitTimes = false;
+
+    /*
+     * The results queue will block if it exceeds the capacity. This is intentional as we do not
+     * want the sampling results to grow infinitely in the worst case. It is better if the sampling
+     * thread blocks at some point as well. However, it is very unlikely that processing takes such
+     * a long time that this actually happens, but situations like this might be more frequent when
+     * debugging.
+     */
+    private final ArrayBlockingQueue<SamplingResult> resultsToProcess = new ArrayBlockingQueue<>(256);
 
     CPUSampler(Env env) {
         this.env = env;
@@ -217,19 +209,6 @@ public final class CPUSampler implements Closeable {
     }
 
     /**
-     * Sets the {@link Mode mode} for the sampler.
-     *
-     * @param mode the new mode for the sampler.
-     * @since 0.30
-     * @deprecated Will be removed without replacement. Has now no effect.
-     */
-    @SuppressWarnings("unused")
-    @Deprecated
-    public synchronized void setMode(Mode mode) {
-        // Deprecated, a noop.
-    }
-
-    /**
      * @return the sampling period i.e. the time between two samples of the stack are taken, in
      *         milliseconds.
      * @since 0.30
@@ -292,20 +271,6 @@ public final class CPUSampler implements Closeable {
     }
 
     /**
-     * Sets the option to delay sampling until a non-internal language is initialized. Useful to
-     * avoid internal language initialisation code in the samples.
-     *
-     * @param delaySamplingUntilNonInternalLangInit Enable or disable this option.
-     * @since 0.31
-     * @deprecated Will be removed without replacement. Has now no effect.
-     */
-    @Deprecated
-    @SuppressWarnings("unused")
-    public synchronized void setDelaySamplingUntilNonInternalLangInit(boolean delaySamplingUntilNonInternalLangInit) {
-        // Deprecated, a noop.
-    }
-
-    /**
      * Enables or disables the sampling of the time spent during context initialization. If
      * <code>true</code> code executed during context initialization is included in the general
      * profile instead of grouping it into a single entry by default. If <code>false</code> a single
@@ -341,64 +306,12 @@ public final class CPUSampler implements Closeable {
     }
 
     /**
-     * @return Total number of samples taken during execution
-     * @deprecated Will be removed. Use {@link CPUSamplerData#samplesTaken} .
-     * @since 0.30
-     */
-    @Deprecated
-    public synchronized long getSampleCount() {
-        long sum = 0;
-        for (MutableSamplerData value : activeContexts.values()) {
-            sum += value.samplesTaken.get();
-        }
-        return sum;
-    }
-
-    /**
      * @return was the the maximum amount of stack frames that are sampled insufficient for the
      *         execution.
      * @since 0.30
      */
     public boolean hasStackOverflowed() {
         return safepointStackSampler.hasOverflowed();
-    }
-
-    /**
-     * Merges all the 'per thread' profiles into one set of nodes and returns it.
-     *
-     * @return The roots of the trees representing the profile of the execution.
-     * @deprecated Use {@link #getData()}.
-     * @since 0.30
-     */
-    @Deprecated
-    public synchronized Collection<ProfilerNode<Payload>> getRootNodes() {
-        ProfilerNode<Payload> mergedRoot = new ProfilerNode<>();
-        Map<Thread, Collection<ProfilerNode<Payload>>> threadToNodes = getThreadToNodesMap();
-        for (Collection<ProfilerNode<Payload>> nodes : threadToNodes.values()) {
-            for (ProfilerNode<Payload> node : nodes) {
-                mergedRoot.deepMergeNodeToChildren(node, MERGE_PAYLOAD, PAYLOAD_FACTORY);
-            }
-        }
-        return mergedRoot.getChildren();
-    }
-
-    /**
-     * @return The roots of the trees representing the profile of the execution per thread.
-     * @deprecated Use {@link #getData()}.
-     * @since 19.0
-     */
-    @Deprecated
-    public synchronized Map<Thread, Collection<ProfilerNode<Payload>>> getThreadToNodesMap() {
-        if (activeContexts.isEmpty()) {
-            return Collections.emptyMap();
-        }
-        Map<Thread, Collection<ProfilerNode<Payload>>> returnValue = new HashMap<>();
-        for (Map.Entry<Thread, ProfilerNode<Payload>> entry : activeContexts.values().iterator().next().threadData.entrySet()) {
-            ProfilerNode<Payload> copy = new ProfilerNode<>();
-            copy.deepCopyChildrenFrom(entry.getValue(), COPY_PAYLOAD);
-            returnValue.put(entry.getKey(), copy.getChildren());
-        }
-        return Collections.unmodifiableMap(returnValue);
     }
 
     /**
@@ -508,6 +421,9 @@ public final class CPUSampler implements Closeable {
                 return Collections.emptyMap();
             }
             TruffleContext context = activeContexts.keySet().iterator().next();
+            if (context.isActive()) {
+                throw new IllegalArgumentException("Cannot sample a context that is currently active on the current thread.");
+            }
             Map<Thread, List<StackTraceEntry>> stacks = new HashMap<>();
             List<StackSample> sample = safepointStackSampler.sample(env, context, activeContexts.get(context), !sampleContextInitialization);
             for (StackSample stackSample : sample) {
@@ -524,12 +440,19 @@ public final class CPUSampler implements Closeable {
         if (!collecting || closed) {
             return;
         }
+        if (processingThread == null) {
+            processingThreadRunnable = new ResultProcessingRunnable();
+            processingThread = new Thread(processingThreadRunnable, "Sampling Processing Thread");
+            processingThread.setDaemon(true);
+        }
+        this.processingThread.start();
         if (samplerThread == null) {
             samplerThread = new Timer("Sampling thread", true);
         }
         this.safepointStackSampler = new SafepointStackSampler(stackLimit, filter, period);
         this.samplerTask = new SamplingTimerTask();
-        this.samplerThread.schedule(samplerTask, delay, period);
+        this.samplerThread.scheduleAtFixedRate(samplerTask, delay, period);
+
     }
 
     private void cleanup() {
@@ -541,6 +464,11 @@ public final class CPUSampler implements Closeable {
         if (samplerThread != null) {
             samplerThread.cancel();
             samplerThread = null;
+        }
+        if (processingThread != null) {
+            processingThreadRunnable.cancelled = true;
+            processingThread.interrupt();
+            processingThread = null;
         }
     }
 
@@ -558,38 +486,6 @@ public final class CPUSampler implements Closeable {
     }
 
     /**
-     * Describes the different modes in which the CPU sampler can operate.
-     *
-     * @deprecated Will be removed without replacement.
-     * @since 0.30
-     */
-    @Deprecated
-    public enum Mode {
-        /**
-         * Sample {@link RootTag Roots} <b>excluding</b> the ones that get inlined during
-         * compilation. This mode is the default and has the least amount of impact on peak
-         * performance.
-         *
-         * @since 0.30
-         */
-        EXCLUDE_INLINED_ROOTS,
-        /**
-         * Sample {@link RootTag Roots} <b>including</b> the ones that get inlined during
-         * compilation.
-         *
-         * @since 0.30
-         */
-        ROOTS,
-        /**
-         * Sample all {@link com.oracle.truffle.api.instrumentation.StandardTags.StatementTag
-         * Statements}. This mode has serious impact on peek performance.
-         *
-         * @since 0.30
-         */
-        STATEMENTS
-    }
-
-    /**
      * Wrapper for information on how many times an element was seen on the stack. Used as a
      * template parameter of {@link ProfilerNode}. Differentiates between an execution in compiled
      * code and in the interpreter.
@@ -599,49 +495,43 @@ public final class CPUSampler implements Closeable {
     public static final class Payload {
 
         final List<Long> selfHitTimes = new ArrayList<>();
-        int compiledHitCount;
-        int interpretedHitCount;
-
-        int selfCompiledHitCount;
-        int selfInterpretedHitCount;
+        int[] tierCount = new int[0];
+        int[] selfTierCount = new int[0];
 
         Payload() {
         }
 
         /**
-         * @return The number of times the element was found below the top of the stack as compiled
-         *         code
-         * @since 0.30
+         * @return The number of compilation tiers this element was recorded in. Tier 0 is the
+         *         interpreter.
+         * @since 21.3.0
          */
-        public int getCompiledHitCount() {
-            return compiledHitCount;
+        public int getNumberOfTiers() {
+            return Math.max(selfTierCount.length, tierCount.length);
         }
 
         /**
-         * @return The number of times the element was found bellow the top of the stack as
-         *         interpreted code
-         * @since 0.30
+         * @return The number of times this element was recorded on top of the stack, executing in
+         *         the given compilation tier.
+         * @since 21.3.0
          */
-        public int getInterpretedHitCount() {
-            return interpretedHitCount;
+        public int getTierSelfCount(int tier) {
+            if (tier >= selfTierCount.length) {
+                return 0;
+            }
+            return selfTierCount[tier];
         }
 
         /**
-         * @return The number of times the element was found on the top of the stack as compiled
-         *         code
-         * @since 0.30
+         * @return The number of times this element was recorded anywhere on the stack, executing in
+         *         the given compilation tier.
+         * @since 21.3.0
          */
-        public int getSelfCompiledHitCount() {
-            return selfCompiledHitCount;
-        }
-
-        /**
-         * @return The number of times the element was found on the top of the stack as interpreted
-         *         code
-         * @since 0.30
-         */
-        public int getSelfInterpretedHitCount() {
-            return selfInterpretedHitCount;
+        public int getTierTotalCount(int tier) {
+            if (tier >= tierCount.length) {
+                return 0;
+            }
+            return tierCount[tier];
         }
 
         /**
@@ -649,7 +539,11 @@ public final class CPUSampler implements Closeable {
          * @since 0.30
          */
         public int getSelfHitCount() {
-            return selfCompiledHitCount + selfInterpretedHitCount;
+            int sum = 0;
+            for (int count : selfTierCount) {
+                sum += count;
+            }
+            return sum;
         }
 
         /**
@@ -657,7 +551,11 @@ public final class CPUSampler implements Closeable {
          * @since 0.30
          */
         public int getHitCount() {
-            return compiledHitCount + interpretedHitCount;
+            int sum = 0;
+            for (int count : tierCount) {
+                sum += count;
+            }
+            return sum;
         }
 
         /**
@@ -674,34 +572,48 @@ public final class CPUSampler implements Closeable {
         }
     }
 
-    private class SamplingTimerTask extends TimerTask {
+    /*
+     * Process samples in a separate thread to avoid further delays during sampling and increase
+     * accuracy.
+     */
+    private class ResultProcessingRunnable implements Runnable {
 
-        @Override
+        private volatile boolean cancelled;
+
         public void run() {
-            long taskStartTime = System.currentTimeMillis();
-            for (TruffleContext context : contexts()) {
-                if (context.isClosed()) {
-                    continue;
+            while (true) {
+                if (cancelled) {
+                    return;
                 }
-                List<StackSample> samples = safepointStackSampler.sample(env, context, activeContexts.get(context), !sampleContextInitialization);
-                synchronized (CPUSampler.this) {
-                    if (!collecting) {
-                        return;
-                    }
-                    if (context.isClosed()) {
+                SamplingResult result = null;
+                try {
+                    result = resultsToProcess.take();
+                } catch (InterruptedException e) {
+                    // check for cancelled
+                }
+                if (cancelled) {
+                    return;
+                }
+                if (result != null) {
+                    if (result.context.isClosed()) {
                         continue;
                     }
-                    final MutableSamplerData mutableSamplerData = activeContexts.get(context);
-                    for (StackSample sample : samples) {
-                        mutableSamplerData.biasStatistic.accept(sample.biasNs);
-                        mutableSamplerData.durationStatistic.accept(sample.durationNs);
-                        ProfilerNode<Payload> threadNode = mutableSamplerData.threadData.computeIfAbsent(sample.thread, new Function<Thread, ProfilerNode<Payload>>() {
-                            @Override
-                            public ProfilerNode<Payload> apply(Thread thread) {
-                                return new ProfilerNode<>();
-                            }
-                        });
-                        record(sample, threadNode, taskStartTime, mutableSamplerData);
+                    synchronized (CPUSampler.this) {
+                        if (!collecting) {
+                            return;
+                        }
+                        final MutableSamplerData mutableSamplerData = activeContexts.get(result.context);
+                        for (StackSample sample : result.samples) {
+                            mutableSamplerData.biasStatistic.accept(sample.biasNs);
+                            mutableSamplerData.durationStatistic.accept(sample.durationNs);
+                            ProfilerNode<Payload> threadNode = mutableSamplerData.threadData.computeIfAbsent(sample.thread, new Function<Thread, ProfilerNode<Payload>>() {
+                                @Override
+                                public ProfilerNode<Payload> apply(Thread thread) {
+                                    return new ProfilerNode<>();
+                                }
+                            });
+                            record(sample, threadNode, result.startTime, mutableSamplerData);
+                        }
                     }
                 }
             }
@@ -711,31 +623,44 @@ public final class CPUSampler implements Closeable {
             if (sample.stack.size() == 0) {
                 return;
             }
-            // now traverse the stack and insert the path into the tree
+            if (syntheticOnly(sample)) {
+                return;
+            }
             ProfilerNode<Payload> treeNode = threadNode;
             for (int i = sample.stack.size() - 1; i >= 0; i--) {
                 StackTraceEntry location = sample.stack.get(i);
                 treeNode = addOrUpdateChild(treeNode, location);
                 Payload payload = treeNode.getPayload();
-                boolean isCompiled = location.isCompiled();
-                if (i == 0) {
-                    if (isCompiled) {
-                        payload.selfCompiledHitCount++;
-                    } else {
-                        payload.selfInterpretedHitCount++;
-                    }
-                    if (gatherSelfHitTimes) {
-                        payload.selfHitTimes.add(timestamp);
-                        assert payload.selfHitTimes.size() == payload.getSelfHitCount();
-                    }
-                }
-                if (isCompiled) {
-                    payload.compiledHitCount++;
-                } else {
-                    payload.interpretedHitCount++;
-                }
+                recordCompilationInfo(location, payload, i == 0, timestamp);
             }
             mutableSamplerData.samplesTaken.incrementAndGet();
+        }
+
+        private boolean syntheticOnly(StackSample sample) {
+            for (StackTraceEntry entry : sample.stack) {
+                if (!entry.isSynthetic()) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private void recordCompilationInfo(StackTraceEntry location, Payload payload, boolean topOfStack, long timestamp) {
+            int tier = location.getTier();
+            if (topOfStack) {
+                if (payload.selfTierCount.length < tier + 1) {
+                    payload.selfTierCount = Arrays.copyOf(payload.selfTierCount, tier + 1);
+                }
+                payload.selfTierCount[tier]++;
+                if (gatherSelfHitTimes) {
+                    payload.selfHitTimes.add(timestamp);
+                    assert payload.selfHitTimes.size() == payload.getSelfHitCount();
+                }
+            }
+            if (payload.tierCount.length < tier + 1) {
+                payload.tierCount = Arrays.copyOf(payload.tierCount, tier + 1);
+            }
+            payload.tierCount[tier]++;
         }
 
         private ProfilerNode<Payload> addOrUpdateChild(ProfilerNode<Payload> treeNode, StackTraceEntry location) {
@@ -747,6 +672,37 @@ public final class CPUSampler implements Closeable {
             }
             return child;
         }
+
+    }
+
+    static class SamplingResult {
+
+        final List<StackSample> samples;
+        final TruffleContext context;
+        final long startTime;
+
+        SamplingResult(List<StackSample> samples, TruffleContext context, long startTime) {
+            this.samples = samples;
+            this.context = context;
+            this.startTime = startTime;
+        }
+
+    }
+
+    private class SamplingTimerTask extends TimerTask {
+
+        @Override
+        public void run() {
+            long taskStartTime = System.currentTimeMillis();
+            for (TruffleContext context : contexts()) {
+                if (context.isClosed()) {
+                    continue;
+                }
+                List<StackSample> samples = safepointStackSampler.sample(env, context, activeContexts.get(context), !sampleContextInitialization);
+                resultsToProcess.add(new SamplingResult(samples, context, taskStartTime));
+            }
+        }
+
     }
 
     static class MutableSamplerData {

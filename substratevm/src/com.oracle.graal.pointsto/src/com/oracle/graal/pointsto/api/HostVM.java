@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,7 +26,6 @@ package com.oracle.graal.pointsto.api;
 
 import java.lang.reflect.AnnotatedElement;
 import java.util.Optional;
-import java.util.concurrent.ForkJoinPool;
 
 import org.graalvm.compiler.core.common.spi.ForeignCallDescriptor;
 import org.graalvm.compiler.core.common.spi.ForeignCallsProvider;
@@ -38,6 +37,7 @@ import org.graalvm.compiler.options.OptionValues;
 import org.graalvm.compiler.phases.OptimisticOptimizations;
 
 import com.oracle.graal.pointsto.BigBang;
+import com.oracle.graal.pointsto.PointsToAnalysis;
 import com.oracle.graal.pointsto.meta.AnalysisMethod;
 import com.oracle.graal.pointsto.meta.AnalysisType;
 import com.oracle.graal.pointsto.meta.AnalysisUniverse;
@@ -53,8 +53,6 @@ import jdk.vm.ci.meta.ResolvedJavaType;
 public interface HostVM {
 
     OptionValues options();
-
-    ForkJoinPool executor();
 
     boolean isRelocatedPointer(Object originalObject);
 
@@ -106,7 +104,7 @@ public interface HostVM {
 
     void methodAfterParsingHook(BigBang bb, AnalysisMethod method, StructuredGraph graph);
 
-    void methodBeforeTypeFlowCreationHook(BigBang bb, AnalysisMethod method, StructuredGraph graph);
+    void methodBeforeTypeFlowCreationHook(PointsToAnalysis bb, AnalysisMethod method, StructuredGraph graph);
 
     default boolean hasNeverInlineDirective(@SuppressWarnings("unused") ResolvedJavaMethod method) {
         /* No inlining by the static analysis unless explicitly overwritten by the VM. */

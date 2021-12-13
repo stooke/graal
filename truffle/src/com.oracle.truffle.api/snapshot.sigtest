@@ -213,7 +213,7 @@ cons protected init(boolean,boolean,boolean)
 innr public abstract static Access
 meth protected abstract void perform(com.oracle.truffle.api.ThreadLocalAction$Access)
 supr java.lang.Object
-hfds recurring,hasSideEffects,synchronous
+hfds hasSideEffects,recurring,synchronous
 
 CLSS public abstract static com.oracle.truffle.api.ThreadLocalAction$Access
  outer com.oracle.truffle.api.ThreadLocalAction
@@ -236,6 +236,7 @@ meth public boolean isActive()
 meth public boolean isCancelling()
 meth public boolean isClosed()
 meth public boolean isEntered()
+meth public boolean isExiting()
 meth public com.oracle.truffle.api.TruffleContext getParent()
 meth public int hashCode()
 meth public java.lang.Object enter()
@@ -246,6 +247,7 @@ meth public java.lang.Object evalPublic(com.oracle.truffle.api.nodes.Node,com.or
 meth public java.util.concurrent.Future<java.lang.Void> pause()
 meth public void close()
 meth public void closeCancelled(com.oracle.truffle.api.nodes.Node,java.lang.String)
+meth public void closeExited(com.oracle.truffle.api.nodes.Node,int)
 meth public void closeResourceExhausted(com.oracle.truffle.api.nodes.Node,java.lang.String)
 meth public void leave(com.oracle.truffle.api.nodes.Node,java.lang.Object)
 meth public void leave(java.lang.Object)
@@ -402,6 +404,7 @@ innr public abstract interface static Provider
 innr public abstract static ContextReference
 innr public abstract static LanguageReference
 innr public final static !enum ContextPolicy
+innr public final static !enum ExitMode
 innr public final static Env
 innr public final static InlineParsingRequest
 innr public final static ParsingRequest
@@ -445,15 +448,14 @@ meth protected static <%0 extends java.lang.Object, %1 extends com.oracle.truffl
  anno 0 java.lang.Deprecated()
 meth protected void disposeContext({com.oracle.truffle.api.TruffleLanguage%0})
 meth protected void disposeThread({com.oracle.truffle.api.TruffleLanguage%0},java.lang.Thread)
+meth protected void exitContext({com.oracle.truffle.api.TruffleLanguage%0},com.oracle.truffle.api.TruffleLanguage$ExitMode,int)
 meth protected void finalizeContext({com.oracle.truffle.api.TruffleLanguage%0})
 meth protected void initializeContext({com.oracle.truffle.api.TruffleLanguage%0}) throws java.lang.Exception
 meth protected void initializeMultiThreading({com.oracle.truffle.api.TruffleLanguage%0})
 meth protected void initializeMultipleContexts()
 meth protected void initializeThread({com.oracle.truffle.api.TruffleLanguage%0},java.lang.Thread)
-meth public final com.oracle.truffle.api.TruffleLanguage$ContextReference<{com.oracle.truffle.api.TruffleLanguage%0}> getContextReference()
- anno 0 java.lang.Deprecated()
 supr java.lang.Object
-hfds contextLocals,contextThreadLocals,languageInfo,polyglotLanguageInstance,reference
+hfds contextLocals,contextThreadLocals,languageInfo,polyglotLanguageInstance
 
 CLSS protected abstract interface static com.oracle.truffle.api.TruffleLanguage$ContextLocalFactory<%0 extends java.lang.Object, %1 extends java.lang.Object>
  outer com.oracle.truffle.api.TruffleLanguage
@@ -560,6 +562,14 @@ meth public void setCurrentWorkingDirectory(com.oracle.truffle.api.TruffleFile)
 supr java.lang.Object
 hfds UNSET_CONTEXT,applicationArguments,config,context,contextUnchangedAssumption,err,in,initialized,initializedUnchangedAssumption,languageServicesCollector,options,out,polyglotLanguageContext,services,spi,valid
 hcls TruffleFileFactory
+
+CLSS public final static !enum com.oracle.truffle.api.TruffleLanguage$ExitMode
+ outer com.oracle.truffle.api.TruffleLanguage
+fld public final static com.oracle.truffle.api.TruffleLanguage$ExitMode HARD
+fld public final static com.oracle.truffle.api.TruffleLanguage$ExitMode NATURAL
+meth public static com.oracle.truffle.api.TruffleLanguage$ExitMode valueOf(java.lang.String)
+meth public static com.oracle.truffle.api.TruffleLanguage$ExitMode[] values()
+supr java.lang.Enum<com.oracle.truffle.api.TruffleLanguage$ExitMode>
 
 CLSS public final static com.oracle.truffle.api.TruffleLanguage$InlineParsingRequest
  outer com.oracle.truffle.api.TruffleLanguage
@@ -671,6 +681,7 @@ meth public abstract com.oracle.truffle.api.Assumption createAssumption()
 meth public abstract com.oracle.truffle.api.Assumption createAssumption(java.lang.String)
 meth public abstract com.oracle.truffle.api.CompilerOptions createCompilerOptions()
 meth public abstract com.oracle.truffle.api.RootCallTarget createCallTarget(com.oracle.truffle.api.nodes.RootNode)
+ anno 0 java.lang.Deprecated()
 meth public abstract com.oracle.truffle.api.frame.FrameInstance getCallerFrame()
 meth public abstract com.oracle.truffle.api.frame.FrameInstance getCurrentFrame()
 meth public abstract com.oracle.truffle.api.frame.MaterializedFrame createMaterializedFrame(java.lang.Object[])
@@ -935,6 +946,17 @@ meth public int executeInt(com.oracle.truffle.api.frame.VirtualFrame,{com.oracle
 meth public java.lang.Object executeGeneric(com.oracle.truffle.api.frame.VirtualFrame,{com.oracle.truffle.api.nodes.BlockNode$ElementExecutor%0},int,int)
 meth public long executeLong(com.oracle.truffle.api.frame.VirtualFrame,{com.oracle.truffle.api.nodes.BlockNode$ElementExecutor%0},int,int) throws com.oracle.truffle.api.nodes.UnexpectedResultException
 meth public short executeShort(com.oracle.truffle.api.frame.VirtualFrame,{com.oracle.truffle.api.nodes.BlockNode$ElementExecutor%0},int,int) throws com.oracle.truffle.api.nodes.UnexpectedResultException
+
+CLSS public abstract interface com.oracle.truffle.api.nodes.BytecodeOSRNode
+intf com.oracle.truffle.api.nodes.NodeInterface
+meth public abstract java.lang.Object executeOSR(com.oracle.truffle.api.frame.VirtualFrame,int,java.lang.Object)
+meth public abstract java.lang.Object getOSRMetadata()
+meth public abstract void setOSRMetadata(java.lang.Object)
+meth public static boolean pollOSRBackEdge(com.oracle.truffle.api.nodes.BytecodeOSRNode)
+meth public static java.lang.Object tryOSR(com.oracle.truffle.api.nodes.BytecodeOSRNode,int,java.lang.Object,java.lang.Runnable,com.oracle.truffle.api.frame.VirtualFrame)
+meth public void copyIntoOSRFrame(com.oracle.truffle.api.frame.VirtualFrame,com.oracle.truffle.api.frame.VirtualFrame,int)
+meth public void prepareOSR(int)
+meth public void restoreParentFrame(com.oracle.truffle.api.frame.VirtualFrame,com.oracle.truffle.api.frame.VirtualFrame)
 
 CLSS public com.oracle.truffle.api.nodes.ControlFlowException
 cons public init()
@@ -1316,6 +1338,7 @@ meth protected boolean isTrivial()
 meth protected com.oracle.truffle.api.nodes.ExecutionSignature prepareForAOT()
 meth protected com.oracle.truffle.api.nodes.RootNode cloneUninitialized()
 meth protected final void setCallTarget(com.oracle.truffle.api.RootCallTarget)
+ anno 0 java.lang.Deprecated()
 meth protected java.lang.Object translateStackTraceElement(com.oracle.truffle.api.TruffleStackTraceElement)
 meth protected java.util.List<com.oracle.truffle.api.TruffleStackTraceElement> findAsynchronousFrames(com.oracle.truffle.api.frame.Frame)
 meth public abstract java.lang.Object execute(com.oracle.truffle.api.frame.VirtualFrame)

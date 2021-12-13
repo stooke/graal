@@ -87,6 +87,7 @@ import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.oracle.truffle.api.CallTarget;
@@ -95,7 +96,6 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.InstrumentInfo;
 import com.oracle.truffle.api.Option;
-import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleContext;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.ContextPolicy;
@@ -121,10 +121,16 @@ import com.oracle.truffle.api.test.polyglot.LanguageSPITest.ServiceTestLanguage.
 import com.oracle.truffle.api.test.polyglot.LanguageSPITest.ServiceTestLanguage.LanguageSPITestLanguageService3;
 import com.oracle.truffle.api.test.polyglot.LanguageSPITestLanguage.LanguageContext;
 import com.oracle.truffle.tck.tests.ValueAssert;
+import com.oracle.truffle.tck.tests.TruffleTestAssumptions;
 
 public class LanguageSPITest {
 
     static LanguageContext langContext;
+
+    @BeforeClass
+    public static void runWithWeakEncapsulationOnly() {
+        TruffleTestAssumptions.assumeWeakEncapsulation();
+    }
 
     @After
     public void cleanup() {
@@ -814,7 +820,7 @@ public class LanguageSPITest {
         protected CallTarget parse(ParsingRequest request) throws Exception {
             executionIndex++;
             parseCalled.add(request.getSource());
-            return Truffle.getRuntime().createCallTarget(RootNode.createConstantNode(42));
+            return RootNode.createConstantNode(42).getCallTarget();
         }
 
         @Override
@@ -1222,7 +1228,7 @@ public class LanguageSPITest {
 
             @Override
             protected CallTarget parse(com.oracle.truffle.api.TruffleLanguage.ParsingRequest request) throws Exception {
-                return Truffle.getRuntime().createCallTarget(RootNode.createConstantNode(testObject));
+                return RootNode.createConstantNode(testObject).getCallTarget();
             }
 
             @Override
@@ -1845,12 +1851,12 @@ public class LanguageSPITest {
         ProxyLanguage.setDelegate(new ProxyLanguage() {
             @Override
             protected CallTarget parse(ParsingRequest request) throws Exception {
-                return Truffle.getRuntime().createCallTarget(new RootNode(languageInstance) {
+                return new RootNode(languageInstance) {
                     @Override
                     public Object execute(VirtualFrame frame) {
                         return LanguageContext.get(this).env.getPolyglotBindings();
                     }
-                });
+                }.getCallTarget();
             }
         });
 
@@ -1883,12 +1889,12 @@ public class LanguageSPITest {
 
             @Override
             protected CallTarget parse(ParsingRequest request) throws Exception {
-                return Truffle.getRuntime().createCallTarget(new RootNode(languageInstance) {
+                return new RootNode(languageInstance) {
                     @Override
                     public Object execute(VirtualFrame frame) {
                         return LanguageContext.get(this).env.getPolyglotBindings();
                     }
-                });
+                }.getCallTarget();
             }
         });
 
@@ -1931,7 +1937,7 @@ public class LanguageSPITest {
         ProxyLanguage.setDelegate(new ProxyLanguage() {
             @Override
             protected CallTarget parse(TruffleLanguage.ParsingRequest request) throws Exception {
-                return Truffle.getRuntime().createCallTarget(RootNode.createConstantNode(new SourceHolder(request.getSource())));
+                return RootNode.createConstantNode(new SourceHolder(request.getSource())).getCallTarget();
             }
 
             @Override
@@ -1968,7 +1974,7 @@ public class LanguageSPITest {
         ProxyLanguage.setDelegate(new ProxyLanguage() {
             @Override
             protected CallTarget parse(TruffleLanguage.ParsingRequest request) throws Exception {
-                return Truffle.getRuntime().createCallTarget(RootNode.createConstantNode(new SourceHolder(request.getSource())));
+                return RootNode.createConstantNode(new SourceHolder(request.getSource())).getCallTarget();
             }
 
             @Override
@@ -2109,7 +2115,7 @@ public class LanguageSPITest {
                 } catch (IllegalStateException e) {
                     // expected
                 }
-                return Truffle.getRuntime().createCallTarget(RootNode.createConstantNode(true));
+                return RootNode.createConstantNode(true).getCallTarget();
             }
         };
         ProxyLanguage.setDelegate(registerServiceLanguage);
@@ -2201,7 +2207,7 @@ public class LanguageSPITest {
         ProxyLanguage.setDelegate(new ProxyLanguage() {
             @Override
             protected CallTarget parse(TruffleLanguage.ParsingRequest request) throws Exception {
-                return Truffle.getRuntime().createCallTarget(new RootNode(languageInstance) {
+                return new RootNode(languageInstance) {
                     @Override
                     public Object execute(VirtualFrame frame) {
                         Env env = LanguageContext.get(this).getEnv();
@@ -2214,7 +2220,7 @@ public class LanguageSPITest {
                         }
                         return true;
                     }
-                });
+                }.getCallTarget();
             }
         });
         assertTrue(context.eval(ProxyLanguage.ID, "").asBoolean());
@@ -2239,7 +2245,7 @@ public class LanguageSPITest {
         ProxyLanguage.setDelegate(new ProxyLanguage() {
             @Override
             protected CallTarget parse(TruffleLanguage.ParsingRequest request) throws Exception {
-                return Truffle.getRuntime().createCallTarget(new RootNode(languageInstance) {
+                return new RootNode(languageInstance) {
                     @Override
                     public Object execute(VirtualFrame frame) {
                         Env env = LanguageContext.get(this).getEnv();
@@ -2253,7 +2259,7 @@ public class LanguageSPITest {
                         assertTrue(verifier.get());
                         return true;
                     }
-                });
+                }.getCallTarget();
             }
         });
         assertTrue(context.eval(ProxyLanguage.ID, "").asBoolean());
@@ -2322,7 +2328,7 @@ public class LanguageSPITest {
 
         @Override
         protected CallTarget parse(ParsingRequest request) throws Exception {
-            return Truffle.getRuntime().createCallTarget(RootNode.createConstantNode(true));
+            return RootNode.createConstantNode(true).getCallTarget();
         }
 
         abstract LanguageInfo getLanguageInfo(Env env);
@@ -2405,7 +2411,7 @@ public class LanguageSPITest {
 
         @Override
         protected CallTarget parse(ParsingRequest request) throws Exception {
-            return Truffle.getRuntime().createCallTarget(RootNode.createConstantNode(42));
+            return RootNode.createConstantNode(42).getCallTarget();
         }
 
         @Override

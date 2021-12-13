@@ -232,7 +232,7 @@ public abstract class TruffleInstrument {
      * }
      *
      * &#64;Registration(...)
-     * class MyInstrument extends TruffleInstruement {
+     * class MyInstrument extends TruffleInstrument {
      *
      *   static final OptionDescriptors CONTEXT_OPTIONS = new MyContextOptionDescriptors();
      *
@@ -708,8 +708,9 @@ public abstract class TruffleInstrument {
          */
         public CallTarget parse(Source source, String... argumentNames) throws IOException {
             try {
-                TruffleLanguage.Env env = InstrumentAccessor.engineAccess().getEnvForInstrument(source.getLanguage(), source.getMimeType());
-                return InstrumentAccessor.langAccess().parse(env, source, null, argumentNames);
+                TruffleLanguage.Env env = InstrumentAccessor.ENGINE.getEnvForInstrument(source.getLanguage(), source.getMimeType());
+                Object languageContext = InstrumentAccessor.LANGUAGE.getPolyglotLanguageContext(env);
+                return InstrumentAccessor.ENGINE.parseForLanguage(languageContext, source, argumentNames, true);
             } catch (Throwable t) {
                 throw engineToInstrumentException(t);
             }

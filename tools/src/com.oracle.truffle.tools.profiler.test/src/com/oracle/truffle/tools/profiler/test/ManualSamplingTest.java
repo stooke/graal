@@ -36,20 +36,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
-import org.graalvm.polyglot.Value;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.oracle.truffle.api.TruffleSafepoint;
-import com.oracle.truffle.api.debug.Debugger;
-import com.oracle.truffle.api.debug.DebuggerSession;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.EventContext;
 import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
@@ -77,6 +72,10 @@ public class ManualSamplingTest extends AbstractPolyglotTest {
         assertNotNull(entry.toString());
         assertNotNull(entry.hashCode());
         assertTrue(entry.equals(entry));
+    }
+
+    public ManualSamplingTest() {
+        needsInstrumentEnv = true;
     }
 
     @Test
@@ -198,46 +197,14 @@ public class ManualSamplingTest extends AbstractPolyglotTest {
         }, false);
     }
 
-    @Test
-    @Ignore
-    public void testCombinedWithDebugger() {
-        sampler.setCollecting(false);
-        AtomicInteger numSamples = new AtomicInteger();
-        Debugger debugger = Debugger.find(context.getEngine());
-        DebuggerSession debuggerSession = debugger.startSession(event -> {
-            assertEquals("debugger", event.getSourceSection().getCharacters());
-            if (!sampler.isCollecting()) {
-                sampler.setCollecting(true);
-            } else {
-                Map<Thread, List<StackTraceEntry>> samples = sampler.takeSample();
-                assertEquals(1, samples.size());
-                for (Entry<Thread, List<StackTraceEntry>> entry : samples.entrySet()) {
-                    Iterator<StackTraceEntry> iterator = entry.getValue().iterator();
-                    assertEntry(iterator, "test", 9);
-                    assertFalse(iterator.hasNext());
-                }
-                numSamples.incrementAndGet();
-            }
-        });
-        context.eval("sl", "function test() {\n" +
-                        "  x = 10;\n" +
-                        "  debugger;\n" +
-                        "}\n");
-        Value test = context.getBindings("sl").getMember("test");
-        for (int i = 0; i < 10; i++) {
-            test.execute();
-        }
-        debuggerSession.close();
-        assertEquals(9, numSamples.get());
-    }
-
     /**
      * @param sources every source is executed on its on thread and sampled.
      * @param verifier verify the stack samples
      * @param lazyAttach the instrument should be attached while executing, requiring the shadow
      *            stack to be reconstructed.
      */
-    private void testSampling(String[] sources, Consumer<Map<Thread, List<StackTraceEntry>>> verifier, boolean lazyAttach) throws InterruptedException {
+    private void testSampling(String[] sources, Consumer<Map<Thread, List<StackTraceEntry>>> verifier,
+                    boolean lazyAttach) throws InterruptedException {
         List<Thread> threads = new ArrayList<>(sources.length);
         int numThreads = sources.length;
         for (int i = 0; i < numThreads; i++) {

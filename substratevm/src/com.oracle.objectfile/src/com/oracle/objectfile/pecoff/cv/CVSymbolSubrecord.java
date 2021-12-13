@@ -26,7 +26,6 @@
 
 package com.oracle.objectfile.pecoff.cv;
 
-import com.oracle.objectfile.ObjectFile;
 import com.oracle.objectfile.debugentry.ClassEntry;
 
 import java.util.HashMap;
@@ -246,67 +245,56 @@ abstract class CVSymbolSubrecord {
         }
     }
 
-    public static class CVSymbolGData32Record extends CVSymbolSubrecord {
+    private abstract static class CVSymbolData32Record extends CVSymbolSubrecord {
 
         protected final int typeIndex;
         protected final int offset;
         protected final short segment;
-        protected final String name;
-        private final String relativeTo;
+        protected final String displayName;
+        protected final String symbolName;
 
-        CVSymbolGData32Record(CVDebugInfo cvDebugInfo, short cmd, String name, String relativeTo, int typeIndex, int offset, short segment) {
+        protected CVSymbolData32Record(CVDebugInfo cvDebugInfo, short cmd, String displayName, String symbolName, int typeIndex, int offset, short segment) {
             super(cvDebugInfo, cmd);
-            this.name = name;
-            this.relativeTo = relativeTo;
+            this.displayName = displayName;
+            this.symbolName = symbolName;
             this.typeIndex = typeIndex;
             this.offset = offset;
             this.segment = segment;
         }
 
-        @SuppressWarnings("unused")
-        CVSymbolGData32Record(CVDebugInfo cvDebugInfo, String name, int typeIndex, int offset, short segment) {
-            this(cvDebugInfo, CVDebugConstants.S_GDATA32, name, null, typeIndex, offset, segment);
-        }
-
-        CVSymbolGData32Record(CVDebugInfo cvDebugInfo, String name, String relativeTo, int typeIndex, int offset, short segment) {
-            this(cvDebugInfo, CVDebugConstants.S_GDATA32, name, relativeTo, typeIndex, offset, segment);
-        }
-
         @Override
         protected int computeContents(byte[] buffer, int initialPos) {
             int pos = CVUtil.putInt(typeIndex, buffer, initialPos);
-            String extname = relativeTo != null ? relativeTo : name;
-            if (buffer != null) {
-                cvDebugInfo.getCVSymbolSection().markRelocationSite(pos, ObjectFile.RelocationKind.SECREL_4, extname, false, (long) offset);
-            }
-            /* Placeholder for offset. */
-            pos = CVUtil.putInt(offset, buffer, pos);
-            if (buffer != null) {
-                cvDebugInfo.getCVSymbolSection().markRelocationSite(pos, ObjectFile.RelocationKind.SECTION_2, extname, false, (long) 0);
-            }
-            /* Placeholder for segment. */
-            pos = CVUtil.putShort((short) 0, buffer, pos);
-            pos = CVUtil.putUTF8StringBytes(name, buffer, pos);
+            String extname = symbolName != null ? symbolName : displayName;
+            pos = cvDebugInfo.getCVSymbolSection().markRelocationSite(buffer, pos, extname, (long) offset);
+            pos = CVUtil.putUTF8StringBytes(displayName, buffer, pos);
             return pos;
+        }
+    }
+
+    public static class CVSymbolGData32Record extends CVSymbolData32Record {
+
+        CVSymbolGData32Record(CVDebugInfo cvDebugInfo, String displayName, String symbolName, int typeIndex, int offset, short segment) {
+            super(cvDebugInfo, CVDebugConstants.S_GDATA32, displayName, symbolName, typeIndex, offset, segment);
         }
 
         @Override
         public String toString() {
-            String relToStr = relativeTo != null ? " relative to %s" : "";
-            return String.format("S_GDATA32   name=%s offset=0x%x type=0x%x%s", name, offset, typeIndex, relToStr);
+            String relToStr = symbolName != null ? " relative to %s" : "";
+            return String.format("S_GDATA32   name=%s offset=0x%x type=0x%x%s", displayName, offset, typeIndex, relToStr);
         }
     }
 
     @SuppressWarnings("unused")
-    public static class CVSymbolLData32Record extends CVSymbolGData32Record {
+    public static class CVSymbolLData32Record extends CVSymbolData32Record {
 
-        CVSymbolLData32Record(CVDebugInfo cvDebugInfo, String name, int typeIndex, int offset, short segment) {
-            super(cvDebugInfo, CVDebugConstants.S_LDATA32, name, null, typeIndex, offset, segment);
+        CVSymbolLData32Record(CVDebugInfo cvDebugInfo, String displayName, int typeIndex, int offset, short segment) {
+            super(cvDebugInfo, CVDebugConstants.S_LDATA32, displayName, null, typeIndex, offset, segment);
         }
 
         @Override
         public String toString() {
-            return String.format("S_LDATA32   name=%s offset=0x%x type=0x%x)", name, offset, typeIndex);
+            return String.format("S_LDATA32   name=%s offset=0x%x type=0x%x)", displayName, offset, typeIndex);
         }
     }
 
@@ -356,14 +344,14 @@ abstract class CVSymbolSubrecord {
         private final int offset;
         private final short segment;
         private final byte flags;
-        private final String externalName;
-        private final String debuggerName;
+        private final String symbolName;
+        private final String displayName;
 
-        CVSymbolGProc32Record(CVDebugInfo cvDebugInfo, short cmd, String externalName, String debuggerName, int pparent, int pend, int pnext, int proclen, int debugStart, int debugEnd, int typeIndex,
+        CVSymbolGProc32Record(CVDebugInfo cvDebugInfo, short cmd, String symbolName, String displayName, int pparent, int pend, int pnext, int proclen, int debugStart, int debugEnd, int typeIndex,
                         int offset, short segment, byte flags) {
             super(cvDebugInfo, cmd);
-            this.externalName = externalName;
-            this.debuggerName = debuggerName;
+            this.symbolName = symbolName;
+            this.displayName = displayName;
             this.pparent = pparent;
             this.pend = pend;
             this.pnext = pnext;
@@ -376,9 +364,9 @@ abstract class CVSymbolSubrecord {
             this.flags = flags;
         }
 
-        CVSymbolGProc32Record(CVDebugInfo cvDebugInfo, String externalName, String debuggerName, int pparent, int pend, int pnext, int proclen, int debugStart, int debugEnd, int typeIndex, int offset,
+        CVSymbolGProc32Record(CVDebugInfo cvDebugInfo, String symbolName, String displayName, int pparent, int pend, int pnext, int proclen, int debugStart, int debugEnd, int typeIndex, int offset,
                         short segment, byte flags) {
-            this(cvDebugInfo, CVDebugConstants.S_GPROC32, externalName, debuggerName, pparent, pend, pnext, proclen, debugStart, debugEnd, typeIndex, offset, segment, flags);
+            this(cvDebugInfo, CVDebugConstants.S_GPROC32, symbolName, displayName, pparent, pend, pnext, proclen, debugStart, debugEnd, typeIndex, offset, segment, flags);
         }
 
         @Override
@@ -390,24 +378,16 @@ abstract class CVSymbolSubrecord {
             pos = CVUtil.putInt(debugStart, buffer, pos);
             pos = CVUtil.putInt(debugEnd, buffer, pos);
             pos = CVUtil.putInt(typeIndex, buffer, pos);
-            if (buffer != null) {
-                cvDebugInfo.getCVSymbolSection().markRelocationSite(pos, ObjectFile.RelocationKind.SECREL_4, externalName, false, 0L);
-            }
-            pos = CVUtil.putInt(0, buffer, pos);
-            if (buffer != null) {
-                cvDebugInfo.getCVSymbolSection().markRelocationSite(pos, ObjectFile.RelocationKind.SECTION_2, externalName, false, 0L);
-            }
-            pos = CVUtil.putShort((short) 0, buffer, pos);
+            pos = cvDebugInfo.getCVSymbolSection().markRelocationSite(buffer, pos, symbolName, (long) 0);
             pos = CVUtil.putByte(flags, buffer, pos);
-            pos = CVUtil.putUTF8StringBytes(debuggerName, buffer, pos);
+            pos = CVUtil.putUTF8StringBytes(displayName, buffer, pos);
             return pos;
         }
 
         @Override
         public String toString() {
-            return String.format("S_GPROC32   name=%s/%s parent=%d debugstart=0x%x debugend=0x%x len=0x%x seg:offset=0x%x:0x%x type=0x%x flags=0x%x)", debuggerName, externalName, pparent, debugStart,
-                            debugEnd,
-                            proclen, segment, offset, typeIndex, flags);
+            return String.format("S_GPROC32   name=%s/%s parent=%d debugstart=0x%x debugend=0x%x len=0x%x seg:offset=0x%x:0x%x type=0x%x flags=0x%x)", displayName, symbolName, pparent, debugStart,
+                            debugEnd, proclen, segment, offset, typeIndex, flags);
         }
     }
 

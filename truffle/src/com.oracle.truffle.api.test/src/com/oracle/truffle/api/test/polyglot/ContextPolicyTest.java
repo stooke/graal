@@ -58,13 +58,13 @@ import org.graalvm.polyglot.Value;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.Option;
-import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleContext;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.ContextPolicy;
@@ -82,6 +82,7 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.test.CompileImmediatelyCheck;
+import com.oracle.truffle.tck.tests.TruffleTestAssumptions;
 
 public class ContextPolicyTest {
 
@@ -99,6 +100,11 @@ public class ContextPolicyTest {
     static List<TruffleLanguage<?>> contextCreate = new ArrayList<>();
     static List<TruffleLanguage<?>> contextDispose = new ArrayList<>();
     static List<TruffleLanguage<?>> parseRequest = new ArrayList<>();
+
+    @BeforeClass
+    public static void runWithWeakEncapsulationOnly() {
+        TruffleTestAssumptions.assumeWeakEncapsulation();
+    }
 
     @After
     @Before
@@ -642,7 +648,7 @@ public class ContextPolicyTest {
             this.context = context;
             this.expectedLanguage = language;
             this.expectedEnvironment = env;
-            this.target = Truffle.getRuntime().createCallTarget(new RootNode(language) {
+            this.target = new RootNode(language) {
                 @Child InteropLibrary library = InteropLibrary.getFactory().createDispatched(5);
 
                 @SuppressWarnings("unchecked")
@@ -663,7 +669,7 @@ public class ContextPolicyTest {
                         return "done";
                     }
                 }
-            });
+            }.getCallTarget();
         }
 
         @ExportMessage
@@ -706,7 +712,7 @@ public class ContextPolicyTest {
         @TruffleBoundary
         private void doAssertions() {
             assertSame(expectedLanguage, expectedLanguage.getLanguageReference().get(null));
-            assertSame(expectedEnvironment, expectedLanguage.getContextReference0().get(null));
+            assertSame(expectedEnvironment, expectedLanguage.getContextReference0().get(null).env);
         }
 
         @TruffleBoundary
@@ -743,10 +749,15 @@ public class ContextPolicyTest {
 
         @Override
         public Object execute(VirtualFrame frame) {
-            Env env = language.getContextReference0().get(this);
+            LangContext langContext = language.getContextReference0().get(this);
             TruffleContext context = null;
             if (innerContext) {
-                context = env.newContextBuilder().build();
+                if (langContext.innerContext == null) {
+                    context = langContext.env.newContextBuilder().build();
+                    langContext.innerContext = context;
+                } else {
+                    context = langContext.innerContext;
+                }
             }
             Object prev = null;
             if (context != null) {
@@ -756,7 +767,7 @@ public class ContextPolicyTest {
                 SharedObject obj = new SharedObject(
                                 context,
                                 language.getLanguageReference().get(null),
-                                language.getContextReference0().get(null));
+                                language.getContextReference0().get(null).env);
                 return obj;
             } finally {
                 if (context != null) {
@@ -767,11 +778,20 @@ public class ContextPolicyTest {
         }
     }
 
-    abstract static class BaseLanguage extends TruffleLanguage<Env> {
+    static class LangContext {
+        final Env env;
+        TruffleContext innerContext;
+
+        LangContext(Env env) {
+            this.env = env;
+        }
+    }
+
+    abstract static class BaseLanguage extends TruffleLanguage<LangContext> {
 
         abstract LanguageReference<? extends BaseLanguage> getLanguageReference();
 
-        abstract ContextReference<Env> getContextReference0();
+        abstract ContextReference<LangContext> getContextReference0();
     }
 
     @Registration(id = EXCLUSIVE0, name = EXCLUSIVE0, contextPolicy = ContextPolicy.EXCLUSIVE)
@@ -793,22 +813,29 @@ public class ContextPolicyTest {
         protected CallTarget parse(ParsingRequest request) throws Exception {
             parseRequest.add(this);
             boolean innerContext = request.getSource().getName().equals(RUN_INNER_CONTEXT);
-            return Truffle.getRuntime().createCallTarget(new LanguageRootNode(this, innerContext));
+            return new LanguageRootNode(this, innerContext).getCallTarget();
         }
 
         @Override
-        protected Env createContext(Env env) {
+        protected LangContext createContext(Env env) {
             contextCreate.add(this);
-            return env;
+            return new LangContext(env);
         }
 
         @Override
-        protected void disposeContext(Env context) {
+        protected void finalizeContext(LangContext context) {
+            if (context.innerContext != null) {
+                context.innerContext.close();
+            }
+        }
+
+        @Override
+        protected void disposeContext(LangContext context) {
             contextDispose.add(this);
         }
 
         @Override
-        ContextReference<Env> getContextReference0() {
+        ContextReference<LangContext> getContextReference0() {
             return CONTEXT_REF;
         }
 
@@ -817,7 +844,7 @@ public class ContextPolicyTest {
             return REFERENCE;
         }
 
-        static final ContextReference<Env> CONTEXT_REF = ContextReference.create(ExclusiveLanguage0.class);
+        static final ContextReference<LangContext> CONTEXT_REF = ContextReference.create(ExclusiveLanguage0.class);
         static final LanguageReference<ExclusiveLanguage0> REFERENCE = LanguageReference.create(ExclusiveLanguage0.class);
 
     }
@@ -838,7 +865,7 @@ public class ContextPolicyTest {
         }
 
         @Override
-        ContextReference<Env> getContextReference0() {
+        ContextReference<LangContext> getContextReference0() {
             return CONTEXT_REF;
         }
 
@@ -847,7 +874,7 @@ public class ContextPolicyTest {
             return REFERENCE;
         }
 
-        static final ContextReference<Env> CONTEXT_REF = ContextReference.create(ExclusiveLanguage1.class);
+        static final ContextReference<LangContext> CONTEXT_REF = ContextReference.create(ExclusiveLanguage1.class);
         static final LanguageReference<ExclusiveLanguage1> REFERENCE = LanguageReference.create(ExclusiveLanguage1.class);
     }
 
@@ -867,7 +894,7 @@ public class ContextPolicyTest {
         }
 
         @Override
-        ContextReference<Env> getContextReference0() {
+        ContextReference<LangContext> getContextReference0() {
             return CONTEXT_REF;
         }
 
@@ -876,7 +903,7 @@ public class ContextPolicyTest {
             return REFERENCE;
         }
 
-        static final ContextReference<Env> CONTEXT_REF = ContextReference.create(ReuseLanguage0.class);
+        static final ContextReference<LangContext> CONTEXT_REF = ContextReference.create(ReuseLanguage0.class);
         static final LanguageReference<ReuseLanguage0> REFERENCE = LanguageReference.create(ReuseLanguage0.class);
     }
 
@@ -896,7 +923,7 @@ public class ContextPolicyTest {
         }
 
         @Override
-        ContextReference<Env> getContextReference0() {
+        ContextReference<LangContext> getContextReference0() {
             return CONTEXT_REF;
         }
 
@@ -905,7 +932,7 @@ public class ContextPolicyTest {
             return REFERENCE;
         }
 
-        static final ContextReference<Env> CONTEXT_REF = ContextReference.create(ReuseLanguage1.class);
+        static final ContextReference<LangContext> CONTEXT_REF = ContextReference.create(ReuseLanguage1.class);
         static final LanguageReference<ReuseLanguage1> REFERENCE = LanguageReference.create(ReuseLanguage1.class);
     }
 
@@ -925,7 +952,7 @@ public class ContextPolicyTest {
         }
 
         @Override
-        ContextReference<Env> getContextReference0() {
+        ContextReference<LangContext> getContextReference0() {
             return CONTEXT_REF;
         }
 
@@ -934,7 +961,7 @@ public class ContextPolicyTest {
             return REFERENCE;
         }
 
-        static final ContextReference<Env> CONTEXT_REF = ContextReference.create(SharedLanguage0.class);
+        static final ContextReference<LangContext> CONTEXT_REF = ContextReference.create(SharedLanguage0.class);
         static final LanguageReference<SharedLanguage0> REFERENCE = LanguageReference.create(SharedLanguage0.class);
     }
 
@@ -954,7 +981,7 @@ public class ContextPolicyTest {
         }
 
         @Override
-        ContextReference<Env> getContextReference0() {
+        ContextReference<LangContext> getContextReference0() {
             return CONTEXT_REF;
         }
 
@@ -963,7 +990,7 @@ public class ContextPolicyTest {
             return REFERENCE;
         }
 
-        static final ContextReference<Env> CONTEXT_REF = ContextReference.create(SharedLanguage1.class);
+        static final ContextReference<LangContext> CONTEXT_REF = ContextReference.create(SharedLanguage1.class);
         static final LanguageReference<SharedLanguage1> REFERENCE = LanguageReference.create(SharedLanguage1.class);
     }
 

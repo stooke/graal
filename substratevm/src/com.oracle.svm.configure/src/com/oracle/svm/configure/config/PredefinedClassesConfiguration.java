@@ -30,6 +30,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.Predicate;
 
 import com.oracle.svm.configure.ConfigurationBase;
@@ -39,7 +40,7 @@ import com.oracle.svm.core.hub.PredefinedClassesSupport;
 
 public class PredefinedClassesConfiguration implements ConfigurationBase {
     private final Path[] classDestinationDirs;
-    private final ConcurrentHashMap<String, ConfigurationPredefinedClass> classes = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, ConfigurationPredefinedClass> classes = new ConcurrentHashMap<>();
     private final Predicate<String> shouldExcludeClassWithHash;
 
     public PredefinedClassesConfiguration(Path[] classDestinationDirs, Predicate<String> shouldExcludeClassWithHash) {
@@ -72,11 +73,17 @@ public class PredefinedClassesConfiguration implements ConfigurationBase {
         }
         if (classDestinationDirs != null) {
             ensureDestinationDirsExist();
-            for (Path dir : classDestinationDirs) {
-                if (!dir.equals(directory)) {
+            for (Path destDir : classDestinationDirs) {
+                if (!destDir.equals(directory)) {
                     try {
                         String fileName = getFileName(hash);
-                        Files.copy(directory.resolve(fileName), dir.resolve(fileName), StandardCopyOption.REPLACE_EXISTING);
+                        Path target = destDir.resolve(fileName);
+                        if (directory != null) {
+                            Files.copy(directory.resolve(fileName), target, StandardCopyOption.REPLACE_EXISTING);
+                        } else if (!Files.exists(target)) {
+                            throw new RuntimeException("Cannot copy class data file for predefined class " + nameInfo + " with hash " + hash + ": " +
+                                            "source directory is unknown and file does not already exist in target directory.");
+                        }
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }

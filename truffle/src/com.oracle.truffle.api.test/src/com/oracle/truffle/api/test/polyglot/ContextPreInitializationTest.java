@@ -67,6 +67,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -88,10 +89,12 @@ import org.graalvm.polyglot.PolyglotAccess;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.impl.AbstractPolyglotImpl;
 import org.graalvm.polyglot.io.FileSystem;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.oracle.truffle.api.CallTarget;
@@ -101,7 +104,6 @@ import com.oracle.truffle.api.ContextThreadLocal;
 import com.oracle.truffle.api.InstrumentInfo;
 import com.oracle.truffle.api.Option;
 import com.oracle.truffle.api.ThreadLocalAction;
-import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleContext;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
@@ -110,9 +112,12 @@ import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.ContextsListener;
 import com.oracle.truffle.api.instrumentation.EventBinding;
+import com.oracle.truffle.api.instrumentation.ThreadsActivationListener;
+import com.oracle.truffle.api.instrumentation.ThreadsListener;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 import com.oracle.truffle.api.nodes.LanguageInfo;
 import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.tck.tests.TruffleTestAssumptions;
 
 public class ContextPreInitializationTest {
 
@@ -125,6 +130,11 @@ public class ContextPreInitializationTest {
     private static final String SYS_OPTION2_KEY = "polyglot." + FIRST + ".Option2";
     private static final List<CountingContext> emittedContexts = new ArrayList<>();
     private static final Set<String> patchableLanguages = new HashSet<>();
+
+    @BeforeClass
+    public static void runWithWeakEncapsulationOnly() {
+        TruffleTestAssumptions.assumeWeakEncapsulation();
+    }
 
     @Before
     public void setUp() throws Exception {
@@ -1643,6 +1653,61 @@ public class ContextPreInitializationTest {
     }
 
     @Test
+    @SuppressWarnings("try")
+    public void testAuxImageStore() throws Exception {
+        setPatchable(FIRST);
+        Path testFolder = Files.createTempDirectory("testSources").toRealPath();
+        try {
+            Path home = Files.createDirectories(testFolder.resolve("build").resolve(FIRST));
+            Path resource = Files.write(home.resolve("testImageStore.test"), Collections.singleton("test"));
+            System.setProperty(String.format("org.graalvm.language.%s.home", FIRST), home.toString());
+            AtomicReference<com.oracle.truffle.api.source.Source> buildTimeSourceRef = new AtomicReference<>();
+            BaseLanguage.registerAction(ContextPreInitializationTestFirstLanguage.class, ActionKind.ON_INITIALIZE_CONTEXT, (env) -> {
+                buildTimeSourceRef.set(createSource(env, resource, true));
+            });
+            doContextPreinitialize(FIRST);
+            List<CountingContext> contexts = new ArrayList<>(emittedContexts);
+            assertEquals(1, contexts.size());
+            CountingContext firstLangCtx = findContext(FIRST, contexts);
+            assertEquals(1, firstLangCtx.initializeContextCount);
+            assertNotNull(buildTimeSourceRef.get());
+
+            Engine engine = Engine.create();
+            AbstractPolyglotImpl impl = findImpl();
+            Object engineImpl = impl.getAPIAccess().getReceiver(engine);
+            AtomicReference<com.oracle.truffle.api.source.Source> storeTimeSourceRef = new AtomicReference<>();
+            BaseLanguage.registerAction(ContextPreInitializationTestFirstLanguage.class, ActionKind.ON_INITIALIZE_CONTEXT, (env) -> {
+                storeTimeSourceRef.set(createSource(env, resource, true));
+            });
+            setPreInitializeOption(FIRST);
+            try {
+                TestAPIAccessor.engineAccess().preinitializeContext(engineImpl);
+            } finally {
+                clearPreInitializeOption();
+            }
+            contexts = new ArrayList<>(emittedContexts);
+            assertEquals(2, contexts.size());
+            AtomicReference<com.oracle.truffle.api.source.Source> runtimeSourceRef = new AtomicReference<>();
+            BaseLanguage.registerAction(ContextPreInitializationTestFirstLanguage.class, ActionKind.ON_PATCH_CONTEXT, (env) -> {
+                runtimeSourceRef.set(createSource(env, resource, true));
+            });
+            try (Context ctx = Context.create()) {
+                assertEquals(1, firstLangCtx.patchContextCount);
+                assertSame(buildTimeSourceRef.get(), storeTimeSourceRef.get());
+                assertSame(buildTimeSourceRef.get(), runtimeSourceRef.get());
+            }
+        } finally {
+            delete(testFolder);
+        }
+    }
+
+    AbstractPolyglotImpl findImpl() throws ReflectiveOperationException {
+        Method getImplMethod = Engine.class.getDeclaredMethod("getImpl");
+        getImplMethod.setAccessible(true);
+        return (AbstractPolyglotImpl) getImplMethod.invoke(null);
+    }
+
+    @Test
     public void testAccessPriviledgePatching() throws ReflectiveOperationException {
         setPatchable(FIRST, SECOND);
 
@@ -2024,7 +2089,19 @@ public class ContextPreInitializationTest {
     }
 
     private static void doContextPreinitialize(String... languages) throws ReflectiveOperationException {
-        final Class<?> holderClz = Class.forName("org.graalvm.polyglot.Engine$ImplHolder", true, ContextPreInitializationTest.class.getClassLoader());
+        setPreInitializeOption(languages);
+        try {
+            final Class<?> holderClz = Class.forName("org.graalvm.polyglot.Engine$ImplHolder", true, ContextPreInitializationTest.class.getClassLoader());
+            final Method preInitMethod = holderClz.getDeclaredMethod("preInitializeEngine");
+            preInitMethod.setAccessible(true);
+            preInitMethod.invoke(null);
+        } finally {
+            // PreinitializeContexts should only be set during pre-initialization, not at runtime
+            clearPreInitializeOption();
+        }
+    }
+
+    private static void setPreInitializeOption(String... languages) {
         final StringBuilder languagesOptionValue = new StringBuilder();
         for (String language : languages) {
             languagesOptionValue.append(language).append(',');
@@ -2033,14 +2110,10 @@ public class ContextPreInitializationTest {
             languagesOptionValue.replace(languagesOptionValue.length() - 1, languagesOptionValue.length(), "");
             System.setProperty("polyglot.image-build-time.PreinitializeContexts", languagesOptionValue.toString());
         }
-        final Method preInitMethod = holderClz.getDeclaredMethod("preInitializeEngine");
-        preInitMethod.setAccessible(true);
-        try {
-            preInitMethod.invoke(null);
-        } finally {
-            // PreinitializeContexts should only be set during pre-initialization, not at runtime
-            System.clearProperty("polyglot.image-build-time.PreinitializeContexts");
-        }
+    }
+
+    private static void clearPreInitializeOption() {
+        System.clearProperty("polyglot.image-build-time.PreinitializeContexts");
     }
 
     @SuppressWarnings("unchecked")
@@ -2229,13 +2302,13 @@ public class ContextPreInitializationTest {
         @Override
         protected CallTarget parse(TruffleLanguage.ParsingRequest request) throws Exception {
             final CharSequence result = request.getSource().getCharacters();
-            return Truffle.getRuntime().createCallTarget(new RootNode(this) {
+            return new RootNode(this) {
                 @Override
                 public Object execute(VirtualFrame frame) {
                     executeImpl(getContextReference0().get(this));
                     return result;
                 }
-            });
+            }.getCallTarget();
         }
 
         protected abstract ContextReference<CountingContext> getContextReference0();
@@ -2500,19 +2573,83 @@ public class ContextPreInitializationTest {
 
         private Env environment;
         private EventBinding<BaseInstrument> contextsListenerBinding;
+        private EventBinding<?> verifyContextLocalBinding;
+
+        final ContextLocal<TruffleContext> contextLocal = createContextLocal((c) -> c);
+        final ContextThreadLocal<TruffleContext> contextThreadLocal = createContextThreadLocal((c, t) -> c);
+        private final Set<Pair<TruffleContext, Thread>> initializedThreads = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
         @Override
         protected void onCreate(Env env) {
             if (getActions() != null) {
                 environment = env;
                 contextsListenerBinding = env.getInstrumenter().attachContextsListener(this, true);
+                verifyContextLocalBinding = env.getInstrumenter().attachContextsListener(new ContextsListener() {
+
+                    public void onLanguageContextInitialized(TruffleContext context, LanguageInfo language) {
+                        assertSame(context, contextLocal.get(context));
+                        assertSame(context, contextThreadLocal.get(context));
+                    }
+
+                    public void onLanguageContextFinalized(TruffleContext context, LanguageInfo language) {
+                        assertSame(context, contextLocal.get(context));
+                        assertSame(context, contextThreadLocal.get(context));
+                    }
+
+                    public void onLanguageContextCreated(TruffleContext context, LanguageInfo language) {
+                        assertSame(context, contextLocal.get(context));
+                        assertSame(context, contextThreadLocal.get(context));
+                    }
+
+                    public void onContextCreated(TruffleContext context) {
+                        assertSame(context, contextLocal.get(context));
+                    }
+
+                    public void onLanguageContextDisposed(TruffleContext context, LanguageInfo language) {
+                        assertSame(context, contextLocal.get(context));
+                        assertSame(context, contextThreadLocal.get(context));
+                    }
+
+                    public void onContextClosed(TruffleContext context) {
+                        assertSame(context, contextLocal.get(context));
+                        assertSame(context, contextThreadLocal.get(context));
+                    }
+                }, false);
                 performAction(null, null);
             }
+            env.getInstrumenter().attachThreadsActivationListener(new ThreadsActivationListener() {
+                @Override
+                public void onEnterThread(TruffleContext context) {
+                    // tests that locals are initialized
+                    contextLocal.get(context);
+                    contextThreadLocal.get(context);
+                }
+
+                @Override
+                public void onLeaveThread(TruffleContext context) {
+                    // tests that locals are initialized
+                    contextLocal.get(context);
+                    contextThreadLocal.get(context);
+                }
+            });
+            env.getInstrumenter().attachThreadsListener(new ThreadsListener() {
+                @Override
+                public void onThreadInitialized(TruffleContext context, Thread thread) {
+                    assertTrue(initializedThreads.add(Pair.create(context, thread)));
+                }
+
+                @Override
+                public void onThreadDisposed(TruffleContext context, Thread thread) {
+                    // tests that onThreadInitialized was called
+                    assertTrue(initializedThreads.contains(Pair.create(context, thread)));
+                }
+            }, true);
         }
 
         @Override
         protected void onDispose(Env env) {
             if (contextsListenerBinding != null) {
+                verifyContextLocalBinding.dispose();
                 contextsListenerBinding.dispose();
                 contextsListenerBinding = null;
                 environment = null;
@@ -2591,6 +2728,7 @@ public class ContextPreInitializationTest {
         protected Map<String, Consumer<Event>> getActions() {
             return actions;
         }
+
     }
 
     @TruffleInstrument.Registration(id = ContextPreInitializationSecondInstrument.ID, name = ContextPreInitializationSecondInstrument.ID, services = Service.class)

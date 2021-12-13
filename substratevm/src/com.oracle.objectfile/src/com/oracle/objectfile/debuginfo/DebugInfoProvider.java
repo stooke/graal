@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
+import jdk.vm.ci.meta.ResolvedJavaType;
 import org.graalvm.compiler.debug.DebugContext;
 
 /**
@@ -187,8 +188,6 @@ public interface DebugInfoProvider {
 
         String name();
 
-        String ownerType();
-
         String valueType();
 
         int modifiers();
@@ -201,11 +200,6 @@ public interface DebugInfoProvider {
     }
 
     interface DebugMethodInfo extends DebugMemberInfo {
-        /**
-         * @return a string identifying the method parameters.
-         */
-        String paramSignature();
-
         /**
          * @return an array of Strings identifying the method parameters.
          */
@@ -225,13 +219,19 @@ public interface DebugInfoProvider {
          * @return true if this method has been compiled in as a deoptimization target
          */
         boolean isDeoptTarget();
+
+        /**
+         * @return the offset into the virtual function table for this method if virtual
+         */
+        int vtableOffset();
     }
 
     /**
-     * Access details of a compiled method producing the code in a specific
+     * ` Access details of a compiled method producing the code in a specific
      * {@link com.oracle.objectfile.debugentry.Range}.
      */
     interface DebugRangeInfo extends DebugMethodInfo {
+        ResolvedJavaType ownerType();
     }
 
     /**
@@ -315,6 +315,11 @@ public interface DebugInfoProvider {
          * @return the line number for the outer or inlined segment.
          */
         int line();
+
+        /**
+         * @return the {@link DebugLineInfo} of the nested inline caller-line
+         */
+        DebugLineInfo getCaller();
     }
 
     interface DebugFrameSizeChange {

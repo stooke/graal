@@ -41,11 +41,9 @@
 package com.oracle.truffle.api.test;
 
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.Truffle;
-import com.oracle.truffle.api.TruffleRuntime;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.FrameSlotKind;
@@ -53,6 +51,7 @@ import com.oracle.truffle.api.frame.FrameSlotTypeException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.tck.tests.TruffleTestAssumptions;
 
 /**
  * <h3>Specializing Frame Slot Types</h3>
@@ -70,15 +69,18 @@ import com.oracle.truffle.api.nodes.RootNode;
  */
 public class FrameSlotTypeSpecializationTest {
 
+    @BeforeClass
+    public static void runWithWeakEncapsulationOnly() {
+        TruffleTestAssumptions.assumeWeakEncapsulation();
+    }
+
     @Test
     public void test() {
-        TruffleRuntime runtime = Truffle.getRuntime();
         FrameDescriptor frameDescriptor = new FrameDescriptor();
         FrameSlot slot = frameDescriptor.addFrameSlot("localVar", FrameSlotKind.Int);
         TestRootNode rootNode = new TestRootNode(frameDescriptor, new IntAssignLocal(slot, new StringTestChildNode()), new IntReadLocal(slot));
-        CallTarget target = runtime.createCallTarget(rootNode);
         Assert.assertEquals(FrameSlotKind.Int, frameDescriptor.getFrameSlotKind(slot));
-        Object result = target.call();
+        Object result = rootNode.getCallTarget().call();
         Assert.assertEquals("42", result);
         Assert.assertEquals(FrameSlotKind.Object, frameDescriptor.getFrameSlotKind(slot));
     }

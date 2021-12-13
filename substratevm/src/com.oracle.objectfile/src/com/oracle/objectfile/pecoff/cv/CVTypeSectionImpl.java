@@ -70,7 +70,11 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
 
     private final CVTypeSectionBuilder builder;
 
-    CVTypeSectionImpl() {
+    CVTypeSectionImpl(CVDebugInfo cvDebugInfo) {
+        /*
+         * At this point, there is no debugContext in debugInfo, so no logging should be attempted.
+         */
+        super(cvDebugInfo);
         builder = new CVTypeSectionBuilder(this);
     }
 
@@ -83,34 +87,31 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
     public void createContent(DebugContext debugContext) {
         int pos = 0;
         enableLog(debugContext);
-        builder.setDebugContext(debugContext);
-        log(debugContext, "CVTypeSectionImpl.createContent() adding records");
+        log("CVTypeSectionImpl.createContent() adding records");
         addRecords();
-        log(debugContext, "CVTypeSectionImpl.createContent() start");
+        log("CVTypeSectionImpl.createContent() start");
         pos = CVUtil.putInt(CV_SIGNATURE_C13, null, pos);
         for (CVTypeRecord record : typeMap.values()) {
             pos = record.computeFullSize(pos);
-            pos = CVUtil.pad4(null, pos);
         }
         byte[] buffer = new byte[pos];
         super.setContent(buffer);
-        log(debugContext, "CVTypeSectionImpl.createContent() end");
+        log("CVTypeSectionImpl.createContent() end");
     }
 
     @Override
     public void writeContent(DebugContext debugContext) {
         int pos = 0;
         enableLog(debugContext);
-        log(debugContext, "CVTypeSectionImpl.writeContent() start");
+        log("CVTypeSectionImpl.writeContent() start");
         byte[] buffer = getContent();
-        verboseLog(debugContext, "  [0x%08x] CV_SIGNATURE_C13", pos);
+        verboseLog("  [0x%08x] CV_SIGNATURE_C13", pos);
         pos = CVUtil.putInt(CV_SIGNATURE_C13, buffer, pos);
         for (CVTypeRecord record : typeMap.values()) {
-            verboseLog(debugContext, "  [0x%08x] 0x%06x %s", pos, record.getSequenceNumber(), record.toString());
+            verboseLog("  [0x%08x] 0x%06x %s", pos, record.getSequenceNumber(), record.toString());
             pos = record.computeFullContents(buffer, pos);
-            pos = CVUtil.pad4(buffer, pos);
         }
-        verboseLog(debugContext, "CVTypeSectionImpl.writeContent() end");
+        verboseLog("CVTypeSectionImpl.writeContent() end");
     }
 
     /**
@@ -137,8 +138,8 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
      *
      * @param entry primaryEntry containing entities whose type records must be added
      */
-    void addTypeRecords(TypeEntry entry) {
-        builder.buildType(entry);
+    CVTypeRecord addTypeRecords(TypeEntry entry) {
+        return builder.buildType(entry);
     }
 
     boolean hasType(String typename) {
@@ -149,11 +150,11 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
         return typeNameMap.get(typename);
     }
 
-    CVTypeRecord getPointerRecordForType(DebugContext debugContext, String typeName) {
+    CVTypeRecord getPointerRecordForType(String typeName) {
         CVTypeRecord t = getType(typeName);
         if (t != null) {
             if (t.getSequenceNumber() <= MAX_PRIMITIVE) {
-                verboseLog(debugContext, "Primitive pointer requested for %s", typeName);
+                verboseLog("Primitive pointer requested for %s", typeName);
             }
             assert t.getSequenceNumber() > MAX_PRIMITIVE;
             return typePointerMap.get(t.getSequenceNumber());
@@ -168,7 +169,7 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
     }
 
     int getIndexForPointer(TypeEntry typeEntry) {
-        return builder.getIndexForPointerOrPrimitive(typeEntry, false);
+        return builder.getIndexForPointerOrPrimitive(typeEntry);
     }
 
     void definePrimitiveType(String typename, short typeId, int length, short pointerTypeId) {
@@ -192,15 +193,10 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
     <T extends CVTypeRecord> T addOrReference(T newRecord) {
         final T record;
         final boolean isInstance = newRecord.type == LF_CLASS || newRecord.type == LF_STRUCTURE;
-        /*
-         * Currently the hashes for identical class records do not always match. Until this is
-         * tracked down, use type name.
-         */
         if (typeMap.containsKey(newRecord)) {
             record = (T) typeMap.get(newRecord);
         } else if (isInstance) {
             CVTypeRecord.CVClassRecord cr = (CVTypeRecord.CVClassRecord) newRecord;
-            /* TODO should we use uniquename here? */
             /* Save off the class definition (or forward reference) */
             CVTypeRecord.CVClassRecord oldRecord = (CVTypeRecord.CVClassRecord) typeNameMap.get(cr.getClassName());
             if (oldRecord == null || (oldRecord.isForwardRef() && !cr.isForwardRef())) {

@@ -186,6 +186,10 @@ public abstract class GraalTruffleRuntime implements TruffleRuntime, TruffleComp
         this.floodControlHandler = loadGraalRuntimeServiceProvider(FloodControlHandler.class, null, false);
     }
 
+    public boolean isLatestJVMCI() {
+        return true;
+    }
+
     public abstract ThreadLocalHandshake getThreadLocalHandshake();
 
     @Override
@@ -553,6 +557,10 @@ public abstract class GraalTruffleRuntime implements TruffleRuntime, TruffleComp
         this.compilationThresholdScale = scale;
     }
 
+    /**
+     * This class visits native frames in order to construct Truffle {@link FrameInstance
+     * FrameInstances}, which it passes to the provided {@link FrameInstanceVisitor}.
+     */
     private static final class FrameVisitor<T> implements InspectedFrameVisitor<T> {
 
         private final FrameInstanceVisitor<T> visitor;
@@ -561,6 +569,7 @@ public abstract class GraalTruffleRuntime implements TruffleRuntime, TruffleComp
         private int skipFrames;
 
         private InspectedFrame callNodeFrame;
+        private InspectedFrame osrFrame;
 
         FrameVisitor(FrameInstanceVisitor<T> visitor, CallMethods methods, int skip) {
             this.visitor = visitor;
@@ -568,27 +577,79 @@ public abstract class GraalTruffleRuntime implements TruffleRuntime, TruffleComp
             this.skipFrames = skip;
         }
 
+        /**
+         * A Truffle {@link FrameInstance} logically consists of three components: a
+         * {@link com.oracle.truffle.api.frame.Frame frame}, a {@link CallTarget call target}, and a
+         * {@link Node call node}. These objects are spread across multiple native
+         * {@link InspectedFrame InspectedFrames}, so this visitor remembers previously-seen native
+         * frames (as necessary) in order to construct Truffle {@link FrameInstance FrameInstances}.
+         *
+         * For example, consider this sample stack trace:
+         *
+         * <pre>
+         *  ... -> executeRootNode(A) -> callDirect -> executeRootNode(B) -> callDirect -> executeRootNode(C)
+         *        (call target, frame)  (call node)   (call target, frame)  (call node)   (call target, frame)
+         *                |__________________|                |__________________|                |
+         *                  FrameInstance(A)                    FrameInstance(B)           FrameInstance(C)
+         * </pre>
+         *
+         * Method C is at the top of the stack (it has not called another guest method). Thus, it
+         * does not have a call node. Its call target and frame are the first two parameters of
+         * executeRootNode(C) {@link InspectedFrame}, so we can construct a {@link FrameInstance}
+         * using this frame.
+         *
+         * Down the stack, method B calls C, so it does have a call node. This node is a parameter
+         * to the callDirect {@link InspectedFrame}, so we remember this frame and use it to
+         * construct a {@link FrameInstance} when we reach executeRootNode(B). We construct a
+         * {@link FrameInstance} for A the same way.
+         *
+         *
+         * OSR complicates things. Consider this sample stack trace:
+         *
+         * <pre>
+         *  ... -> executeRootNode(A) -> callOSR -> executeRootNode(A_OSR) -> callDirect -> ...
+         *      (non-OSR call target, _)               (_, new frame)         (call node)
+         *               |___________________________________|____________________|
+         *                                    FrameInstance(A)
+         * </pre>
+         *
+         * With OSR, the program state may be inconsistent between OSR and non-OSR frames. The OSR
+         * frame (executeRootNode(A_OSR)) contains the most up-to-date Truffle
+         * {@link com.oracle.truffle.api.frame.Frame}, so we remember it. OSR should be transparent,
+         * so the call target is obtained from the non-OSR frame (executeRootNode(A)).
+         */
         @Override
         public T visitFrame(InspectedFrame frame) {
-            if (frame.isMethod(methods.callOSRMethod)) {
-                // we ignore OSR frames.
-                skipFrames++;
-                return null;
-            } else if (frame.isMethod(methods.callTargetMethod)) {
-                if (skipFrames == 0) {
-                    try {
-                        return visitor.visitFrame(new GraalFrameInstance(frame, callNodeFrame));
-                    } finally {
-                        callNodeFrame = null;
-                    }
-                } else {
-                    skipFrames--;
-                }
-            } else if (frame.isMethod(methods.callDirectMethod) || frame.isMethod(methods.callIndirectMethod) || frame.isMethod(methods.callInlinedMethod) ||
+            if (frame.isMethod(methods.callDirectMethod) || frame.isMethod(methods.callIndirectMethod) || frame.isMethod(methods.callInlinedMethod) ||
                             frame.isMethod(methods.callInlinedCallMethod)) {
                 callNodeFrame = frame;
+                return null;
             }
-            return null;
+            assert frame.isMethod(methods.callTargetMethod);
+            if (isOSRFrame(frame)) {
+                if (skipFrames == 0 && osrFrame == null) {
+                    osrFrame = frame;
+                }
+                return null;
+            } else if (skipFrames > 0) {
+                skipFrames--;
+                return null;
+            } else {
+                try {
+                    if (osrFrame != null) {
+                        return visitor.visitFrame(new GraalOSRFrameInstance(frame, callNodeFrame, osrFrame));
+                    } else {
+                        return visitor.visitFrame(new GraalFrameInstance(frame, callNodeFrame));
+                    }
+                } finally {
+                    osrFrame = null;
+                    callNodeFrame = null;
+                }
+            }
+        }
+
+        private static boolean isOSRFrame(InspectedFrame frame) {
+            return ((OptimizedCallTarget) frame.getLocal(GraalFrameInstance.CALL_TARGET_INDEX)).getRootNode() instanceof BaseOSRRootNode;
         }
     }
 
@@ -634,14 +695,13 @@ public abstract class GraalTruffleRuntime implements TruffleRuntime, TruffleComp
     public abstract SpeculationLog createSpeculationLog();
 
     @Override
+    @Deprecated
+    @SuppressWarnings("deprecation")
     public final RootCallTarget createCallTarget(RootNode rootNode) {
-        CompilerAsserts.neverPartOfCompilation();
-        final OptimizedCallTarget target = createClonedCallTarget(rootNode, null);
-        TruffleSplittingStrategy.newTargetCreated(target);
-        return target;
+        return rootNode.getCallTarget();
     }
 
-    public final OptimizedCallTarget createClonedCallTarget(RootNode rootNode, OptimizedCallTarget source) {
+    public final OptimizedCallTarget newCallTarget(RootNode rootNode, OptimizedCallTarget source) {
         CompilerAsserts.neverPartOfCompilation();
         OptimizedCallTarget target = createOptimizedCallTarget(source, rootNode);
         GraalRuntimeAccessor.INSTRUMENT.onLoad(target.getRootNode());
@@ -656,7 +716,7 @@ public abstract class GraalTruffleRuntime implements TruffleRuntime, TruffleComp
     public final OptimizedCallTarget createOSRCallTarget(RootNode rootNode) {
         CompilerAsserts.neverPartOfCompilation();
         OptimizedCallTarget target = createOptimizedCallTarget(null, rootNode);
-        GraalRuntimeAccessor.INSTRUMENT.onLoad(target.getRootNode());
+        GraalRuntimeAccessor.INSTRUMENT.onLoad(rootNode);
         return target;
     }
 
@@ -721,7 +781,7 @@ public abstract class GraalTruffleRuntime implements TruffleRuntime, TruffleComp
                 if (debug == null) {
                     debug = compiler.openDebugContext(optionsMap, compilation);
                 }
-                listeners.onCompilationStarted(callTarget, task.tier());
+                listeners.onCompilationStarted(callTarget, task);
                 compilationStarted = true;
                 try {
                     compiler.doCompile(debug, compilation, optionsMap, task, listeners.isEmpty() ? null : listeners);
@@ -934,7 +994,6 @@ public abstract class GraalTruffleRuntime implements TruffleRuntime, TruffleComp
         public final ResolvedJavaMethod callInlinedMethod;
         public final ResolvedJavaMethod callIndirectMethod;
         public final ResolvedJavaMethod callTargetMethod;
-        public final ResolvedJavaMethod callOSRMethod;
         public final ResolvedJavaMethod callInlinedCallMethod;
         public final ResolvedJavaMethod[] anyFrameMethod;
 
@@ -944,8 +1003,7 @@ public abstract class GraalTruffleRuntime implements TruffleRuntime, TruffleComp
             this.callInlinedMethod = metaAccess.lookupJavaMethod(GraalFrameInstance.CALL_INLINED);
             this.callInlinedCallMethod = metaAccess.lookupJavaMethod(GraalFrameInstance.CALL_INLINED_CALL);
             this.callTargetMethod = metaAccess.lookupJavaMethod(GraalFrameInstance.CALL_TARGET_METHOD);
-            this.callOSRMethod = metaAccess.lookupJavaMethod(GraalFrameInstance.CALL_OSR_METHOD);
-            this.anyFrameMethod = new ResolvedJavaMethod[]{callDirectMethod, callIndirectMethod, callInlinedMethod, callTargetMethod, callOSRMethod, callInlinedCallMethod};
+            this.anyFrameMethod = new ResolvedJavaMethod[]{callDirectMethod, callIndirectMethod, callInlinedMethod, callTargetMethod, callInlinedCallMethod};
         }
 
         public static CallMethods lookup(MetaAccessProvider metaAccess) {
@@ -1189,7 +1247,7 @@ public abstract class GraalTruffleRuntime implements TruffleRuntime, TruffleComp
     }
 
     @SuppressWarnings("unused")
-    protected Object[] getNonPrimitiveResolvedFields(Class<?> type) {
+    protected Object[] getResolvedFields(Class<?> type, boolean includePrimitive, boolean includeSuperclasses) {
         throw new UnsupportedOperationException();
     }
 
@@ -1199,6 +1257,10 @@ public abstract class GraalTruffleRuntime implements TruffleRuntime, TruffleComp
     }
 
     protected abstract AbstractFastThreadLocal getFastThreadLocalImpl();
+
+    public long getStackOverflowLimit() {
+        throw new UnsupportedOperationException();
+    }
 
     public static class StackTraceHelper {
         public static void logHostAndGuestStacktrace(String reason, OptimizedCallTarget callTarget) {

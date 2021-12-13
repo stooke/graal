@@ -22,6 +22,7 @@
  */
 package com.oracle.truffle.espresso.ffi.nfi;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -59,6 +60,7 @@ import com.oracle.truffle.espresso.ffi.RawPointer;
 import com.oracle.truffle.espresso.ffi.TruffleByteBuffer;
 import com.oracle.truffle.espresso.meta.EspressoError;
 import com.oracle.truffle.espresso.perf.DebugCounter;
+import com.oracle.truffle.espresso.runtime.EspressoException;
 import com.oracle.truffle.espresso.runtime.StaticObject;
 import com.oracle.truffle.espresso.substitutions.Collect;
 import com.oracle.truffle.espresso.vm.UnsafeAccess;
@@ -159,6 +161,9 @@ public class NFINativeAccess implements NativeAccess {
     @Override
     public @Pointer TruffleObject loadLibrary(Path libraryPath) {
         CompilerAsserts.neverPartOfCompilation();
+        if (!Files.exists(libraryPath)) {
+            return null;
+        }
         String nfiSource = String.format("load(RTLD_LAZY) '%s'", libraryPath);
         return loadLibraryHelper(nfiSource);
     }
@@ -208,6 +213,7 @@ public class NFINativeAccess implements NativeAccess {
 
     @ExportLibrary(InteropLibrary.class)
     static final class NativeToJavaWrapper implements TruffleObject {
+        private static final TruffleLogger logger = TruffleLogger.getLogger(EspressoLanguage.ID, "NativeToJavaWrapper");
 
         final TruffleObject delegate;
         final NativeSignature nativeSignature;
@@ -269,6 +275,11 @@ public class NFINativeAccess implements NativeAccess {
             } catch (UnsupportedTypeException | UnsupportedMessageException e) {
                 CompilerDirectives.transferToInterpreter();
                 throw EspressoError.shouldNotReachHere(e);
+            } catch (EspressoException | AbstractTruffleException | StackOverflowError | OutOfMemoryError e) {
+                throw e;
+            } catch (Throwable t) {
+                logger.log(Level.FINE, "Exception seen", t);
+                throw t;
             }
         }
 
@@ -315,6 +326,7 @@ public class NFINativeAccess implements NativeAccess {
 
     @ExportLibrary(InteropLibrary.class)
     static final class JavaToNativeWrapper implements TruffleObject {
+        private static final TruffleLogger logger = TruffleLogger.getLogger(EspressoLanguage.ID, "JavaToNativeWrapper");
 
         final TruffleObject delegate;
         final NativeSignature nativeSignature;
@@ -376,6 +388,11 @@ public class NFINativeAccess implements NativeAccess {
             } catch (UnsupportedTypeException | UnsupportedMessageException e) {
                 CompilerDirectives.transferToInterpreter();
                 throw EspressoError.shouldNotReachHere(e);
+            } catch (EspressoException | AbstractTruffleException | StackOverflowError | OutOfMemoryError e) {
+                throw e;
+            } catch (Throwable t) {
+                logger.log(Level.FINE, "Exception seen", t);
+                throw t;
             }
         }
 

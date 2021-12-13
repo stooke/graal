@@ -26,26 +26,22 @@
 
 package com.oracle.objectfile.pecoff.cv;
 
-import com.oracle.objectfile.ObjectFile;
 import com.oracle.objectfile.SectionName;
 import com.oracle.objectfile.debugentry.ClassEntry;
 import com.oracle.objectfile.debugentry.FieldEntry;
 import com.oracle.objectfile.debugentry.PrimaryEntry;
 import com.oracle.objectfile.debugentry.Range;
 import com.oracle.objectfile.debugentry.TypeEntry;
-import com.oracle.objectfile.pecoff.PECoffObjectFile;
-import org.graalvm.compiler.debug.DebugContext;
 
 import java.lang.reflect.Modifier;
 
-import static com.oracle.objectfile.elf.dwarf.DwarfDebugInfo.HEAP_BEGIN_NAME;
+import static com.oracle.objectfile.pecoff.cv.CVConstants.CV_AMD64_R8;
 
 final class CVSymbolSubsectionBuilder {
 
     private final CVDebugInfo cvDebugInfo;
     private final CVSymbolSubsection cvSymbolSubsection;
     private CVLineRecordBuilder lineRecordBuilder;
-    private ObjectFile.Section rwSection;
 
     private boolean noMainFound = true;
 
@@ -61,26 +57,16 @@ final class CVSymbolSubsectionBuilder {
      * The CodeView symbol section Prolog is also a CVSymbolSubsection, but it is not built in this
      * class.
      */
-    void build(DebugContext theDebugContext) {
-        this.lineRecordBuilder = new CVLineRecordBuilder(theDebugContext, cvDebugInfo);
-
-        /* Find the heap section; static member variables are offset from __svm_heap_begin */
-        ObjectFile objectFile = cvDebugInfo.getCVTypeSection().getOwner();
-        String rwSectionName = SectionName.SVM_HEAP.getFormatDependentName(objectFile.getFormat());
-        rwSection = null;
-        for (ObjectFile.Section s : objectFile.getSections()) {
-            if (s.getName().equals(rwSectionName)) {
-                rwSection = s;
-                break;
-            }
-        }
+    void build() {
+        this.lineRecordBuilder = new CVLineRecordBuilder(cvDebugInfo);
 
         /* Loop over all classes defined in this module. */
         for (TypeEntry typeEntry : cvDebugInfo.getTypes()) {
-            /* add type records for the class, it's superclass, and instance variables */
-            addTypeRecords(typeEntry);
+            /* Add type record for this entry. */
             if (typeEntry.isClass()) {
-                build((ClassEntry) typeEntry);
+                buildClass((ClassEntry) typeEntry);
+            } else {
+                addTypeRecords(typeEntry);
             }
         }
         cvDebugInfo.getCVSymbolSection().addRecord(cvSymbolSubsection);
@@ -91,22 +77,35 @@ final class CVSymbolSubsectionBuilder {
      *
      * @param classEntry current class
      */
-    private void build(ClassEntry classEntry) {
+    private void buildClass(ClassEntry classEntry) {
+        /*
+         * Define the MFUNCTION records first and then the class itself. If the class is defined
+         * first, MFUNCTION records that reference a forwardRef are generated, and then later (after
+         * the class is defined) duplicate MFUCTINO records that reference the class itself will be
+         * generated in buildFunction().
+         */
         /* Loop over all functions defined in this class. */
         for (PrimaryEntry primaryEntry : classEntry.getPrimaryEntries()) {
-            build(primaryEntry);
+            buildFunction(primaryEntry);
         }
+        addTypeRecords(classEntry);
+
         /* Add manifested static fields as S_GDATA32 records. */
-        final short sectionId = (short) ((PECoffObjectFile.PECoffSection) rwSection).getSectionID();
         classEntry.fields().filter(CVSymbolSubsectionBuilder::isManifestedStaticField).forEach(f -> {
             int typeIndex = cvDebugInfo.getCVTypeSection().getIndexForPointer(f.getValueType());
-            String externName = "static$" + classEntry.getTypeName().replace(".", "_") + "_" + f.fieldName();
+            String displayName = CVNames.fieldNameToCodeViewName(f);
             if (cvDebugInfo.useHeapBase()) {
-                /* REL32 offset from heap base register. */
-                addToSymbolSubsection(new CVSymbolSubrecord.CVSymbolRegRel32Record(cvDebugInfo, externName, typeIndex, f.getOffset(), cvDebugInfo.getHeapbaseRegister()));
+                /*
+                 * REL32 offset from heap base register. Graal currently uses r14, this code will
+                 * handle r8-r15.
+                 */
+                assert 8 <= cvDebugInfo.getHeapbaseRegister() && cvDebugInfo.getHeapbaseRegister() <= 15;
+                int heapRegister = CV_AMD64_R8 + cvDebugInfo.getHeapbaseRegister() - 8;
+                addToSymbolSubsection(new CVSymbolSubrecord.CVSymbolRegRel32Record(cvDebugInfo, displayName, typeIndex, f.getOffset(), (short) heapRegister));
             } else {
                 /* Offset from heap begin. */
-                addToSymbolSubsection(new CVSymbolSubrecord.CVSymbolGData32Record(cvDebugInfo, externName, HEAP_BEGIN_NAME, typeIndex, f.getOffset(), sectionId));
+                String heapName = SectionName.SVM_HEAP.getFormatDependentName(cvDebugInfo.getCVSymbolSection().getOwner().getFormat());
+                addToSymbolSubsection(new CVSymbolSubrecord.CVSymbolGData32Record(cvDebugInfo, displayName, heapName, typeIndex, f.getOffset(), (short) 0));
             }
         });
     }
@@ -121,7 +120,7 @@ final class CVSymbolSubsectionBuilder {
      *
      * @param primaryEntry primary entry for this function
      */
-    private void build(PrimaryEntry primaryEntry) {
+    private void buildFunction(PrimaryEntry primaryEntry) {
         final Range primaryRange = primaryEntry.getPrimary();
 
         /* The name as it will appear in the debugger. */
@@ -158,27 +157,21 @@ final class CVSymbolSubsectionBuilder {
     /**
      * Rename function names for usability or functionality.
      *
-     * First encountered main function becomes class.main. This is for usability.
-     *
-     * All other functions become class.function.999 (where 999 is a hash of the arglist). This is
-     * because The standard link.exe can't handle odd characters (parentheses or commas, for
-     * example) in debug information.
-     *
-     * This does not affect external symbols used by linker.
-     *
-     * TODO: strip illegal characters from arg lists instead ("link.exe" - safe names)
+     * First encountered static main function becomes class_main. This is for usability. All other
+     * functions become package_class_function_arglist. This does not affect external symbols used
+     * by linker.
      *
      * @param range Range contained in the method of interest
      * @return user debugger friendly method name
      */
     private String getDebuggerName(Range range) {
         final String methodName;
-        if (noMainFound && range.getMethodName().equals("main")) {
+        if (noMainFound && Modifier.isStatic(range.getMethodEntry().getModifiers()) && range.getMethodName().equals("main")) {
             noMainFound = false;
-            methodName = range.getFullMethodName();
+            methodName = CVNames.functionNameToCodeViewName(range.getMethodEntry());
         } else {
-            /* In the future, use a more user-friendly name instead of a hash function. */
-            methodName = range.getSymbolName();
+            /* Use a more user-friendly name instead of a hash function. */
+            methodName = CVNames.functionNameAndArgsToCodeViewName(range.getMethodEntry());
         }
         return methodName;
     }
