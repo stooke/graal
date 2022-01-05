@@ -147,11 +147,6 @@ public final class TruffleBaseFeature implements com.oracle.svm.core.graal.Graal
         }
     }
 
-    /**
-     * True in the first analysis run where contexts are pre-initialized.
-     */
-    private boolean firstAnalysisRun;
-
     // Checkstyle: stop
     private ClassLoader imageClassLoader;
     private AnalysisMetaAccess metaAccess;
@@ -328,8 +323,13 @@ public final class TruffleBaseFeature implements com.oracle.svm.core.graal.Graal
                         LibraryFactory.class);
         config.registerSubtypeReachabilityHandler(TruffleBaseFeature::registerTruffleLibrariesAsInHeap,
                         LibraryExport.class);
+    }
 
-        firstAnalysisRun = true;
+    public static void preInitializeEngine() {
+        invokeStaticMethod("org.graalvm.polyglot.Engine$ImplHolder", "preInitializeEngine",
+                        Collections.emptyList());
+        invokeStaticMethod("com.oracle.truffle.api.impl.ThreadLocalHandshake", "resetNativeImageState",
+                        Collections.emptyList());
     }
 
     /**
@@ -348,15 +348,6 @@ public final class TruffleBaseFeature implements com.oracle.svm.core.graal.Graal
     @Override
     public void duringAnalysis(DuringAnalysisAccess access) {
         StaticObjectSupport.duringAnalysis(access);
-
-        if (firstAnalysisRun) {
-            firstAnalysisRun = false;
-            invokeStaticMethod("org.graalvm.polyglot.Engine$ImplHolder", "preInitializeEngine",
-                            Collections.emptyList());
-            invokeStaticMethod("com.oracle.truffle.api.impl.ThreadLocalHandshake", "resetNativeImageState",
-                            Collections.emptyList());
-            access.requireAnalysisIteration();
-        }
 
         for (Class<?> clazz : access.reachableSubtypes(com.oracle.truffle.api.nodes.Node.class)) {
             registerUnsafeAccess(access, clazz.asSubclass(com.oracle.truffle.api.nodes.Node.class));
@@ -654,12 +645,17 @@ final class Target_com_oracle_truffle_api_staticobject_StaticProperty {
          * We have to use reflection to access private members instead of aliasing them in the
          * substitution class since substitutions are present only at runtime
          */
-        private static final Method GET_PROPERTY_TYPE;
 
+        private static final Method GET_PROPERTY_TYPE;
         static {
             // Checkstyle: stop
             GET_PROPERTY_TYPE = ReflectionUtil.lookupMethod(StaticProperty.class, "getPropertyType");
             // Checkstyle: resume
+        }
+
+        @Override
+        public RecomputeFieldValue.ValueAvailability valueAvailability() {
+            return RecomputeFieldValue.ValueAvailability.BeforeAnalysis;
         }
 
         @Override
@@ -733,6 +729,11 @@ final class Target_com_oracle_truffle_api_staticobject_ArrayBasedShapeGenerator 
                 throw VMError.shouldNotReachHere(e);
             }
             // Checkstyle: resume
+        }
+
+        @Override
+        public RecomputeFieldValue.ValueAvailability valueAvailability() {
+            return RecomputeFieldValue.ValueAvailability.AfterAnalysis;
         }
 
         @Override

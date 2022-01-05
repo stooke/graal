@@ -25,7 +25,6 @@
 package com.oracle.svm.graal.hotspot.libgraal;
 
 import static jdk.vm.ci.hotspot.HotSpotJVMCIRuntime.runtime;
-import static org.graalvm.compiler.serviceprovider.JavaVersionUtil.JAVA_SPEC;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -95,14 +94,14 @@ import org.graalvm.compiler.truffle.compiler.hotspot.TruffleCallBoundaryInstrume
 import org.graalvm.compiler.truffle.compiler.substitutions.GraphBuilderInvocationPluginProvider;
 import org.graalvm.compiler.truffle.compiler.substitutions.GraphDecoderInvocationPluginProvider;
 import org.graalvm.compiler.truffle.runtime.GraalTruffleRuntime;
-import org.graalvm.libgraal.LibGraal;
-import org.graalvm.libgraal.jni.LibGraalNativeBridgeSupport;
-import org.graalvm.libgraal.jni.LibGraalUtil;
 import org.graalvm.jniutils.JNI;
 import org.graalvm.jniutils.JNIExceptionWrapper;
 import org.graalvm.jniutils.JNIMethodScope;
 import org.graalvm.jniutils.JNIUtil;
 import org.graalvm.jniutils.NativeBridgeSupport;
+import org.graalvm.libgraal.LibGraal;
+import org.graalvm.libgraal.jni.LibGraalNativeBridgeSupport;
+import org.graalvm.libgraal.jni.LibGraalUtil;
 import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.LogHandler;
 import org.graalvm.nativeimage.StackValue;
@@ -113,9 +112,9 @@ import org.graalvm.nativeimage.impl.ConfigurationCondition;
 import org.graalvm.word.Pointer;
 import org.graalvm.word.WordFactory;
 
-import com.oracle.graal.pointsto.flow.InvokeTypeFlow;
 import com.oracle.graal.pointsto.meta.AnalysisMethod;
 import com.oracle.graal.pointsto.meta.AnalysisUniverse;
+import com.oracle.graal.pointsto.meta.InvokeInfo;
 import com.oracle.svm.core.OS;
 import com.oracle.svm.core.RuntimeAssertionsSupport;
 import com.oracle.svm.core.SubstrateUtil;
@@ -391,9 +390,9 @@ public final class LibGraalFeature implements com.oracle.svm.core.graal.GraalFea
                                 registry.register(condition, false, clazz.getDeclaredMethod(methodName, parameters));
                             }
                         } catch (NoSuchMethodException e) {
-                            throw source.error("Method %s.%s%s not found: %e", clazz.getTypeName(), methodName, descriptor, e);
+                            throw source.error("Method %s.%s%s not found: %s", clazz.getTypeName(), methodName, descriptor, e);
                         } catch (NoClassDefFoundError e) {
-                            throw source.error("Could not register method %s.%s%s: %e", clazz.getTypeName(), methodName, descriptor, e);
+                            throw source.error("Could not register method %s.%s%s: %s", clazz.getTypeName(), methodName, descriptor, e);
                         }
                         break;
                     }
@@ -485,12 +484,10 @@ public final class LibGraalFeature implements com.oracle.svm.core.graal.GraalFea
             filterArchitectureServices(archPackage, servicesCache);
             servicesCache.remove(GeneratedPluginFactory.class);
 
-            if (JAVA_SPEC > 8) {
-                final Field graalServicesCacheField = ReflectionUtil.lookupField(GraalServices.class, "servicesCache");
-                Map<Class<?>, List<?>> graalServicesCache = (Map<Class<?>, List<?>>) graalServicesCacheField.get(null);
-                filterArchitectureServices(archPackage, graalServicesCache);
-                graalServicesCache.remove(GeneratedPluginFactory.class);
-            }
+            final Field graalServicesCacheField = ReflectionUtil.lookupField(GraalServices.class, "servicesCache");
+            Map<Class<?>, List<?>> graalServicesCache = (Map<Class<?>, List<?>>) graalServicesCacheField.get(null);
+            filterArchitectureServices(archPackage, graalServicesCache);
+            graalServicesCache.remove(GeneratedPluginFactory.class);
 
             Field cachedHotSpotJVMCIBackendFactoriesField = ReflectionUtil.lookupField(HotSpotJVMCIRuntime.class, "cachedHotSpotJVMCIBackendFactories");
             List<HotSpotJVMCIBackendFactory> cachedHotSpotJVMCIBackendFactories = (List<HotSpotJVMCIBackendFactory>) cachedHotSpotJVMCIBackendFactoriesField.get(null);
@@ -558,7 +555,7 @@ public final class LibGraalFeature implements com.oracle.svm.core.graal.GraalFea
             if (!isAllowedType(className)) {
                 disallowedTypes.add(className);
             }
-            for (InvokeTypeFlow invoke : m.getTypeFlow().getInvokes()) {
+            for (InvokeInfo invoke : m.getInvokes()) {
                 for (AnalysisMethod callee : invoke.getCallees()) {
                     if (seen.add(callee)) {
                         todo.add(callee);
@@ -662,6 +659,11 @@ final class Target_org_graalvm_compiler_hotspot_HotSpotGraalRuntime {
     // Checkstyle: resume
 
     private static final class InjectedManagementComputer implements RecomputeFieldValue.CustomFieldValueComputer {
+        @Override
+        public RecomputeFieldValue.ValueAvailability valueAvailability() {
+            return RecomputeFieldValue.ValueAvailability.BeforeAnalysis;
+        }
+
         @Override
         public Object compute(MetaAccessProvider metaAccess, ResolvedJavaField original, ResolvedJavaField annotated, Object receiver) {
             try {

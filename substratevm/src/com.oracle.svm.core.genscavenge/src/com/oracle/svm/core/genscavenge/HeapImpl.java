@@ -28,16 +28,12 @@ import java.lang.ref.Reference;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.oracle.svm.core.SubstrateDiagnostics.DiagnosticThunkRegistry;
-import com.oracle.svm.core.SubstrateDiagnostics.ErrorContext;
-import com.oracle.svm.core.thread.VMThreads.SafepointBehavior;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.compiler.core.common.NumUtil;
 import org.graalvm.compiler.core.common.SuppressFBWarnings;
 import org.graalvm.compiler.nodes.gc.BarrierSet;
 import org.graalvm.compiler.word.Word;
 import org.graalvm.nativeimage.CurrentIsolate;
-import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.IsolateThread;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
@@ -47,7 +43,10 @@ import org.graalvm.word.UnsignedWord;
 import com.oracle.svm.core.MemoryWalker;
 import com.oracle.svm.core.SubstrateDiagnostics;
 import com.oracle.svm.core.SubstrateDiagnostics.DiagnosticThunk;
+import com.oracle.svm.core.SubstrateDiagnostics.DiagnosticThunkRegistry;
+import com.oracle.svm.core.SubstrateDiagnostics.ErrorContext;
 import com.oracle.svm.core.SubstrateOptions;
+import com.oracle.svm.core.SubstrateUtil;
 import com.oracle.svm.core.annotate.NeverInline;
 import com.oracle.svm.core.annotate.RestrictHeapAccess;
 import com.oracle.svm.core.annotate.Substitute;
@@ -64,7 +63,7 @@ import com.oracle.svm.core.heap.NoAllocationVerifier;
 import com.oracle.svm.core.heap.ObjectHeader;
 import com.oracle.svm.core.heap.ObjectVisitor;
 import com.oracle.svm.core.heap.PhysicalMemory;
-import com.oracle.svm.core.heap.ReferenceHandlerThreadSupport;
+import com.oracle.svm.core.heap.ReferenceHandlerThread;
 import com.oracle.svm.core.heap.ReferenceInternals;
 import com.oracle.svm.core.heap.RuntimeCodeInfoGCSupport;
 import com.oracle.svm.core.hub.DynamicHub;
@@ -74,12 +73,14 @@ import com.oracle.svm.core.locks.VMMutex;
 import com.oracle.svm.core.log.Log;
 import com.oracle.svm.core.nodes.CFunctionEpilogueNode;
 import com.oracle.svm.core.nodes.CFunctionPrologueNode;
+import com.oracle.svm.core.option.RuntimeOptionKey;
 import com.oracle.svm.core.os.CommittedMemoryProvider;
 import com.oracle.svm.core.snippets.KnownIntrinsics;
 import com.oracle.svm.core.thread.JavaThreads;
 import com.oracle.svm.core.thread.ThreadStatus;
 import com.oracle.svm.core.thread.VMOperation;
 import com.oracle.svm.core.thread.VMThreads;
+import com.oracle.svm.core.thread.VMThreads.SafepointBehavior;
 import com.oracle.svm.core.util.UnsignedUtils;
 import com.oracle.svm.core.util.UserError;
 
@@ -472,7 +473,7 @@ public final class HeapImpl extends Heap {
 
     @SuppressFBWarnings(value = "VO_VOLATILE_INCREMENT", justification = "Only the GC increments the volatile field 'refListOfferCounter'.")
     void addToReferencePendingList(Reference<?> list) {
-        VMOperation.guaranteeGCInProgress("Must only be called during a GC.");
+        assert VMOperation.isGCInProgress();
         if (list == null) {
             return;
         }
@@ -503,10 +504,15 @@ public final class HeapImpl extends Heap {
     public boolean hasReferencePendingList() {
         REF_MUTEX.lockNoTransition();
         try {
-            return refPendingList != null;
+            return hasReferencePendingListUnsafe();
         } finally {
             REF_MUTEX.unlock();
         }
+    }
+
+    @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
+    boolean hasReferencePendingListUnsafe() {
+        return refPendingList != null;
     }
 
     @Override
@@ -531,7 +537,7 @@ public final class HeapImpl extends Heap {
          * everything in the reverse order here: we read the wakeup count *before* the call to
          * Thread.interrupted().
          */
-        assert Thread.currentThread() == ImageSingletons.lookup(ReferenceHandlerThreadSupport.class).getThread();
+        assert ReferenceHandlerThread.isReferenceHandlerThread();
         long initialOffers = refListOfferCounter;
         long initialWakeUps = refListWaiterWakeUpCounter;
         if (hasReferencePendingList()) {
@@ -641,8 +647,10 @@ public final class HeapImpl extends Heap {
     }
 
     @Override
-    public void updateSizeParameters() {
-        GCImpl.getPolicy().updateSizeParameters();
+    public void optionValueChanged(RuntimeOptionKey<?> key) {
+        if (!SubstrateUtil.HOSTED) {
+            GCImpl.getPolicy().updateSizeParameters();
+        }
     }
 
     static Pointer getImageHeapStart() {
@@ -853,7 +861,7 @@ final class Target_java_lang_Runtime {
     @Substitute
     private long maxMemory() {
         PhysicalMemory.size(); // ensure physical memory size is set correctly and not estimated
-        Heap.getHeap().updateSizeParameters();
+        GCImpl.getPolicy().updateSizeParameters();
         return GCImpl.getPolicy().getMaximumHeapSize().rawValue();
     }
 
