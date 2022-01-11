@@ -434,7 +434,6 @@ abstract class CVSymbolSubrecord {
         }
     }
 
-    @SuppressWarnings("unused")
     public static final class CVSymbolUDTRecord extends CVSymbolSubrecord {
 
         private final int typeIdx;

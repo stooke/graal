@@ -78,6 +78,7 @@ final class CVSymbolSubsectionBuilder {
      * @param classEntry current class
      */
     private void buildClass(ClassEntry classEntry) {
+
         /*
          * Define the MFUNCTION records first and then the class itself. If the class is defined
          * first, MFUNCTION records that reference a forwardRef are generated, and then later (after
@@ -88,7 +89,11 @@ final class CVSymbolSubsectionBuilder {
         for (PrimaryEntry primaryEntry : classEntry.getPrimaryEntries()) {
             buildFunction(primaryEntry);
         }
-        addTypeRecords(classEntry);
+        int classIndex = addTypeRecords(classEntry);
+
+        /* Adding an S_UDT (User Defined Type) record ensures the linker doesn't throw away the class definition. */
+        CVSymbolSubrecord.CVSymbolUDTRecord udtRecord = new CVSymbolSubrecord.CVSymbolUDTRecord(cvDebugInfo, classIndex, CVNames.typeNameToCodeViewName(classEntry.getTypeName()));
+        addToSymbolSubsection(udtRecord);
 
         /* Add manifested static fields as S_GDATA32 records. */
         classEntry.fields().filter(CVSymbolSubsectionBuilder::isManifestedStaticField).forEach(f -> {
@@ -144,6 +149,7 @@ final class CVSymbolSubsectionBuilder {
         int frameFlags = asynceh + localBP + paramBP; /* NB: LLVM uses 0x14000. */
         addToSymbolSubsection(new CVSymbolSubrecord.CVSymbolFrameProcRecord(cvDebugInfo, primaryEntry.getFrameSize(), frameFlags));
 
+        /* TODO: add parameter definitions (types have been added already). */
         /* TODO: add local variables, and their types. */
         /* TODO: add block definitions. */
 
@@ -201,9 +207,10 @@ final class CVSymbolSubsectionBuilder {
      * Add type records for a class and all its members.
      *
      * @param typeEntry class to add records for.
+     * @return type index of class (or forward ref) type
      */
-    private void addTypeRecords(TypeEntry typeEntry) {
-        cvDebugInfo.getCVTypeSection().addTypeRecords(typeEntry);
+    private int addTypeRecords(TypeEntry typeEntry) {
+        return cvDebugInfo.getCVTypeSection().addTypeRecords(typeEntry).getSequenceNumber();
     }
 
     /**
