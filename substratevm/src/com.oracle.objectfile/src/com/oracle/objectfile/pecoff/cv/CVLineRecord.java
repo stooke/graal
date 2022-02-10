@@ -45,8 +45,8 @@ final class CVLineRecord extends CVSymbolRecord {
     /* Has columns flag = 0x80 - not supported. */
     private static final short CB_HAS_NO_COLUMNS_FLAG = 0x00;
 
-    private String symbolName;
-    private ArrayList<FileBlock> fileBlocks = new ArrayList<>(DEFAULT_LINE_BLOCK_COUNT);
+    private final String symbolName;
+    private final ArrayList<FileBlock> fileBlocks = new ArrayList<>(DEFAULT_LINE_BLOCK_COUNT);
 
     CVLineRecord(CVDebugInfo cvDebugInfo, String symbolName) {
         super(cvDebugInfo, CVDebugConstants.DEBUG_S_LINES);
@@ -127,8 +127,8 @@ final class CVLineRecord extends CVSymbolRecord {
         /* Fileblock header: fileId (4 bytes) lineEntry count (4 bytes) tablesize (4 bytes) */
         static final int FILE_BLOCK_HEADER_SIZE = Integer.BYTES * 3;
 
-        private ArrayList<LineEntry> lineEntries = new ArrayList<>(DEFAULT_LINE_ENTRY_COUNT);
-        private int fileId;
+        private final ArrayList<LineEntry> lineEntries = new ArrayList<>(DEFAULT_LINE_ENTRY_COUNT);
+        private final int fileId;
 
         FileBlock(int fileId) {
             this.fileId = fileId;

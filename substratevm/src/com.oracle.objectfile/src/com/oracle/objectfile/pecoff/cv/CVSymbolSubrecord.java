@@ -123,20 +123,20 @@ abstract class CVSymbolSubrecord {
         private static final byte HAS_DEBUG_FLAG = 0;
         @SuppressWarnings("unused") private static final byte HAS_NO_DEBUG_FLAG = (byte) 0x80;
 
-        private byte language;
-        private byte cf1;
-        private byte cf2;
-        private byte padding;
-        private short machine;
-        private short feMajor;
-        private short feMinor;
-        private short feBuild;
-        private short feQFE;
-        private short beMajor;
-        private short beMinor;
-        private short beBuild;
-        private short beQFE;
-        private String compiler;
+        private final byte language;
+        private final byte cf1;
+        private final byte cf2;
+        private final byte padding;
+        private final short machine;
+        private final short feMajor;
+        private final short feMinor;
+        private final short feBuild;
+        private final short feQFE;
+        private final short beMajor;
+        private final short beMinor;
+        private final short beBuild;
+        private final short beQFE;
+        private final String compiler;
 
         CVCompile3Record(CVDebugInfo cvDebugInfo) {
             super(cvDebugInfo, CVDebugConstants.S_COMPILE3);
@@ -185,7 +185,7 @@ abstract class CVSymbolSubrecord {
 
         private static final int ENVMAP_INITIAL_CAPACITY = 10;
 
-        private Map<String, String> map = new HashMap<>(ENVMAP_INITIAL_CAPACITY);
+        private final Map<String, String> map = new HashMap<>(ENVMAP_INITIAL_CAPACITY);
 
         /*-
          * Example contents of the environment block:
