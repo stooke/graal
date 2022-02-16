@@ -709,6 +709,7 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
              * @return true if this is a virtual method and is defined for the first time (from base class)
              *         in the call heirarchy.
              */
+            @Override
             public boolean isFirstIntroduction() {
                 if (hostedMethod.hasVTableIndex()) {
                     HostedClass parentClass = hostedMethod.getDeclaringClass().getSuperclass();
