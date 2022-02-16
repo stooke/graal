@@ -224,6 +224,11 @@ public interface DebugInfoProvider {
          * @return the offset into the virtual function table for this method if virtual
          */
         int vtableOffset();
+
+        /**
+         * @return true if this method is the 'first' definition in the type heirarchy, from Object down.
+         */
+        boolean isFirstIntroduction();
     }
 
     /**

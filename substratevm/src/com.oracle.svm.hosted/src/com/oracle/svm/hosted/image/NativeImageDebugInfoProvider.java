@@ -701,6 +701,30 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
                 return hostedMethod.hasVTableIndex() ? hostedMethod.getVTableIndex() : -1;
             }
 
+            /**
+             * Returns true if this is a newly introduced virtual method. Walks the class heirarchy looking
+             * methods that look like itself. This is an odd requirement, but used in the Windows CodeView
+             * output.
+             *
+             * @return true if this is a virtual method and is defined for the first time (from base class)
+             *         in the call heirarchy.
+             */
+            public boolean isFirstIntroduction() {
+                if (hostedMethod.hasVTableIndex()) {
+                    HostedClass parentClass = hostedMethod.getDeclaringClass().getSuperclass();
+                    String hostedMethodSignature = hostedMethod.getSignature().toMethodDescriptor();
+                    while (parentClass != null) {
+                        for (HostedMethod method : parentClass.getAllDeclaredMethods()) {
+                            if (method.hasVTableIndex() && hostedMethod.getName().equals(method.getName()) && hostedMethodSignature.equals(method.getSignature().toMethodDescriptor())) {
+                                return false;
+                            }
+                        }
+                        parentClass = parentClass.getSuperclass();
+                    }
+                }
+                return true;
+            }
+
             @Override
             public int modifiers() {
                 return getOriginalModifiers(hostedMethod);
@@ -990,6 +1014,12 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
         public int vtableOffset() {
             return hostedMethod.hasVTableIndex() ? hostedMethod.getVTableIndex() : -1;
         }
+
+        @Override
+        public boolean isFirstIntroduction() {
+            assert false;
+            return false;
+        }
     }
 
     private static boolean filterLineInfoSourceMapping(SourceMapping sourceMapping) {
@@ -1204,6 +1234,12 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
         public int vtableOffset() {
             assert false;
             return 0;
+        }
+
+        @Override
+        public boolean isFirstIntroduction() {
+            assert false;
+            return false;
         }
     }
 
