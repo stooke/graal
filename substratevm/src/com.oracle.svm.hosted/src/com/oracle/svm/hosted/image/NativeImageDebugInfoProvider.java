@@ -702,12 +702,12 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
             }
 
             /**
-             * Returns true if this is a newly introduced virtual method. Walks the class heirarchy looking
-             * methods that look like itself. This is an odd requirement, but used in the Windows CodeView
-             * output.
+             * Returns true if this is a newly introduced virtual method. Walks the class heirarchy
+             * looking for methods that look like itself. This is an odd requirement, but used in the
+             * Windows CodeView output.
              *
-             * @return true if this is a virtual method and is defined for the first time (from base class)
-             *         in the call heirarchy.
+             * @return true if this is a virtual method and is defined for the first time (from base
+             *         class) in the call heirarchy.
              */
             @Override
             public boolean isFirstIntroduction() {

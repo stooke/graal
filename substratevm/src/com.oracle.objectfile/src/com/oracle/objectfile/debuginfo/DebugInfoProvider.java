@@ -226,7 +226,8 @@ public interface DebugInfoProvider {
         int vtableOffset();
 
         /**
-         * @return true if this method is the 'first' definition in the type heirarchy, from Object down.
+         * @return true if this method is the 'first' definition in the type heirarchy, from Object
+         *         down.
          */
         boolean isFirstIntroduction();
     }
