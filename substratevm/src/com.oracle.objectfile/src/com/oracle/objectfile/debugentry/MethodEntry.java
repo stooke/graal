@@ -36,6 +36,7 @@ public class MethodEntry extends MemberEntry {
     static final int DEOPT = 1 << 0;
     static final int IN_RANGE = 1 << 1;
     static final int INLINED = 1 << 2;
+    static final int FIRST_INTRODUCTION = 1 << 3;
     int flags;
     final int vtableOffset;
     final String symbolName;
@@ -53,6 +54,9 @@ public class MethodEntry extends MemberEntry {
         this.vtableOffset = debugMethodInfo.vtableOffset();
         if (debugMethodInfo.isDeoptTarget()) {
             setIsDeopt();
+        }
+        if (debugMethodInfo.isFirstIntroduction()) {
+            setIsFirstIntroduction();
         }
         updateRangeInfo(debugInfoBase, debugMethodInfo);
     }
@@ -119,6 +123,14 @@ public class MethodEntry extends MemberEntry {
         return (flags & INLINED) != 0;
     }
 
+    private void setIsFirstIntroduction() {
+        flags |= FIRST_INTRODUCTION;
+    }
+
+    public boolean isFirstIntroduction() {
+        return (flags & FIRST_INTRODUCTION) != 0;
+    }
+
     /**
      * Sets {@code isInRange} and ensures that the {@code fileEntry} is up to date. If the
      * MethodEntry was added by traversing the DeclaredMethods of a Class its fileEntry will point
@@ -153,27 +165,6 @@ public class MethodEntry extends MemberEntry {
                 fileEntry = debugInfoBase.ensureFileEntry(debugMethodInfo);
             }
         }
-    }
-
-    /**
-     * Returns true if this is a newly introduced virtual method. Walks the class heirarchy looking
-     * methods that look like itself. This is an odd requirement, but used in the Windows CodeView
-     * output.
-     *
-     * @return true if this is a virtual method and is defined for the first time (from base class)
-     *         in the call heirarchy.
-     */
-    public boolean isFirstSighting() {
-        ClassEntry parentClass = ownerType().getSuperClass();
-        while (parentClass != null) {
-            for (MethodEntry method : parentClass.methods) {
-                if (this.equals(method)) {
-                    return false;
-                }
-            }
-            parentClass = parentClass.getSuperClass();
-        }
-        return true;
     }
 
     public int getVtableOffset() {
