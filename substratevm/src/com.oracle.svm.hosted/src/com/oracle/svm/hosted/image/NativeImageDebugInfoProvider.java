@@ -706,8 +706,8 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
              * looking for methods that look like itself. This is an odd requirement, but used in
              * the Windows CodeView output.
              *
-             * @return true if this is a virtual method and is defined for the first time (from
-             *         base class) in the call hierarchy.
+             * @return true if this is a virtual method and is defined for the first time (from base
+             *         class) in the call hierarchy.
              */
             @Override
             public boolean isFirstIntroduction() {
