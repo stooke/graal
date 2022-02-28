@@ -91,7 +91,10 @@ final class CVSymbolSubsectionBuilder {
         }
         int classIndex = addTypeRecords(classEntry);
 
-        /* Adding an S_UDT (User Defined Type) record ensures the linker doesn't throw away the class definition. */
+        /*
+         * Adding an S_UDT (User Defined Type) record ensures the linker doesn't throw away the
+         * class definition.
+         */
         CVSymbolSubrecord.CVSymbolUDTRecord udtRecord = new CVSymbolSubrecord.CVSymbolUDTRecord(cvDebugInfo, classIndex, CVNames.typeNameToCodeViewName(classEntry.getTypeName()));
         addToSymbolSubsection(udtRecord);
 
@@ -113,7 +116,7 @@ final class CVSymbolSubsectionBuilder {
                 addToSymbolSubsection(new CVSymbolSubrecord.CVSymbolGData32Record(cvDebugInfo, displayName, heapName, typeIndex, f.getOffset(), (short) 0));
             }
         });
-        }
+    }
 
     private static boolean isManifestedStaticField(FieldEntry fieldEntry) {
         return Modifier.isStatic(fieldEntry.getModifiers()) && fieldEntry.getOffset() >= 0;
