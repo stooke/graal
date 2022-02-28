@@ -727,6 +727,11 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
             }
 
             @Override
+            public boolean isConstructor() {
+                return hostedMethod.isConstructor();
+            }
+
+            @Override
             public int modifiers() {
                 return getOriginalModifiers(hostedMethod);
             }
@@ -1021,6 +1026,12 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
             assert false;
             return false;
         }
+
+        @Override
+        public boolean isConstructor() {
+            assert false;
+            return false;
+        }
     }
 
     private static boolean filterLineInfoSourceMapping(SourceMapping sourceMapping) {
@@ -1239,6 +1250,12 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
 
         @Override
         public boolean isFirstIntroduction() {
+            assert false;
+            return false;
+        }
+
+        @Override
+        public boolean isConstructor() {
             assert false;
             return false;
         }

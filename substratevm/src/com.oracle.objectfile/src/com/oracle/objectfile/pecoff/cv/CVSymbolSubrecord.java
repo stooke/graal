@@ -74,7 +74,7 @@ abstract class CVSymbolSubrecord {
 
     public static final class CVObjectNameRecord extends CVSymbolSubrecord {
 
-        String objName; /* find the full path to object file we will produce. */
+        private final String objName; /* find the full path to object file we will produce. */
 
         CVObjectNameRecord(CVDebugInfo cvDebugInfo, String objName) {
             super(cvDebugInfo, CVDebugConstants.S_OBJNAME);

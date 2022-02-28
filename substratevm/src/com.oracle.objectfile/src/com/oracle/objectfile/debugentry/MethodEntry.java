@@ -37,6 +37,7 @@ public class MethodEntry extends MemberEntry {
     static final int IN_RANGE = 1 << 1;
     static final int INLINED = 1 << 2;
     static final int FIRST_INTRODUCTION = 1 << 3;
+    static final int IS_CONSTRUCTOR = 1 << 4;
     int flags;
     final int vtableOffset;
     final String symbolName;
@@ -57,6 +58,9 @@ public class MethodEntry extends MemberEntry {
         }
         if (debugMethodInfo.isFirstIntroduction()) {
             setIsFirstIntroduction();
+        }
+        if (debugMethodInfo.isConstructor()) {
+            setIsConstructor();
         }
         updateRangeInfo(debugInfoBase, debugMethodInfo);
     }
@@ -129,6 +133,14 @@ public class MethodEntry extends MemberEntry {
 
     public boolean isFirstIntroduction() {
         return (flags & FIRST_INTRODUCTION) != 0;
+    }
+
+    private void setIsConstructor() {
+        flags |= IS_CONSTRUCTOR;
+    }
+
+    public boolean isConstructor() {
+        return (flags & IS_CONSTRUCTOR) != 0;
     }
 
     /**

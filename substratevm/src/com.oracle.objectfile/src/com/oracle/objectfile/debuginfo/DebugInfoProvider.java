@@ -230,6 +230,11 @@ public interface DebugInfoProvider {
          *         down.
          */
         boolean isFirstIntroduction();
+
+        /**
+         * @return true if this method is a constructor.
+         */
+        boolean isConstructor();
     }
 
     /**
