@@ -26,7 +26,7 @@
 
 package com.oracle.objectfile.pecoff.cv;
 
-import com.oracle.objectfile.ObjectFile;
+import com.oracle.objectfile.ObjectFile.RelocationKind;
 import org.graalvm.compiler.debug.DebugContext;
 
 import com.oracle.objectfile.io.Utf8;
@@ -97,7 +97,7 @@ public final class CVSymbolSectionImpl extends CVSectionImpl {
         for (CVSymbolRecord record : cvRecords) {
             pos = CVUtil.align4(pos);
             log("  [0x%08x] %s", pos, record.toString());
-            record.logContents(debugContext);
+            record.logContents();
             pos = record.computeFullContents(buffer, pos);
         }
         log("CVSymbolSectionImpl.writeContent() end");
@@ -192,21 +192,36 @@ public final class CVSymbolSectionImpl extends CVSectionImpl {
      *
      * @param buffer output buffer
      * @param initialPos position of fixup in output buffer
-     * @param offset offset to add to the fixup
      * @param symbolName symbolname to reference
      * @return new position in output buffer
      */
-    public int markRelocationSite(byte[] buffer, int initialPos, String symbolName, Long offset) {
+    public int markRelocationSite(byte[] buffer, int initialPos, String symbolName) {
         int pos = initialPos;
-        if (buffer != null) {
-            markRelocationSite(pos, ObjectFile.RelocationKind.SECREL_4, symbolName, offset);
-            pos += ObjectFile.RelocationKind.getRelocationSize(ObjectFile.RelocationKind.SECREL_4);
-            markRelocationSite(pos, ObjectFile.RelocationKind.SECTION_2, symbolName, 0);
-            pos += ObjectFile.RelocationKind.getRelocationSize(ObjectFile.RelocationKind.SECTION_2);
-        } else {
-            pos = CVUtil.putInt(0, buffer, pos);
-            pos = CVUtil.putShort((short) 0, buffer, pos);
-        }
+        pos = markRelocationSite(buffer, pos, symbolName, RelocationKind.SECREL_4, 0);
+        pos = markRelocationSite(buffer, pos, symbolName, RelocationKind.SECTION_2, 0);
         return pos;
+    }
+
+    /**
+     * Mark an offset:segment relocation site for linker or loader fixup.
+     *
+     * @param buffer output buffer
+     * @param initialPos position of fixup in output buffer
+     * @param symbolName symbolname to reference
+     * @param offset offset from symbol
+     * @return new position in output buffer
+     */
+    public int markRelocationSite(byte[] buffer, int initialPos, String symbolName, long offset) {
+        int pos = initialPos;
+        pos = markRelocationSite(buffer, pos, symbolName, RelocationKind.SECREL_4, offset);
+        pos = markRelocationSite(buffer, pos, symbolName, RelocationKind.SECTION_2, 0);
+        return pos;
+    }
+
+    private int markRelocationSite(byte[] buffer, int initialPos, String symbolName, RelocationKind k, long addend) {
+        if (buffer != null) {
+            markRelocationSite(initialPos, k, symbolName, addend);
+        }
+        return initialPos + RelocationKind.getRelocationSize(k);
     }
 }

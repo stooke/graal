@@ -221,17 +221,6 @@ public interface DebugInfoProvider {
         boolean isDeoptTarget();
 
         /**
-         * @return the offset into the virtual function table for this method if virtual
-         */
-        int vtableOffset();
-
-        /**
-         * @return true if this method is the 'first' definition in the type hierarchy, from Object
-         *         down.
-         */
-        boolean isFirstIntroduction();
-
-        /**
          * @return true if this method is a constructor.
          */
         boolean isConstructor();
@@ -284,6 +273,22 @@ public interface DebugInfoProvider {
          *         to an empty frame
          */
         List<DebugFrameSizeChange> getFrameSizeChanges();
+
+        /**
+         * @return true if this is a virtual method. In Graal a virtual method can become
+         *         non-virtual if all other implementations are non-reachable.
+         */
+        boolean isVirtual();
+
+        /**
+         * @return the offset into the virtual function table for this method if virtual
+         */
+        int vtableOffset();
+
+        /**
+         * @return true if this method is an override of another method.
+         */
+        boolean isOverride();
     }
 
     /**

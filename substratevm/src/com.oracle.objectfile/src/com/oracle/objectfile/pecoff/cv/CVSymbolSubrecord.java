@@ -27,6 +27,7 @@
 package com.oracle.objectfile.pecoff.cv;
 
 import com.oracle.objectfile.debugentry.ClassEntry;
+import org.graalvm.compiler.debug.GraalError;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -266,7 +267,7 @@ abstract class CVSymbolSubrecord {
         protected int computeContents(byte[] buffer, int initialPos) {
             int pos = CVUtil.putInt(typeIndex, buffer, initialPos);
             String extname = symbolName != null ? symbolName : displayName;
-            pos = cvDebugInfo.getCVSymbolSection().markRelocationSite(buffer, pos, extname, (long) offset);
+            pos = cvDebugInfo.getCVSymbolSection().markRelocationSite(buffer, pos, extname, offset);
             pos = CVUtil.putUTF8StringBytes(displayName, buffer, pos);
             return pos;
         }
@@ -378,7 +379,7 @@ abstract class CVSymbolSubrecord {
             pos = CVUtil.putInt(debugStart, buffer, pos);
             pos = CVUtil.putInt(debugEnd, buffer, pos);
             pos = CVUtil.putInt(typeIndex, buffer, pos);
-            pos = cvDebugInfo.getCVSymbolSection().markRelocationSite(buffer, pos, symbolName, (long) 0);
+            pos = cvDebugInfo.getCVSymbolSection().markRelocationSite(buffer, pos, symbolName, offset);
             pos = CVUtil.putByte(flags, buffer, pos);
             pos = CVUtil.putUTF8StringBytes(displayName, buffer, pos);
             return pos;

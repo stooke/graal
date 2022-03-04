@@ -481,9 +481,9 @@ class CVTypeSectionBuilder {
         } else if (member.getVtableOffset() < 0) {
             attr += MPROP_VANILLA;
         } else if (Modifier.isAbstract(member.getModifiers())) {
-            attr += member.isFirstIntroduction() ? MPROP_PURE_IVIRTUAL : MPROP_PURE_VIRTUAL;
+            attr += member.isOverride() ? MPROP_PURE_VIRTUAL : MPROP_PURE_IVIRTUAL;
         } else {
-            attr += member.isFirstIntroduction() ? MPROP_IVIRTUAL : MPROP_VIRTUAL;
+            attr += member.isOverride() ? MPROP_VIRTUAL : MPROP_IVIRTUAL;
         }
         return attr;
     }

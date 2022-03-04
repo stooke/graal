@@ -34,7 +34,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import jdk.vm.ci.meta.JavaType;
@@ -97,6 +100,7 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
     int referenceAlignment;
     int primitiveStartOffset;
     int referenceStartOffset;
+    private final Set<HostedMethod> allOverrides;
 
     NativeImageDebugInfoProvider(DebugContext debugContext, NativeImageCodeCache codeCache, NativeImageHeap heap) {
         super();
@@ -121,6 +125,12 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
         /* Offsets need to be adjusted relative to the heap base plus partition-specific offset. */
         primitiveStartOffset = (int) primitiveFields.getAddress();
         referenceStartOffset = (int) objectFields.getAddress();
+        /* Calculate the set of all HostedMethods that are overrides. */
+        allOverrides = heap.getUniverse().getMethods().stream()
+                        .filter(HostedMethod::hasVTableIndex)
+                        .flatMap(m -> Arrays.stream(m.getImplementations())
+                                        .filter(Predicate.not(m::equals)))
+                        .collect(Collectors.toSet());
     }
 
     @Override
@@ -697,36 +707,6 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
             }
 
             @Override
-            public int vtableOffset() {
-                return hostedMethod.hasVTableIndex() ? hostedMethod.getVTableIndex() : -1;
-            }
-
-            /**
-             * Returns true if this is a newly introduced virtual method. Walks the class hierarchy
-             * looking for methods that look like itself. This is an odd requirement, but used in
-             * the Windows CodeView output.
-             *
-             * @return true if this is a virtual method and is defined for the first time (from base
-             *         class) in the call hierarchy.
-             */
-            @Override
-            public boolean isFirstIntroduction() {
-                if (hostedMethod.hasVTableIndex()) {
-                    HostedClass parentClass = hostedMethod.getDeclaringClass().getSuperclass();
-                    String hostedMethodSignature = hostedMethod.getSignature().toMethodDescriptor();
-                    while (parentClass != null) {
-                        for (HostedMethod method : parentClass.getAllDeclaredMethods()) {
-                            if (method.hasVTableIndex() && hostedMethod.getName().equals(method.getName()) && hostedMethodSignature.equals(method.getSignature().toMethodDescriptor())) {
-                                return false;
-                            }
-                        }
-                        parentClass = parentClass.getSuperclass();
-                    }
-                }
-                return true;
-            }
-
-            @Override
             public boolean isConstructor() {
                 return hostedMethod.isConstructor();
             }
@@ -1017,20 +997,32 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
         }
 
         @Override
+        public boolean isConstructor() {
+            return hostedMethod.isConstructor();
+        }
+
+        @Override
+        public boolean isVirtual() {
+            return hostedMethod.hasVTableIndex();
+        }
+
+        @Override
         public int vtableOffset() {
+            /*
+             * TODO - provide correct offset, not index. In Graal, the vtable is appended after the
+             * dynamicHub object.
+             */
             return hostedMethod.hasVTableIndex() ? hostedMethod.getVTableIndex() : -1;
         }
 
+        /**
+         * Returns true if this is an override virtual method. Used in Windows CodeView output.
+         *
+         * @return true if this is a virtual method and overrides an existing method.
+         */
         @Override
-        public boolean isFirstIntroduction() {
-            assert false;
-            return false;
-        }
-
-        @Override
-        public boolean isConstructor() {
-            assert false;
-            return false;
+        public boolean isOverride() {
+            return allOverrides.contains(hostedMethod);
         }
     }
 
@@ -1240,18 +1232,6 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
             } catch (Throwable e) {
                 throw debugContext.handle(e);
             }
-        }
-
-        @Override
-        public int vtableOffset() {
-            assert false;
-            return 0;
-        }
-
-        @Override
-        public boolean isFirstIntroduction() {
-            assert false;
-            return false;
         }
 
         @Override

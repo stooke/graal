@@ -36,10 +36,10 @@ public class MethodEntry extends MemberEntry {
     static final int DEOPT = 1 << 0;
     static final int IN_RANGE = 1 << 1;
     static final int INLINED = 1 << 2;
-    static final int FIRST_INTRODUCTION = 1 << 3;
+    static final int IS_OVERRIDE = 1 << 3;
     static final int IS_CONSTRUCTOR = 1 << 4;
     int flags;
-    final int vtableOffset;
+    int vtableOffset = -1;
     final String symbolName;
 
     public MethodEntry(DebugInfoBase debugInfoBase, DebugMethodInfo debugMethodInfo,
@@ -52,16 +52,13 @@ public class MethodEntry extends MemberEntry {
         this.paramNames = paramNames;
         this.symbolName = debugMethodInfo.symbolNameForMethod();
         this.flags = 0;
-        this.vtableOffset = debugMethodInfo.vtableOffset();
         if (debugMethodInfo.isDeoptTarget()) {
             setIsDeopt();
-        }
-        if (debugMethodInfo.isFirstIntroduction()) {
-            setIsFirstIntroduction();
         }
         if (debugMethodInfo.isConstructor()) {
             setIsConstructor();
         }
+        /* vtableOffset and isOverride are set when processing debugCodeInfo. */
         updateRangeInfo(debugInfoBase, debugMethodInfo);
     }
 
@@ -127,12 +124,12 @@ public class MethodEntry extends MemberEntry {
         return (flags & INLINED) != 0;
     }
 
-    private void setIsFirstIntroduction() {
-        flags |= FIRST_INTRODUCTION;
+    private void setIsOverride() {
+        flags |= IS_OVERRIDE;
     }
 
-    public boolean isFirstIntroduction() {
-        return (flags & FIRST_INTRODUCTION) != 0;
+    public boolean isOverride() {
+        return (flags & IS_OVERRIDE) != 0;
     }
 
     private void setIsConstructor() {
@@ -161,6 +158,7 @@ public class MethodEntry extends MemberEntry {
                 setIsInlined();
             }
         } else if (debugMethodInfo instanceof DebugCodeInfo) {
+            DebugCodeInfo codeInfo = (DebugCodeInfo) debugMethodInfo;
             /* this method has been seen in a primary range */
             if (isInRange()) {
                 /* it has already been seen -- just check for consistency */
@@ -176,7 +174,15 @@ public class MethodEntry extends MemberEntry {
                 setIsInRange();
                 fileEntry = debugInfoBase.ensureFileEntry(debugMethodInfo);
             }
+            if (codeInfo.isOverride()) {
+                setIsOverride();
+            }
+            vtableOffset = codeInfo.vtableOffset();
         }
+    }
+
+    public boolean getIsVirtual() {
+        return vtableOffset >= 0;
     }
 
     public int getVtableOffset() {
