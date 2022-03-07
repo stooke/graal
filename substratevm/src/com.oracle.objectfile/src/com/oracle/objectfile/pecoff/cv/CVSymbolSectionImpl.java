@@ -203,7 +203,7 @@ public final class CVSymbolSectionImpl extends CVSectionImpl {
     }
 
     /**
-     * Mark an offset:segment relocation site for linker or loader fixup.
+     * Mark an offset:segment + offset relocation site for linker or loader fixup.
      *
      * @param buffer output buffer
      * @param initialPos position of fixup in output buffer
@@ -218,10 +218,10 @@ public final class CVSymbolSectionImpl extends CVSectionImpl {
         return pos;
     }
 
-    private int markRelocationSite(byte[] buffer, int initialPos, String symbolName, RelocationKind k, long addend) {
+    private int markRelocationSite(byte[] buffer, int initialPos, String symbolName, RelocationKind kind, long offset) {
         if (buffer != null) {
-            markRelocationSite(initialPos, k, symbolName, addend);
+            markRelocationSite(initialPos, kind, symbolName, offset);
         }
-        return initialPos + RelocationKind.getRelocationSize(k);
+        return initialPos + RelocationKind.getRelocationSize(kind);
     }
 }
