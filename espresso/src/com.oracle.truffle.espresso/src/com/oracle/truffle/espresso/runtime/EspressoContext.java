@@ -68,6 +68,7 @@ import com.oracle.truffle.espresso.EspressoOptions;
 import com.oracle.truffle.espresso.analysis.hierarchy.ClassHierarchyOracle;
 import com.oracle.truffle.espresso.analysis.hierarchy.DefaultClassHierarchyOracle;
 import com.oracle.truffle.espresso.analysis.hierarchy.NoOpClassHierarchyOracle;
+import com.oracle.truffle.espresso.blocking.BlockingSupport;
 import com.oracle.truffle.espresso.descriptors.Names;
 import com.oracle.truffle.espresso.descriptors.Signatures;
 import com.oracle.truffle.espresso.descriptors.Symbol;
@@ -145,6 +146,7 @@ public final class EspressoContext {
     // region Helpers
     private final EspressoThreadRegistry threadRegistry;
     @CompilationFinal private ThreadsAccess threads;
+    @CompilationFinal private BlockingSupport<StaticObject> blockingSupport;
     private final EspressoShutdownHandler shutdownManager;
     private final EspressoReferenceDrainer referenceDrainer;
     // endregion Helpers
@@ -184,7 +186,8 @@ public final class EspressoContext {
     public final boolean InlineFieldAccessors;
     public final boolean InlineMethodHandle;
     public final boolean SplitMethodHandles;
-    public final boolean livenessAnalysis;
+    public final EspressoOptions.LivenessAnalysisMode LivenessAnalysisMode;
+    public final int LivenessAnalysisMinimumLocals;
     public final boolean EnableClassHierarchyAnalysis;
 
     // Behavior control
@@ -222,13 +225,6 @@ public final class EspressoContext {
 
     @CompilationFinal private EspressoException stackOverflow;
     @CompilationFinal private EspressoException outOfMemory;
-
-    // region ThreadDeprecated
-    // Set on calling guest Thread.stop0(), or when closing context.
-    @CompilationFinal private Assumption noThreadStop = Truffle.getRuntime().createAssumption();
-    @CompilationFinal private Assumption noSuspend = Truffle.getRuntime().createAssumption();
-    @CompilationFinal private Assumption noThreadDeprecationCalled = Truffle.getRuntime().createAssumption();
-    // endregion ThreadDeprecated
 
     @CompilationFinal private TruffleObject topBindings;
     private final WeakHashMap<StaticObject, SignalHandler> hostSignalHandlers = new WeakHashMap<>();
@@ -287,7 +283,8 @@ public final class EspressoContext {
         this.Verify = env.getOptions().get(EspressoOptions.Verify);
         this.EnableSignals = env.getOptions().get(EspressoOptions.EnableSignals);
         this.SpecCompliancyMode = env.getOptions().get(EspressoOptions.SpecCompliancy);
-        this.livenessAnalysis = env.getOptions().get(EspressoOptions.LivenessAnalysis);
+        this.LivenessAnalysisMode = env.getOptions().get(EspressoOptions.LivenessAnalysis);
+        this.LivenessAnalysisMinimumLocals = env.getOptions().get(EspressoOptions.LivenessAnalysisMinimumLocals);
         this.EnableClassHierarchyAnalysis = env.getOptions().get(EspressoOptions.CHA);
         this.EnableManagement = env.getOptions().get(EspressoOptions.EnableManagement);
         this.EnableAgents = getEnv().getOptions().get(EspressoOptions.EnableAgents);
@@ -511,6 +508,7 @@ public final class EspressoContext {
             }
             this.metaInitialized = true;
             this.threads = new ThreadsAccess(meta);
+            this.blockingSupport = BlockingSupport.create(threads);
 
             this.interpreterToVM = new InterpreterToVM(this);
 
@@ -820,6 +818,10 @@ public final class EspressoContext {
         return threads;
     }
 
+    public BlockingSupport<StaticObject> getBlockingSupport() {
+        return blockingSupport;
+    }
+
     /**
      * Creates a new guest thread from the host thread, and adds it to the main thread group.
      */
@@ -854,8 +856,12 @@ public final class EspressoContext {
         return threadRegistry.getGuestThreadFromHost(host);
     }
 
+    public void registerCurrentThread(StaticObject guestThread) {
+        getLanguage().getThreadLocalState().setCurrentThread(guestThread);
+    }
+
     public StaticObject getCurrentThread() {
-        return threadRegistry.getGuestThreadFromHost(Thread.currentThread());
+        return getLanguage().getThreadLocalState().getCurrentThread(this);
     }
 
     /**
@@ -891,29 +897,7 @@ public final class EspressoContext {
     }
 
     public void interruptThread(StaticObject guestThread) {
-        threads.interruptThread(guestThread);
-    }
-
-    public void invalidateNoThreadStop(String message) {
-        noThreadDeprecationCalled.invalidate();
-        noThreadStop.invalidate(message);
-    }
-
-    public boolean shouldCheckStop() {
-        return !noThreadStop.isValid();
-    }
-
-    public void invalidateNoSuspend(String message) {
-        noThreadDeprecationCalled.invalidate();
-        noSuspend.invalidate(message);
-    }
-
-    public boolean shouldCheckDeprecationStatus() {
-        return !noThreadDeprecationCalled.isValid();
-    }
-
-    public boolean shouldCheckSuspend() {
-        return !noSuspend.isValid();
+        threads.callInterrupt(guestThread);
     }
 
     public boolean isMainThreadCreated() {
