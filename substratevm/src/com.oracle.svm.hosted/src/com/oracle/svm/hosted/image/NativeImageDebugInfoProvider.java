@@ -45,6 +45,7 @@ import org.graalvm.compiler.code.CompilationResult;
 import org.graalvm.compiler.code.SourceMapping;
 import org.graalvm.compiler.core.common.CompressEncoding;
 import org.graalvm.compiler.debug.DebugContext;
+import org.graalvm.compiler.debug.GraalError;
 import org.graalvm.compiler.graph.NodeSourcePosition;
 import org.graalvm.nativeimage.ImageSingletons;
 
@@ -715,6 +716,30 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
             public int modifiers() {
                 return getOriginalModifiers(hostedMethod);
             }
+
+            @Override
+            public boolean isVirtual() {
+                return hostedMethod.hasVTableIndex();
+            }
+
+            @Override
+            public int vtableOffset() {
+                /*
+                 * TODO - provide correct offset, not index. In Graal, the vtable is appended after
+                 * the dynamicHub object, so can't just multiply by sizeof(pointer).
+                 */
+                return hostedMethod.hasVTableIndex() ? hostedMethod.getVTableIndex() : -1;
+            }
+
+            /**
+             * Returns true if this is an override virtual method. Used in Windows CodeView output.
+             *
+             * @return true if this is a virtual method and overrides an existing method.
+             */
+            @Override
+            public boolean isOverride() {
+                return allOverrides.contains(hostedMethod);
+            }
         }
     }
 
@@ -1236,8 +1261,26 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
 
         @Override
         public boolean isConstructor() {
-            assert false;
+            GraalError.unimplemented("Use MethodInfo.isConstructor() instead.");
             return false;
+        }
+
+        @Override
+        public boolean isVirtual() {
+            GraalError.unimplemented("Use MethodInfo.isVirtual() instead.");
+            return false;
+        }
+
+        @Override
+        public boolean isOverride() {
+            GraalError.unimplemented("Use MethodInfo.isOverride() instead.");
+            return false;
+        }
+
+        @Override
+        public int vtableOffset() {
+            GraalError.unimplemented("Use MethodInfo.vtableOffset() instead.");
+            return -1;
         }
     }
 

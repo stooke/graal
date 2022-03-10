@@ -58,7 +58,10 @@ public class MethodEntry extends MemberEntry {
         if (debugMethodInfo.isConstructor()) {
             setIsConstructor();
         }
-        /* vtableOffset and isOverride are set when processing debugCodeInfo. */
+        if (debugMethodInfo.isOverride()) {
+            setIsOverride();
+        }
+        vtableOffset = debugMethodInfo.vtableOffset();
         updateRangeInfo(debugInfoBase, debugMethodInfo);
     }
 
@@ -158,7 +161,6 @@ public class MethodEntry extends MemberEntry {
                 setIsInlined();
             }
         } else if (debugMethodInfo instanceof DebugCodeInfo) {
-            DebugCodeInfo codeInfo = (DebugCodeInfo) debugMethodInfo;
             /* this method has been seen in a primary range */
             if (isInRange()) {
                 /* it has already been seen -- just check for consistency */
@@ -174,10 +176,6 @@ public class MethodEntry extends MemberEntry {
                 setIsInRange();
                 fileEntry = debugInfoBase.ensureFileEntry(debugMethodInfo);
             }
-            if (codeInfo.isOverride()) {
-                setIsOverride();
-            }
-            vtableOffset = codeInfo.vtableOffset();
         }
     }
 
