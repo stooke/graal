@@ -59,7 +59,6 @@ final class CVSymbolSubsectionBuilder {
      * class.
      */
     void build() {
-        this.lineRecordBuilder = new CVLineRecordBuilder(cvDebugInfo);
         /* Loop over all classes defined in this module. */
         for (TypeEntry typeEntry : cvDebugInfo.getTypes()) {
             /* Add type record for this entry. */

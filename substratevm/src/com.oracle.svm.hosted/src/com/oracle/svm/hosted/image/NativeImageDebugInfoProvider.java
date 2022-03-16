@@ -718,30 +718,11 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
                 return getOriginalModifiers(hostedMethod);
             }
 
-            @Override
-            public boolean isVirtual() {
-                return hostedMethod.hasVTableIndex();
-            }
-
-            @Override
-            public int vtableOffset() {
-                /*
-                 * TODO - provide correct offset, not index. In Graal, the vtable is appended after
-                 * the dynamicHub object, so can't just multiply by sizeof(pointer).
-                 */
-                return hostedMethod.hasVTableIndex() ? hostedMethod.getVTableIndex() : -1;
-            }
-
             /**
              * Returns true if this is an override virtual method. Used in Windows CodeView output.
              *
              * @return true if this is a virtual method and overrides an existing method.
              */
-            @Override
-            public int modifiers() {
-                return getOriginalModifiers(hostedMethod);
-            }
-
             @Override
             public boolean isVirtual() {
                 return hostedMethod.hasVTableIndex();
