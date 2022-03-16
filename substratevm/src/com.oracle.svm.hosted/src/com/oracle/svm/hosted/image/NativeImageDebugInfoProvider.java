@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2020, 2020, Red Hat Inc. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
@@ -40,6 +40,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.oracle.graal.pointsto.infrastructure.WrappedJavaType;
 import jdk.vm.ci.meta.JavaType;
 import org.graalvm.compiler.code.CompilationResult;
 import org.graalvm.compiler.code.SourceMapping;
@@ -737,6 +738,30 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
              * @return true if this is a virtual method and overrides an existing method.
              */
             @Override
+            public int modifiers() {
+                return getOriginalModifiers(hostedMethod);
+            }
+
+            @Override
+            public boolean isVirtual() {
+                return hostedMethod.hasVTableIndex();
+            }
+
+            @Override
+            public int vtableOffset() {
+                /*
+                 * TODO - provide correct offset, not index. In Graal, the vtable is appended after
+                 * the dynamicHub object, so can't just multiply by sizeof(pointer).
+                 */
+                return hostedMethod.hasVTableIndex() ? hostedMethod.getVTableIndex() : -1;
+            }
+
+            /**
+             * Returns true if this is an override virtual method. Used in Windows CodeView output.
+             *
+             * @return true if this is a virtual method and overrides an existing method.
+             */
+            @Override
             public boolean isOverride() {
                 return allOverrides.contains(hostedMethod);
             }
@@ -1130,10 +1155,16 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
 
         @Override
         public ResolvedJavaType ownerType() {
+            ResolvedJavaType result;
             if (method instanceof HostedMethod) {
-                return getDeclaringClass((HostedMethod) method, true);
+                result = getDeclaringClass((HostedMethod) method, true);
+            } else {
+                result = method.getDeclaringClass();
             }
-            return method.getDeclaringClass();
+            if (result instanceof WrappedJavaType) {
+                result = ((WrappedJavaType) result).getWrapped();
+            }
+            return result;
         }
 
         @Override
@@ -1261,26 +1292,23 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
 
         @Override
         public boolean isConstructor() {
-            GraalError.unimplemented("Use MethodInfo.isConstructor() instead.");
-            return false;
+            return method.isConstructor();
         }
 
         @Override
         public boolean isVirtual() {
-            GraalError.unimplemented("Use MethodInfo.isVirtual() instead.");
-            return false;
+            return method instanceof HostedMethod && ((HostedMethod) method).hasVTableIndex();
         }
 
         @Override
         public boolean isOverride() {
-            GraalError.unimplemented("Use MethodInfo.isOverride() instead.");
-            return false;
+            return method instanceof HostedMethod && allOverrides.contains(method);
         }
 
         @Override
         public int vtableOffset() {
-            GraalError.unimplemented("Use MethodInfo.vtableOffset() instead.");
-            return -1;
+            /* TODO - convert index to offset (+ sizeof DynamicHub) */
+            return isVirtual() ? ((HostedMethod) method).getVTableIndex() : -1;
         }
     }
 

@@ -196,10 +196,7 @@ public final class CVSymbolSectionImpl extends CVSectionImpl {
      * @return new position in output buffer
      */
     public int markRelocationSite(byte[] buffer, int initialPos, String symbolName) {
-        int pos = initialPos;
-        pos = markRelocationSite(buffer, pos, symbolName, RelocationKind.SECREL_4, 0);
-        pos = markRelocationSite(buffer, pos, symbolName, RelocationKind.SECTION_2, 0);
-        return pos;
+        return markRelocationSite(buffer, initialPos, symbolName, 0);
     }
 
     /**
@@ -212,10 +209,8 @@ public final class CVSymbolSectionImpl extends CVSectionImpl {
      * @return new position in output buffer
      */
     public int markRelocationSite(byte[] buffer, int initialPos, String symbolName, long offset) {
-        int pos = initialPos;
-        pos = markRelocationSite(buffer, pos, symbolName, RelocationKind.SECREL_4, offset);
-        pos = markRelocationSite(buffer, pos, symbolName, RelocationKind.SECTION_2, 0);
-        return pos;
+        int pos = markRelocationSite(buffer, initialPos, symbolName, RelocationKind.SECREL_4, offset);
+        return markRelocationSite(buffer, pos, symbolName, RelocationKind.SECTION_2, 0);
     }
 
     private int markRelocationSite(byte[] buffer, int initialPos, String symbolName, RelocationKind kind, long offset) {
