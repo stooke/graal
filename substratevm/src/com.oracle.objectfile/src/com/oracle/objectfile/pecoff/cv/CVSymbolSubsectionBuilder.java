@@ -95,7 +95,7 @@ final class CVSymbolSubsectionBuilder {
          * class definition.
          */
         CVSymbolSubrecord.CVSymbolUDTRecord udtRecord = new CVSymbolSubrecord.CVSymbolUDTRecord(cvDebugInfo, classIndex, CVNames.typeNameToCodeViewName(classEntry.getTypeName()));
-        addToSymbolSubsection(udtRecord);
+        addSymbolRecord(udtRecord);
 
         /* Add manifested static fields as S_GDATA32 records. */
         classEntry.fields().filter(CVSymbolSubsectionBuilder::isManifestedStaticField).forEach(f -> {
@@ -108,11 +108,11 @@ final class CVSymbolSubsectionBuilder {
                  */
                 assert 8 <= cvDebugInfo.getHeapbaseRegister() && cvDebugInfo.getHeapbaseRegister() <= 15;
                 int heapRegister = CV_AMD64_R8 + cvDebugInfo.getHeapbaseRegister() - 8;
-                addToSymbolSubsection(new CVSymbolSubrecord.CVSymbolRegRel32Record(cvDebugInfo, displayName, typeIndex, f.getOffset(), (short) heapRegister));
+                addSymbolRecord(new CVSymbolSubrecord.CVSymbolRegRel32Record(cvDebugInfo, displayName, typeIndex, f.getOffset(), (short) heapRegister));
             } else {
                 /* Offset from heap begin. */
                 String heapName = SectionName.SVM_HEAP.getFormatDependentName(cvDebugInfo.getCVSymbolSection().getOwner().getFormat());
-                addToSymbolSubsection(new CVSymbolSubrecord.CVSymbolGData32Record(cvDebugInfo, displayName, heapName, typeIndex, f.getOffset(), (short) 0));
+                addSymbolRecord(new CVSymbolSubrecord.CVSymbolGData32Record(cvDebugInfo, displayName, heapName, typeIndex, f.getOffset(), (short) 0));
             }
         });
     }
@@ -141,7 +141,7 @@ final class CVSymbolSubsectionBuilder {
         byte funcFlags = 0;
         CVSymbolSubrecord.CVSymbolGProc32Record proc32 = new CVSymbolSubrecord.CVSymbolGProc32Record(cvDebugInfo, externalName, debuggerName, 0, 0, 0, primaryRange.getHi() - primaryRange.getLo(), 0,
                         0, functionTypeIndex, primaryRange.getLo(), (short) 0, funcFlags);
-        addToSymbolSubsection(proc32);
+        addSymbolRecord(proc32);
 
         /* S_FRAMEPROC add frame definitions. */
         int asynceh = 1 << 9; /* Async exception handling (vc++ uses 1, clang uses 0). */
@@ -149,14 +149,14 @@ final class CVSymbolSubsectionBuilder {
         int localBP = 1 << 14; /* Local base pointer = SP (0=none, 1=sp, 2=bp 3=r13). */
         int paramBP = 1 << 16; /* Param base pointer = SP. */
         int frameFlags = asynceh + localBP + paramBP; /* NB: LLVM uses 0x14000. */
-        addToSymbolSubsection(new CVSymbolSubrecord.CVSymbolFrameProcRecord(cvDebugInfo, primaryEntry.getFrameSize(), frameFlags));
+        addSymbolRecord(new CVSymbolSubrecord.CVSymbolFrameProcRecord(cvDebugInfo, primaryEntry.getFrameSize(), frameFlags));
 
         /* TODO: add parameter definitions (types have been added already). */
         /* TODO: add local variables, and their types. */
         /* TODO: add block definitions. */
 
         /* S_END add end record. */
-        addToSymbolSubsection(new CVSymbolSubrecord.CVSymbolEndRecord(cvDebugInfo));
+        addSymbolRecord(new CVSymbolSubrecord.CVSymbolEndRecord(cvDebugInfo));
 
         /* Add line number records. */
         addLineNumberRecords(primaryEntry);
@@ -201,7 +201,7 @@ final class CVSymbolSubsectionBuilder {
      *
      * @param record the symbol subrecord to add.
      */
-    private void addToSymbolSubsection(CVSymbolSubrecord record) {
+    private void addSymbolRecord(CVSymbolSubrecord record) {
         cvSymbolSubsection.addRecord(record);
     }
 
