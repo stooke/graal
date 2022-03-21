@@ -106,6 +106,7 @@ import com.oracle.svm.core.util.HostedStringDeduplication;
 import com.oracle.svm.core.util.VMError;
 import com.oracle.svm.hosted.classinitialization.ClassInitializationSupport;
 import com.oracle.svm.hosted.code.InliningUtilities;
+import com.oracle.svm.hosted.code.UninterruptibleAnnotationChecker;
 import com.oracle.svm.hosted.meta.HostedType;
 import com.oracle.svm.hosted.phases.AnalysisGraphBuilderPhase;
 import com.oracle.svm.hosted.phases.ImplicitAssertionsPhase;
@@ -505,6 +506,9 @@ public class SVMHost extends HostVM {
             graph.setGuardsStage(StructuredGraph.GuardsStage.FIXED_DEOPTS);
 
             if (parseOnce) {
+                new ImplicitAssertionsPhase().apply(graph, bb.getProviders());
+                UninterruptibleAnnotationChecker.checkAfterParsing(method, graph);
+
                 optimizeAfterParsing(bb, graph);
                 /*
                  * Do a complete Canonicalizer run once before graph encoding, to clean up any
@@ -518,7 +522,6 @@ public class SVMHost extends HostVM {
     }
 
     protected void optimizeAfterParsing(BigBang bb, StructuredGraph graph) {
-        new ImplicitAssertionsPhase().apply(graph, bb.getProviders());
         new BoxNodeIdentityPhase().apply(graph, bb.getProviders());
         new PartialEscapePhase(false, false, CanonicalizerPhase.create(), null, options).apply(graph, bb.getProviders());
     }
@@ -658,12 +661,11 @@ public class SVMHost extends HostVM {
             return true;
         }
 
-        List<String> neverInline = SubstrateOptions.NeverInline.getValue().values();
-        if (neverInline != null && neverInline.stream().anyMatch(re -> MethodFilter.parse(re).matches(method))) {
-            return true;
+        if (!SubstrateOptions.NeverInline.hasBeenSet()) {
+            return false;
         }
 
-        return false;
+        return SubstrateOptions.NeverInline.getValue().values().stream().anyMatch(re -> MethodFilter.parse(re).matches(method));
     }
 
     private final InlineBeforeAnalysisPolicy<?> inlineBeforeAnalysisPolicy = new InlineBeforeAnalysisPolicyImpl();

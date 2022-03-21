@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,41 +22,42 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.svm.core.os;
 
-import org.graalvm.compiler.api.replacements.Fold;
-import org.graalvm.nativeimage.ImageSingletons;
-import org.graalvm.word.PointerBase;
+package org.graalvm.component.installer.gds.rest;
 
-public interface MemoryProtectionKeyProvider {
+import org.graalvm.component.installer.Feedback;
+import org.graalvm.component.installer.Version;
+import org.graalvm.component.installer.remote.FileDownloader;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
-    @Fold
-    static MemoryProtectionKeyProvider singleton() {
-        return ImageSingletons.lookup(MemoryProtectionKeyProvider.class);
+/**
+ *
+ * @author odouda
+ */
+public class GDSFileConnector extends GDSRESTConnector {
+    public GDSFileConnector(String baseURL, Feedback feedback, String productId, Version gvmVersion) {
+        super(baseURL, feedback, productId, gvmVersion);
     }
 
-    @Fold
-    static boolean isAvailable() {
-        return ImageSingletons.contains(MemoryProtectionKeyProvider.class);
+    @Override
+    protected Map<String, List<String>> getParams() {
+        return Collections.emptyMap();
     }
 
-    /**
-     * Grant access to the isolate's memory.
-     */
-    void unlockCurrentIsolate();
+    @Override
+    protected FileDownloader obtain(String endpoint) {
+        return super.obtain("");
+    }
 
-    /**
-     * Handle a PKU segfault.
-     *
-     * @param sigInfo pointer to the siginfo_t struct
-     */
-    void handleSegfault(PointerBase sigInfo);
+    static final String newToken = "newMockToken";
+    String[] verEmInps;
 
-    /**
-     * Print debug information for a PKU segfault.
-     *
-     * @param sigInfo pointer to the siginfo_t struct
-     */
-    void printSignalInfo(PointerBase sigInfo);
+    @Override
+    public String sendVerificationEmail(String email, String licAddr, String oldToken) {
+        verEmInps = new String[]{email, licAddr, oldToken};
+        return oldToken == null ? newToken : oldToken;
+    }
 
 }
