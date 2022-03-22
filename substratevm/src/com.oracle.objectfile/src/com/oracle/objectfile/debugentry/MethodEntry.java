@@ -39,7 +39,7 @@ public class MethodEntry extends MemberEntry {
     static final int IS_OVERRIDE = 1 << 3;
     static final int IS_CONSTRUCTOR = 1 << 4;
     int flags;
-    int vtableOffset = -1;
+    final int vtableOffset;
     final String symbolName;
 
     public MethodEntry(DebugInfoBase debugInfoBase, DebugMethodInfo debugMethodInfo,

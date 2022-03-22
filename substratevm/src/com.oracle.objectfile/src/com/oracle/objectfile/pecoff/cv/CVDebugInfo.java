@@ -43,13 +43,13 @@ public final class CVDebugInfo extends DebugInfoBase {
     private final CVTypeSectionImpl cvTypeSection;
     private DebugContext debugContext;
 
-    private final byte heapbaseRegister;
-    private final byte threadRegister;
-
     /* Register constants for Windows x86_64 */
     /* See AMD64ReservedRegisters.java. */
     public static final byte RHEAPBASE_X86 = (byte) 14;
     public static final byte RTHREAD_X86 = (byte) 15;
+
+    private final byte heapbaseRegister;
+    private final byte threadRegister;
 
     public CVDebugInfo(PECoffMachine machine, ByteOrder byteOrder) {
         super(byteOrder);
@@ -72,13 +72,6 @@ public final class CVDebugInfo extends DebugInfoBase {
         return cvTypeSection;
     }
 
-    public DebugContext getDebugContext() {
-        return debugContext;
-    }
-
-    void setDebugContext(DebugContext debugContext) {
-        this.debugContext = debugContext;
-    }
     public byte getHeapbaseRegister() {
         return heapbaseRegister;
     }
@@ -86,5 +79,13 @@ public final class CVDebugInfo extends DebugInfoBase {
     @SuppressWarnings("unused")
     public byte getThreadRegister() {
         return threadRegister;
+    }
+
+    public DebugContext getDebugContext() {
+        return debugContext;
+    }
+
+    void setDebugContext(DebugContext debugContext) {
+        this.debugContext = debugContext;
     }
 }

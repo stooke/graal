@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 import org.graalvm.compiler.debug.DebugContext;
 
@@ -118,10 +117,6 @@ public class ClassEntry extends StructureTypeEntry {
                 localDirsIndex.put(dirEntry, localDirs.size());
             }
         }
-    }
-
-    public Stream<MethodEntry> methods() {
-        return methods.stream();
     }
 
     @Override
@@ -377,10 +372,5 @@ public class ClassEntry extends StructureTypeEntry {
 
     public List<MethodEntry> getMethods() {
         return methods;
-    }
-
-    public String getSimpleClassName() {
-        int idx = typeName.lastIndexOf('.');
-        return idx == -1 ? typeName : typeName.substring(idx + 1);
     }
 }
