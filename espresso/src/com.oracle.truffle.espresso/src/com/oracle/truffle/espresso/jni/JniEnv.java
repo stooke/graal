@@ -149,10 +149,6 @@ public final class JniEnv extends NativeEnv {
     // The maximum value supported by the native size_t e.g. SIZE_MAX.
     private long cachedSizeMax = 0;
 
-    Method getMethod(long handle) {
-        return methodIds.getObject(handle);
-    }
-
     // Prevent cleaner threads from collecting in-use native buffers.
     private final Map<Long, ByteBuffer> nativeBuffers = new ConcurrentHashMap<>();
 
@@ -340,6 +336,11 @@ public final class JniEnv extends NativeEnv {
         this.handles = new JNIHandles();
 
         assert jniEnvPtr != null && !getUncached().isNull(jniEnvPtr);
+    }
+
+    @Override
+    protected String getName() {
+        return "JniEnv";
     }
 
     @Override
@@ -1433,7 +1434,7 @@ public final class JniEnv extends NativeEnv {
             ByteBuffer isCopyBuf = NativeUtils.directByteBuffer(isCopyPtr, 1);
             isCopyBuf.put((byte) 1); // always copy since pinning is not supported
         }
-        byte[] bytes = ModifiedUtf8.asUtf(getMeta().toHostString(str), true);
+        byte[] bytes = ModifiedUtf8.fromJavaString(getMeta().toHostString(str), true);
         ByteBuffer region = allocateDirect(bytes.length);
         region.put(bytes);
         return NativeUtils.byteBufferPointer(region);
@@ -1552,7 +1553,7 @@ public final class JniEnv extends NativeEnv {
         if (start < 0 || start + (long) len > length) {
             throw meta.throwException(meta.java_lang_StringIndexOutOfBoundsException);
         }
-        byte[] bytes = ModifiedUtf8.asUtf(meta.toHostString(str), start, len, true); // always
+        byte[] bytes = ModifiedUtf8.fromJavaString(meta.toHostString(str), start, len, true); // always
         // 0
         // terminated.
         ByteBuffer buf = NativeUtils.directByteBuffer(bufPtr, bytes.length, JavaKind.Byte);
@@ -1575,7 +1576,7 @@ public final class JniEnv extends NativeEnv {
     public boolean ExceptionCheck() {
         EspressoException ex = getPendingEspressoException();
         // ex != null => ex != NULL
-        assert ex == null || StaticObject.notNull(ex.getExceptionObject());
+        assert ex == null || StaticObject.notNull(ex.getGuestException());
         return ex != null;
     }
 
@@ -1654,7 +1655,7 @@ public final class JniEnv extends NativeEnv {
     public void ExceptionDescribe() {
         EspressoException ex = getPendingEspressoException();
         if (ex != null) {
-            StaticObject guestException = ex.getExceptionObject();
+            StaticObject guestException = ex.getGuestException();
             assert InterpreterToVM.instanceOf(guestException, getMeta().java_lang_Throwable);
             // Dynamic lookup.
             Method printStackTrace = guestException.getKlass().lookupMethod(Name.printStackTrace, Signature._void);
@@ -1700,7 +1701,7 @@ public final class JniEnv extends NativeEnv {
         try {
             InterpreterToVM.monitorExit(object, meta);
         } catch (EspressoException e) {
-            assert InterpreterToVM.instanceOf(e.getExceptionObject(), getMeta().java_lang_IllegalMonitorStateException);
+            assert InterpreterToVM.instanceOf(e.getGuestException(), getMeta().java_lang_IllegalMonitorStateException);
             setPendingException(e);
             return JNI_ERR;
         }
@@ -2375,6 +2376,7 @@ public final class JniEnv extends NativeEnv {
      *         returns JNI_FALSE.
      */
     @JniImpl
+    @NoSafepoint
     public static boolean IsSameObject(@JavaType(Object.class) StaticObject ref1, @JavaType(Object.class) StaticObject ref2) {
         return ref1 == ref2;
     }
@@ -2447,6 +2449,7 @@ public final class JniEnv extends NativeEnv {
      * beyond the ensured capacity.
      */
     @JniImpl
+    @NoSafepoint
     public static int EnsureLocalCapacity(int capacity) {
         if (capacity >= 0 &&
                         ((MAX_JNI_LOCAL_CAPACITY <= 0) || (capacity <= MAX_JNI_LOCAL_CAPACITY))) {
@@ -2474,6 +2477,7 @@ public final class JniEnv extends NativeEnv {
      *         </ul>
      */
     @JniImpl
+    @NoSafepoint
     public int GetVersion() {
         if (getJavaVersion().java8OrEarlier()) {
             return JniVersion.JNI_VERSION_ESPRESSO_8.version();
@@ -2698,7 +2702,7 @@ public final class JniEnv extends NativeEnv {
             EspressoError.guarantee(StaticObject.notNull(guestClass), "Class.forName returned null");
         } catch (EspressoException e) {
             profiler.profile(5);
-            if (InterpreterToVM.instanceOf(e.getExceptionObject(), meta.java_lang_ClassNotFoundException)) {
+            if (InterpreterToVM.instanceOf(e.getGuestException(), meta.java_lang_ClassNotFoundException)) {
                 profiler.profile(4);
                 throw meta.throwExceptionWithMessage(meta.java_lang_NoClassDefFoundError, name);
             }

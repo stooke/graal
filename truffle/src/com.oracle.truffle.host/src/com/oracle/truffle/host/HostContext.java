@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * The Universal Permissive License (UPL), Version 1.0
@@ -51,6 +51,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 
+import com.oracle.truffle.api.strings.TruffleString;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.impl.AbstractPolyglotImpl.AbstractHostAccess;
@@ -98,7 +99,7 @@ final class HostContext {
         }
     }, this);
 
-    final ClassValue<Map<List<Class<?>>, AdapterResult>> adapterCache = new ClassValue<Map<List<Class<?>>, AdapterResult>>() {
+    final ClassValue<Map<List<Class<?>>, AdapterResult>> adapterCache = new ClassValue<>() {
         @Override
         protected Map<List<Class<?>>, AdapterResult> computeValue(Class<?> type) {
             return new ConcurrentHashMap<>();
@@ -132,7 +133,12 @@ final class HostContext {
     }
 
     GuestToHostCodeCache getGuestToHostCache() {
-        return language.getGuestToHostCache();
+        GuestToHostCodeCache cache = (GuestToHostCodeCache) HostAccessor.ENGINE.getGuestToHostCodeCache(internalContext);
+        if (cache == null) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            cache = (GuestToHostCodeCache) HostAccessor.ENGINE.installGuestToHostCodeCache(internalContext, new GuestToHostCodeCache(language));
+        }
+        return cache;
     }
 
     @TruffleBoundary
@@ -175,8 +181,8 @@ final class HostContext {
         try {
             ClassLoader classLoader = getClassloader();
             Class<?> foundClass = classLoader.loadClass(className);
-            Object currentModule = HostAccessor.JDKSERVICES.getUnnamedModule(classLoader);
-            if (HostAccessor.JDKSERVICES.verifyModuleVisibility(currentModule, foundClass)) {
+            Object currentModule = getUnnamedModule(classLoader);
+            if (verifyModuleVisibility(currentModule, foundClass)) {
                 return foundClass;
             } else {
                 throw new HostLanguageException(String.format("Access to host class %s is not allowed or does not exist.", className));
@@ -189,6 +195,47 @@ final class HostContext {
     void validateClass(String className) {
         if (classFilter != null && !classFilter.test(className)) {
             throw new HostLanguageException(String.format("Access to host class %s is not allowed.", className));
+        }
+    }
+
+    static Object getUnnamedModule(ClassLoader classLoader) {
+        if (classLoader == null) {
+            return null;
+        }
+        return classLoader.getUnnamedModule();
+    }
+
+    static boolean verifyModuleVisibility(Object module, Class<?> memberClass) {
+        Module lookupModule = (Module) module;
+        if (lookupModule == null) {
+            /*
+             * This case may currently happen in AOT as the module support there is not complete.
+             * See GR-19155.
+             */
+            return true;
+        }
+        Module memberModule = memberClass.getModule();
+        if (lookupModule == memberModule) {
+            return true;
+        } else {
+            String pkg = memberClass.getPackageName();
+            if (lookupModule.isNamed()) {
+                if (memberModule.isNamed()) {
+                    // both modules are named. check whether they are exported.
+                    return memberModule.isExported(pkg, lookupModule);
+                } else {
+                    // no access from named modules to unnamed modules
+                    return false;
+                }
+            } else {
+                if (memberModule.isNamed()) {
+                    // unnamed modules see all exported packages
+                    return memberModule.isExported(pkg);
+                } else {
+                    // full access from unnamed modules to unnamed modules
+                    return true;
+                }
+            }
         }
     }
 
@@ -276,7 +323,7 @@ final class HostContext {
                         || receiver instanceof Long || receiver instanceof Float //
                         || receiver instanceof Boolean || receiver instanceof Character //
                         || receiver instanceof Byte || receiver instanceof Short //
-                        || receiver instanceof String;
+                        || receiver instanceof String || receiver instanceof TruffleString;
     }
 
     private static final ContextReference<HostContext> REFERENCE = ContextReference.create(HostLanguage.class);

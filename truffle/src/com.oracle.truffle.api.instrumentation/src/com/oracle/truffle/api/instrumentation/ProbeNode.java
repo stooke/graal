@@ -67,6 +67,7 @@ import com.oracle.truffle.api.nodes.NodeUtil;
 import com.oracle.truffle.api.nodes.NodeVisitor;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
+import com.oracle.truffle.api.strings.TruffleString;
 
 /**
  * <p>
@@ -419,7 +420,7 @@ public final class ProbeNode extends Node {
     }
 
     Iterator<ExecutionEventNode> lookupExecutionEventNodes(Collection<EventBinding<? extends ExecutionEventNodeFactory>> bindings) {
-        return new Iterator<ExecutionEventNode>() {
+        return new Iterator<>() {
 
             private EventChainNode chainNode = ProbeNode.this.chain;
             private EventProviderChainNode nextNode;
@@ -471,7 +472,6 @@ public final class ProbeNode extends Node {
         return new InputValueChainNode(binding, probe, context, index);
     }
 
-    @SuppressWarnings("deprecation")
     private static boolean throwIllegalASTAssertion(EventProviderWithInputChainNode parentChain, EventContext parentContext, EventBinding.Source<?> binding, RootNode rootNode,
                     Set<Class<?>> providedTags, int index) {
         StringBuilder msg = new StringBuilder();
@@ -513,7 +513,7 @@ public final class ProbeNode extends Node {
                     if (node.getParent() == null) {
                         msg.append("null parent = ");
                     } else {
-                        String fieldName = NodeUtil.findChildField(node.getParent(), node).getName();
+                        String fieldName = NodeUtil.findChildFieldName(node.getParent(), node);
                         msg.append(node.getParent().getClass().getSimpleName() + "." + fieldName + " = ");
                     }
 
@@ -675,7 +675,8 @@ public final class ProbeNode extends Node {
                             clazz == Double.class ||
                             clazz == Character.class ||
                             clazz == Boolean.class ||
-                            clazz == String.class)) {
+                            clazz == String.class ||
+                            clazz == TruffleString.class)) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 ClassCastException ccex = new ClassCastException(clazz.getName() + " isn't allowed Truffle interop type!");
                 if (binding.isLanguageBinding()) {

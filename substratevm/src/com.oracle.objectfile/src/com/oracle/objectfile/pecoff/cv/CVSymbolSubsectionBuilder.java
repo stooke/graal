@@ -41,13 +41,14 @@ final class CVSymbolSubsectionBuilder {
 
     private final CVDebugInfo cvDebugInfo;
     private final CVSymbolSubsection cvSymbolSubsection;
-    private CVLineRecordBuilder lineRecordBuilder;
+    private final CVLineRecordBuilder lineRecordBuilder;
 
     private boolean noMainFound = true;
 
     CVSymbolSubsectionBuilder(CVDebugInfo cvDebugInfo) {
-        this.cvSymbolSubsection = new CVSymbolSubsection(cvDebugInfo);
         this.cvDebugInfo = cvDebugInfo;
+        this.cvSymbolSubsection = new CVSymbolSubsection(cvDebugInfo);
+        this.lineRecordBuilder = new CVLineRecordBuilder(cvDebugInfo);
     }
 
     /**
@@ -58,8 +59,6 @@ final class CVSymbolSubsectionBuilder {
      * class.
      */
     void build() {
-        this.lineRecordBuilder = new CVLineRecordBuilder(cvDebugInfo);
-
         /* Loop over all classes defined in this module. */
         for (TypeEntry typeEntry : cvDebugInfo.getTypes()) {
             /* Add type record for this entry. */
@@ -73,7 +72,7 @@ final class CVSymbolSubsectionBuilder {
     }
 
     /**
-     * Build all debug info for a classEntry.
+     * Build all debug info for a classEntry. (does not yet handle member variables).
      *
      * @param classEntry current class
      */

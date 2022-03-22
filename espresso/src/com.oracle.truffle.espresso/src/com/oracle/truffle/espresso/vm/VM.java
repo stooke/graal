@@ -67,6 +67,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.frame.Frame;
 import com.oracle.truffle.api.frame.FrameInstance;
 import com.oracle.truffle.api.frame.FrameInstanceVisitor;
@@ -79,6 +80,7 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.espresso.EspressoLanguage;
 import com.oracle.truffle.espresso.EspressoOptions;
+import com.oracle.truffle.espresso.blocking.GuestInterruptedException;
 import com.oracle.truffle.espresso.classfile.ConstantPool;
 import com.oracle.truffle.espresso.classfile.Constants;
 import com.oracle.truffle.espresso.classfile.RuntimeConstantPool;
@@ -117,6 +119,7 @@ import com.oracle.truffle.espresso.impl.SuppressFBWarnings;
 import com.oracle.truffle.espresso.jni.JniEnv;
 import com.oracle.truffle.espresso.jni.JniVersion;
 import com.oracle.truffle.espresso.jni.NativeEnv;
+import com.oracle.truffle.espresso.jni.NoSafepoint;
 import com.oracle.truffle.espresso.jvmti.JVMTI;
 import com.oracle.truffle.espresso.meta.EspressoError;
 import com.oracle.truffle.espresso.meta.JavaKind;
@@ -127,6 +130,7 @@ import com.oracle.truffle.espresso.nodes.EspressoRootNode;
 import com.oracle.truffle.espresso.nodes.interop.ToEspressoNode;
 import com.oracle.truffle.espresso.nodes.interop.ToEspressoNodeGen;
 import com.oracle.truffle.espresso.overlay.ReferenceSupport;
+import com.oracle.truffle.espresso.ref.EspressoReference;
 import com.oracle.truffle.espresso.runtime.Attribute;
 import com.oracle.truffle.espresso.runtime.Classpath;
 import com.oracle.truffle.espresso.runtime.EspressoContext;
@@ -137,7 +141,6 @@ import com.oracle.truffle.espresso.runtime.JavaVersion;
 import com.oracle.truffle.espresso.runtime.MethodHandleIntrinsics;
 import com.oracle.truffle.espresso.runtime.StaticObject;
 import com.oracle.truffle.espresso.substitutions.CallableFromNative;
-import com.oracle.truffle.espresso.substitutions.EspressoReference;
 import com.oracle.truffle.espresso.substitutions.GenerateNativeEnv;
 import com.oracle.truffle.espresso.substitutions.Inject;
 import com.oracle.truffle.espresso.substitutions.JavaType;
@@ -146,6 +149,7 @@ import com.oracle.truffle.espresso.substitutions.Target_java_lang_System;
 import com.oracle.truffle.espresso.substitutions.Target_java_lang_Thread;
 import com.oracle.truffle.espresso.substitutions.Target_java_lang_ref_Reference;
 import com.oracle.truffle.espresso.threads.State;
+import com.oracle.truffle.espresso.threads.Transition;
 import com.oracle.truffle.espresso.vm.structs.JavaVMAttachArgs;
 import com.oracle.truffle.espresso.vm.structs.JdkVersionInfo;
 import com.oracle.truffle.espresso.vm.structs.Structs;
@@ -214,6 +218,10 @@ public final class VM extends NativeEnv implements ContextAccess {
         } catch (UnsupportedTypeException | ArityException | UnsupportedMessageException e) {
             throw EspressoError.shouldNotReachHere("mokapotAttachThread failed", e);
         }
+    }
+
+    public Management getManagement() {
+        return management;
     }
 
     public static final class GlobalFrameIDs {
@@ -368,6 +376,11 @@ public final class VM extends NativeEnv implements ContextAccess {
     @Override
     public EspressoContext getContext() {
         return jniEnv.getContext();
+    }
+
+    @Override
+    protected String getName() {
+        return "VM";
     }
 
     public @Pointer TruffleObject getJavaVM() {
@@ -562,6 +575,7 @@ public final class VM extends NativeEnv implements ContextAccess {
     }
 
     @VmImpl
+    @NoSafepoint
     public static boolean JVM_IsNaN(double d) {
         return Double.isNaN(d);
     }
@@ -770,7 +784,7 @@ public final class VM extends NativeEnv implements ContextAccess {
     @SuppressFBWarnings(value = {"IMSE"}, justification = "Not dubious, .notifyAll is just forwarded from the guest.")
     public void JVM_MonitorNotifyAll(@JavaType(Object.class) StaticObject self, @Inject SubstitutionProfiler profiler) {
         try {
-            InterpreterToVM.monitorNotifyAll(self.getLock());
+            InterpreterToVM.monitorNotifyAll(self.getLock(getContext()));
         } catch (IllegalMonitorStateException e) {
             profiler.profile(0);
             Meta meta = getMeta();
@@ -782,7 +796,7 @@ public final class VM extends NativeEnv implements ContextAccess {
     @SuppressFBWarnings(value = {"IMSE"}, justification = "Not dubious, .notify is just forwarded from the guest.")
     public void JVM_MonitorNotify(@JavaType(Object.class) StaticObject self, @Inject SubstitutionProfiler profiler) {
         try {
-            InterpreterToVM.monitorNotify(self.getLock());
+            InterpreterToVM.monitorNotify(self.getLock(getContext()));
         } catch (IllegalMonitorStateException e) {
             profiler.profile(0);
             Meta meta = getMeta();
@@ -793,14 +807,15 @@ public final class VM extends NativeEnv implements ContextAccess {
     @VmImpl(isJni = true)
     @TruffleBoundary
     @SuppressFBWarnings(value = {"IMSE"}, justification = "Not dubious, .wait is just forwarded from the guest.")
+    @SuppressWarnings("try")
     public void JVM_MonitorWait(@JavaType(Object.class) StaticObject self, long timeout,
                     @Inject Meta meta,
                     @Inject SubstitutionProfiler profiler) {
 
         EspressoContext context = getContext();
         StaticObject currentThread = context.getCurrentThread();
-        try {
-            meta.getThreadAccess().fromRunnable(currentThread, (timeout > 0 ? State.TIMED_WAITING : State.WAITING));
+        State state = timeout > 0 ? State.TIMED_WAITING : State.WAITING;
+        try (Transition transition = Transition.transition(context, state)) {
             if (context.EnableManagement) {
                 // Locks bookkeeping.
                 meta.HIDDEN_THREAD_BLOCKED_OBJECT.setHiddenObject(currentThread, self);
@@ -810,14 +825,16 @@ public final class VM extends NativeEnv implements ContextAccess {
             if (report) {
                 context.reportMonitorWait(self, timeout);
             }
-            boolean timedOut = !InterpreterToVM.monitorWait(self.getLock(), timeout);
+            boolean timedOut = !InterpreterToVM.monitorWait(self.getLock(getContext()), timeout);
             if (report) {
                 context.reportMonitorWaited(self, timedOut);
             }
-        } catch (InterruptedException e) {
+        } catch (GuestInterruptedException e) {
             profiler.profile(0);
-            getThreadAccess().clearInterruptStatus(currentThread);
-            throw meta.throwExceptionWithMessage(meta.java_lang_InterruptedException, e.getMessage());
+            if (getThreadAccess().isInterrupted(currentThread, true)) {
+                throw meta.throwExceptionWithMessage(meta.java_lang_InterruptedException, e.getMessage());
+            }
+            getThreadAccess().fullSafePoint(currentThread);
         } catch (IllegalMonitorStateException e) {
             profiler.profile(1);
             throw meta.throwExceptionWithMessage(meta.java_lang_IllegalMonitorStateException, e.getMessage());
@@ -828,7 +845,6 @@ public final class VM extends NativeEnv implements ContextAccess {
             if (context.EnableManagement) {
                 meta.HIDDEN_THREAD_BLOCKED_OBJECT.setHiddenObject(currentThread, null);
             }
-            meta.getThreadAccess().toRunnable(currentThread);
         }
     }
 
@@ -1469,7 +1485,7 @@ public final class VM extends NativeEnv implements ContextAccess {
         assert context.getCurrentThread() != null;
         try {
             context.destroyVM(!context.ExitHost);
-        } catch (EspressoExitException exit) {
+        } catch (AbstractTruffleException exit) {
             // expected
         }
         return JNI_OK;
@@ -1556,14 +1572,14 @@ public final class VM extends NativeEnv implements ContextAccess {
             getThreadAccess().terminate(currentThread);
         } catch (EspressoException e) {
             try {
-                StaticObject ex = e.getExceptionObject();
+                StaticObject ex = e.getGuestException();
                 String exception = ex.getKlass().getExternalName();
                 String threadName = getThreadAccess().getThreadName(currentThread);
                 context.getLogger().warning(String.format("Exception: %s thrown while terminating thread \"%s\"", exception, threadName));
                 Method printStackTrace = ex.getKlass().lookupMethod(Name.printStackTrace, Signature._void);
                 printStackTrace.invokeDirect(ex);
             } catch (EspressoException ee) {
-                String exception = ee.getExceptionObject().getKlass().getExternalName();
+                String exception = ee.getGuestException().getKlass().getExternalName();
                 context.getLogger().warning(String.format("Exception: %s thrown while trying to print stack trace", exception));
             } catch (EspressoExitException ee) {
                 // ignore
@@ -1609,7 +1625,7 @@ public final class VM extends NativeEnv implements ContextAccess {
             }
         }
         if (JniVersion.isSupported(version, getContext().getJavaVersion())) {
-            StaticObject currentThread = getContext().getGuestThreadFromHost(Thread.currentThread());
+            StaticObject currentThread = getContext().getCurrentThread();
             if (currentThread == null) {
                 return JNI_EDETACHED;
             }
@@ -2579,7 +2595,7 @@ public final class VM extends NativeEnv implements ContextAccess {
         // TODO(garcia) This must only be called from SecurityManager.getClassContext
         ArrayList<StaticObject> result = new ArrayList<>();
         Truffle.getRuntime().iterateFrames(
-                        new FrameInstanceVisitor<Object>() {
+                        new FrameInstanceVisitor<>() {
                             @Override
                             public Object visitFrame(FrameInstance frameInstance) {
                                 Method m = getMethodFromFrame(frameInstance);
@@ -2719,11 +2735,11 @@ public final class VM extends NativeEnv implements ContextAccess {
             result = (StaticObject) run.invokeDirect(action);
         } catch (EspressoException e) {
             profiler.profile(2);
-            if (meta.java_lang_Exception.isAssignableFrom(e.getExceptionObject().getKlass()) &&
-                            !meta.java_lang_RuntimeException.isAssignableFrom(e.getExceptionObject().getKlass())) {
+            if (meta.java_lang_Exception.isAssignableFrom(e.getGuestException().getKlass()) &&
+                            !meta.java_lang_RuntimeException.isAssignableFrom(e.getGuestException().getKlass())) {
                 profiler.profile(3);
                 StaticObject wrapper = meta.java_security_PrivilegedActionException.allocateInstance();
-                getMeta().java_security_PrivilegedActionException_init_Exception.invokeDirect(wrapper, e.getExceptionObject());
+                getMeta().java_security_PrivilegedActionException_init_Exception.invokeDirect(wrapper, e.getGuestException());
                 throw meta.throwException(wrapper);
             }
             profiler.profile(4);

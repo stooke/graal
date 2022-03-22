@@ -25,13 +25,10 @@
 package com.oracle.svm.core.thread;
 
 import org.graalvm.compiler.nodes.PauseNode;
-import org.graalvm.compiler.serviceprovider.GraalUnsafeAccess;
 
 import com.oracle.svm.core.annotate.Uninterruptible;
 
-// Checkstyle: stop
-import sun.misc.Unsafe;
-// Checkstyle: resume
+import jdk.internal.misc.Unsafe;
 
 /**
  * Spin locks may only be used in places where the critical section contains only a few instructions
@@ -39,12 +36,12 @@ import sun.misc.Unsafe;
  * is crucial that really all code within the critical section is uninterruptible.
  */
 public class SpinLockUtils {
-    private static final Unsafe UNSAFE = GraalUnsafeAccess.getUnsafe();
+    private static final Unsafe UNSAFE = Unsafe.getUnsafe();
 
     @Uninterruptible(reason = "This method does not do a transition, so the whole critical section must be uninterruptible.", callerMustBe = true)
     public static void lockNoTransition(Object obj, long intFieldOffset) {
         // Fast-path.
-        if (UNSAFE.compareAndSwapInt(obj, intFieldOffset, 0, 1)) {
+        if (UNSAFE.compareAndSetInt(obj, intFieldOffset, 0, 1)) {
             return;
         }
 
@@ -69,7 +66,7 @@ public class SpinLockUtils {
                 }
             }
 
-            if (UNSAFE.compareAndSwapInt(obj, intFieldOffset, 0, 1)) {
+            if (UNSAFE.compareAndSetInt(obj, intFieldOffset, 0, 1)) {
                 return;
             }
         }

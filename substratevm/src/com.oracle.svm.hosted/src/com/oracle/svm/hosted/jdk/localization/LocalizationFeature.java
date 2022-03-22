@@ -24,8 +24,6 @@
  */
 package com.oracle.svm.hosted.jdk.localization;
 
-// Checkstyle: stop
-
 import java.lang.reflect.Field;
 import java.nio.charset.Charset;
 import java.nio.charset.IllegalCharsetNameException;
@@ -64,6 +62,7 @@ import org.graalvm.compiler.nodes.graphbuilderconf.GraphBuilderContext;
 import org.graalvm.compiler.nodes.graphbuilderconf.NodePlugin;
 import org.graalvm.compiler.options.Option;
 import org.graalvm.compiler.options.OptionType;
+import org.graalvm.compiler.serviceprovider.JavaVersionUtil;
 import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
@@ -82,6 +81,8 @@ import com.oracle.svm.core.option.LocatableMultiOptionValue;
 import com.oracle.svm.core.option.OptionUtils;
 import com.oracle.svm.core.util.UserError;
 import com.oracle.svm.core.util.VMError;
+import com.oracle.svm.hosted.FeatureImpl.DuringAnalysisAccessImpl;
+import com.oracle.svm.hosted.FeatureImpl.DuringSetupAccessImpl;
 import com.oracle.svm.hosted.NativeImageOptions;
 import com.oracle.svm.util.ReflectionUtil;
 
@@ -89,10 +90,11 @@ import jdk.vm.ci.meta.ResolvedJavaField;
 import jdk.vm.ci.meta.ResolvedJavaMethod;
 import jdk.vm.ci.meta.ResolvedJavaType;
 import sun.text.spi.JavaTimeDateTimePatternProvider;
+import sun.util.cldr.CLDRLocaleProviderAdapter;
+import sun.util.locale.LocaleObjectCache;
 import sun.util.locale.provider.LocaleProviderAdapter;
 import sun.util.locale.provider.ResourceBundleBasedAdapter;
 import sun.util.resources.LocaleData;
-// Checkstyle: resume
 
 /**
  * LocalizationFeature is the core class of SVM localization support. It contains all the options
@@ -146,6 +148,13 @@ public class LocalizationFeature implements Feature {
     protected LocalizationSupport support;
 
     private Function<String, Class<?>> findClassByName;
+
+    private Field baseLocaleCacheField;
+    private Field localeCacheField;
+    private Field candidatesCacheField;
+    private Field localeObjectCacheMapField;
+    private Field langAliasesCacheField;
+    private Field parentLocalesMapField;
 
     public static class Options {
         @Option(help = "Comma separated list of bundles to be included into the image.", type = OptionType.User)//
@@ -262,10 +271,24 @@ public class LocalizationFeature implements Feature {
     }
 
     @Override
-    public void duringSetup(DuringSetupAccess access) {
+    public void duringSetup(DuringSetupAccess a) {
+        DuringSetupAccessImpl access = (DuringSetupAccessImpl) a;
         if (optimizedMode) {
             access.registerObjectReplacer(this::eagerlyInitializeBundles);
         }
+        if (JavaVersionUtil.JAVA_SPEC >= 11) {
+            langAliasesCacheField = access.findField(CLDRLocaleProviderAdapter.class, "langAliasesCache");
+            parentLocalesMapField = access.findField(CLDRLocaleProviderAdapter.class, "parentLocalesMap");
+        }
+        if (JavaVersionUtil.JAVA_SPEC >= 17) {
+            baseLocaleCacheField = access.findField("sun.util.locale.BaseLocale$Cache", "CACHE");
+            localeCacheField = access.findField("java.util.Locale$Cache", "LOCALECACHE");
+        } else {
+            baseLocaleCacheField = access.findField("sun.util.locale.BaseLocale", "CACHE");
+            localeCacheField = access.findField("java.util.Locale", "LOCALECACHE");
+        }
+        candidatesCacheField = access.findField("java.util.ResourceBundle$Control", "CANDIDATES_CACHE");
+        localeObjectCacheMapField = access.findField(LocaleObjectCache.class, "map");
     }
 
     /**
@@ -309,6 +332,25 @@ public class LocalizationFeature implements Feature {
     @Override
     public void beforeAnalysis(BeforeAnalysisAccess access) {
         addResourceBundles();
+    }
+
+    @Override
+    public void duringAnalysis(DuringAnalysisAccess a) {
+        DuringAnalysisAccessImpl access = (DuringAnalysisAccessImpl) a;
+        scanLocaleCache(access, baseLocaleCacheField);
+        scanLocaleCache(access, localeCacheField);
+        scanLocaleCache(access, candidatesCacheField);
+        if (JavaVersionUtil.JAVA_SPEC >= 11) {
+            access.rescanRoot(langAliasesCacheField);
+            access.rescanRoot(parentLocalesMapField);
+        }
+    }
+
+    private void scanLocaleCache(DuringAnalysisAccessImpl access, Field cacheFieldField) {
+        Object localeCache = access.rescanRoot(cacheFieldField);
+        if (localeCache != null) {
+            access.rescanField(localeCache, localeObjectCacheMapField);
+        }
     }
 
     @Override
@@ -520,9 +562,7 @@ public class LocalizationFeature implements Feature {
             String errorMessage = "The bundle named: " + baseName + ", has not been found. " +
                             "If the bundle is part of a module, verify the bundle name is a fully qualified class name. Otherwise " +
                             "verify the bundle path is accessible in the classpath.";
-            // Checkstyle: stop
             System.out.println(errorMessage);
-            // Checkstyle: resume
         }
     }
 
@@ -569,9 +609,7 @@ public class LocalizationFeature implements Feature {
     @Platforms(Platform.HOSTED_ONLY.class)
     protected void trace(String msg) {
         if (trace) {
-            // Checkstyle: stop
             System.out.println(msg);
-            // Checkstyle: resume
         }
     }
 }

@@ -24,12 +24,6 @@
  */
 package com.oracle.svm.jni.functions;
 
-import static com.oracle.svm.jni.nativeapi.JNIVersion.JNI_VERSION_1_1;
-import static com.oracle.svm.jni.nativeapi.JNIVersion.JNI_VERSION_1_2;
-import static com.oracle.svm.jni.nativeapi.JNIVersion.JNI_VERSION_1_4;
-import static com.oracle.svm.jni.nativeapi.JNIVersion.JNI_VERSION_1_6;
-import static com.oracle.svm.jni.nativeapi.JNIVersion.JNI_VERSION_1_8;
-
 import java.util.ArrayList;
 
 import org.graalvm.compiler.serviceprovider.IsolateUtil;
@@ -66,7 +60,8 @@ import com.oracle.svm.core.jdk.RuntimeSupport;
 import com.oracle.svm.core.log.FunctionPointerLogHandler;
 import com.oracle.svm.core.monitor.MonitorSupport;
 import com.oracle.svm.core.option.RuntimeOptionParser;
-import com.oracle.svm.core.thread.JavaThreads;
+import com.oracle.svm.core.snippets.ImplicitExceptions;
+import com.oracle.svm.core.thread.PlatformThreads;
 import com.oracle.svm.core.util.Utf8;
 import com.oracle.svm.jni.JNIJavaVMList;
 import com.oracle.svm.jni.JNIObjectHandles;
@@ -230,9 +225,9 @@ final class JNIInvocationInterface {
                 long javavmId = IsolateUtil.getIsolateID();
                 javavmIdPointer.write(WordFactory.pointer(javavmId));
             }
-            RuntimeSupport.getRuntimeSupport().addTearDownHook(new Runnable() {
+            RuntimeSupport.getRuntimeSupport().addTearDownHook(new RuntimeSupport.Hook() {
                 @Override
-                public void run() {
+                public void execute(boolean isFirstIsolate) {
                     JNIJavaVMList.removeJavaVM(javavm);
                 }
             });
@@ -249,33 +244,38 @@ final class JNIInvocationInterface {
         @Uninterruptible(reason = "No Java context")
         static int JNI_GetDefaultJavaVMInitArgs(JNIJavaVMInitArgs vmArgs) {
             int version = vmArgs.getVersion();
-            if (version == JNI_VERSION_1_8() || version == JNI_VERSION_1_6() || version == JNI_VERSION_1_4() || version == JNI_VERSION_1_2()) {
+            if (JNIVersion.isSupported(vmArgs.getVersion()) && version != JNIVersion.JNI_VERSION_1_1()) {
                 return JNIErrors.JNI_OK();
             }
-            if (version == JNI_VERSION_1_1()) {
-                vmArgs.setVersion(JNI_VERSION_1_2());
+            if (version == JNIVersion.JNI_VERSION_1_1()) {
+                vmArgs.setVersion(JNIVersion.JNI_VERSION_1_2());
             }
             return JNIErrors.JNI_ERR();
         }
-
     }
 
     /*
      * jint AttachCurrentThread(JavaVM *vm, void **p_env, void *thr_args);
      */
-    @CEntryPoint(include = CEntryPoint.NotIncludedAutomatically.class)
-    @CEntryPointOptions(prologue = JNIJavaVMEnterAttachThreadManualJavaThreadPrologue.class, publishAs = Publish.NotPublished)
+    @CEntryPoint(include = CEntryPoint.NotIncludedAutomatically.class, exceptionHandler = JNIFunctions.Support.JNIExceptionHandlerDetachAndReturnJniErr.class)
+    @CEntryPointOptions(prologue = JNIJavaVMEnterAttachThreadManualJavaThreadPrologue.class, epilogue = NoEpilogue.class, publishAs = Publish.NotPublished)
+    @Uninterruptible(reason = "Permits omitting an epilogue so we can detach in the exception handler.", calleeMustBe = false)
     static int AttachCurrentThread(JNIJavaVM vm, JNIEnvironmentPointer penv, JNIJavaVMAttachArgs args) {
-        return Support.attachCurrentThread(vm, penv, args, false);
+        Support.attachCurrentThread(vm, penv, args, false);
+        CEntryPointActions.leave();
+        return JNIErrors.JNI_OK();
     }
 
     /*
      * jint AttachCurrentThreadAsDaemon(JavaVM *vm, void **p_env, void *thr_args);
      */
-    @CEntryPoint(include = CEntryPoint.NotIncludedAutomatically.class)
-    @CEntryPointOptions(prologue = JNIJavaVMEnterAttachThreadManualJavaThreadPrologue.class, publishAs = Publish.NotPublished)
+    @CEntryPoint(include = CEntryPoint.NotIncludedAutomatically.class, exceptionHandler = JNIFunctions.Support.JNIExceptionHandlerDetachAndReturnJniErr.class)
+    @CEntryPointOptions(prologue = JNIJavaVMEnterAttachThreadManualJavaThreadPrologue.class, epilogue = NoEpilogue.class, publishAs = Publish.NotPublished)
+    @Uninterruptible(reason = "Permits omitting an epilogue so we can detach in the exception handler.", calleeMustBe = false)
     static int AttachCurrentThreadAsDaemon(JNIJavaVM vm, JNIEnvironmentPointer penv, JNIJavaVMAttachArgs args) {
-        return Support.attachCurrentThread(vm, penv, args, true);
+        Support.attachCurrentThread(vm, penv, args, true);
+        CEntryPointActions.leave();
+        return JNIErrors.JNI_OK();
     }
 
     /*
@@ -300,7 +300,7 @@ final class JNIInvocationInterface {
     @CEntryPointOptions(prologue = JNIJavaVMEnterAttachThreadEnsureJavaThreadPrologue.class, epilogue = LeaveTearDownIsolateEpilogue.class, publishAs = Publish.NotPublished)
     @SuppressWarnings("unused")
     static int DestroyJavaVM(JNIJavaVM vm) {
-        JavaThreads.singleton().joinAllNonDaemons();
+        PlatformThreads.singleton().joinAllNonDaemons();
         return JNIErrors.JNI_OK();
     }
 
@@ -330,7 +330,7 @@ final class JNIInvocationInterface {
                 if (vm.isNull() || env.isNull()) {
                     return JNIErrors.JNI_ERR();
                 }
-                if (version != JNI_VERSION_1_8() && version != JNI_VERSION_1_6() && version != JNI_VERSION_1_4() && version != JNI_VERSION_1_2() && version != JNI_VERSION_1_1()) {
+                if (!JNIVersion.isSupported(version)) {
                     env.write(WordFactory.nullPointer());
                     return JNIErrors.JNI_EVERSION();
                 }
@@ -345,28 +345,27 @@ final class JNIInvocationInterface {
             }
         }
 
-        static int attachCurrentThread(JNIJavaVM vm, JNIEnvironmentPointer penv, JNIJavaVMAttachArgs args, boolean asDaemon) {
-            if (vm.equal(JNIFunctionTables.singleton().getGlobalJavaVM())) {
-                penv.write(JNIThreadLocalEnvironment.getAddress());
-                ThreadGroup group = null;
-                String name = null;
-                if (args.isNonNull() && args.getVersion() != JNIVersion.JNI_VERSION_1_1()) {
-                    group = JNIObjectHandles.getObject(args.getGroup());
-                    name = Utf8.utf8ToString(args.getName());
-                }
-
-                /*
-                 * Ignore if a Thread object has already been assigned: "If the thread has already
-                 * been attached via either AttachCurrentThread or AttachCurrentThreadAsDaemon, this
-                 * routine simply sets the value pointed to by penv to the JNIEnv of the current
-                 * thread. In this case neither AttachCurrentThread nor this routine have any effect
-                 * on the daemon status of the thread."
-                 */
-                JavaThreads.ensureJavaThread(name, group, asDaemon);
-
-                return JNIErrors.JNI_OK();
+        static void attachCurrentThread(JNIJavaVM vm, JNIEnvironmentPointer penv, JNIJavaVMAttachArgs args, boolean asDaemon) {
+            if (penv.isNull() || vm.notEqual(JNIFunctionTables.singleton().getGlobalJavaVM())) {
+                throw ImplicitExceptions.CACHED_ILLEGAL_ARGUMENT_EXCEPTION;
             }
-            return JNIErrors.JNI_ERR();
+
+            penv.write(JNIThreadLocalEnvironment.getAddress());
+            ThreadGroup group = null;
+            String name = null;
+            if (args.isNonNull() && args.getVersion() != JNIVersion.JNI_VERSION_1_1()) {
+                group = JNIObjectHandles.getObject(args.getGroup());
+                name = Utf8.utf8ToString(args.getName());
+            }
+
+            /*
+             * Ignore if a Thread object has already been assigned: "If the thread has already been
+             * attached via either AttachCurrentThread or AttachCurrentThreadAsDaemon, this routine
+             * simply sets the value pointed to by penv to the JNIEnv of the current thread. In this
+             * case neither AttachCurrentThread nor this routine have any effect on the daemon
+             * status of the thread."
+             */
+            PlatformThreads.ensureCurrentAssigned(name, group, asDaemon);
         }
 
         static void releaseCurrentThreadOwnedMonitors() {
@@ -376,10 +375,6 @@ final class JNIInvocationInterface {
                 }
                 assert !Thread.holdsLock(obj);
             });
-        }
-
-        public static JNIJavaVM getGlobalJavaVM() {
-            return JNIFunctionTables.singleton().getGlobalJavaVM();
         }
     }
 }

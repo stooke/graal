@@ -24,7 +24,6 @@
  */
 package com.oracle.svm.core.genscavenge;
 
-import com.oracle.svm.core.annotate.AlwaysInline;
 import org.graalvm.compiler.api.directives.GraalDirectives;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.compiler.core.common.CompressEncoding;
@@ -41,6 +40,7 @@ import org.graalvm.word.WordBase;
 import org.graalvm.word.WordFactory;
 
 import com.oracle.svm.core.SubstrateOptions;
+import com.oracle.svm.core.annotate.AlwaysInline;
 import com.oracle.svm.core.annotate.Uninterruptible;
 import com.oracle.svm.core.config.ConfigurationValues;
 import com.oracle.svm.core.config.ObjectLayout;
@@ -62,16 +62,13 @@ import com.oracle.svm.core.util.VMError;
  * {@link Heap#isInImageHeap}.
  */
 public final class ObjectHeaderImpl extends ObjectHeader {
-    // @formatter:off
-    //                                Name                            Value
-    private static final UnsignedWord UNALIGNED_BIT                 = WordFactory.unsigned(0b001);
-    private static final UnsignedWord REMEMBERED_SET_BIT            = WordFactory.unsigned(0b010);
-    private static final UnsignedWord FORWARDED_BIT                 = WordFactory.unsigned(0b100);
+    private static final UnsignedWord UNALIGNED_BIT = WordFactory.unsigned(0b001);
+    private static final UnsignedWord REMEMBERED_SET_BIT = WordFactory.unsigned(0b010);
+    private static final UnsignedWord FORWARDED_BIT = WordFactory.unsigned(0b100);
 
-    private static final int RESERVED_BITS_MASK                     = 0b111;
-    private static final UnsignedWord MASK_HEADER_BITS              = WordFactory.unsigned(RESERVED_BITS_MASK);
-    private static final UnsignedWord CLEAR_HEADER_BITS             = MASK_HEADER_BITS.not();
-    // @formatter:on
+    private static final int RESERVED_BITS_MASK = 0b111;
+    private static final UnsignedWord MASK_HEADER_BITS = WordFactory.unsigned(RESERVED_BITS_MASK);
+    private static final UnsignedWord CLEAR_HEADER_BITS = MASK_HEADER_BITS.not();
 
     @Platforms(Platform.HOSTED_ONLY.class)
     ObjectHeaderImpl() {
@@ -145,13 +142,14 @@ public final class ObjectHeaderImpl extends ObjectHeader {
         return (DynamicHub) objectValue;
     }
 
+    @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
     @Override
     public Pointer readPotentialDynamicHubFromPointer(Pointer ptr) {
         UnsignedWord potentialHeader = ObjectHeaderImpl.readHeaderFromPointer(ptr);
         UnsignedWord pointerBits = clearBits(potentialHeader);
         if (ReferenceAccess.singleton().haveCompressedReferences()) {
-            UnsignedWord compressedBits = pointerBits.unsignedShiftRight(getCompressionShift());
-            return KnownIntrinsics.heapBase().add(compressedBits.shiftLeft(getCompressionShift()));
+            UnsignedWord compressedBits = pointerBits.unsignedShiftRight(ObjectHeader.getCompressionShift());
+            return KnownIntrinsics.heapBase().add(compressedBits.shiftLeft(ObjectHeader.getCompressionShift()));
         } else {
             return (Pointer) pointerBits;
         }
@@ -380,10 +378,5 @@ public final class ObjectHeaderImpl extends ObjectHeader {
     @Fold
     static boolean hasBase() {
         return ImageSingletons.lookup(CompressEncoding.class).hasBase();
-    }
-
-    @Fold
-    static int getCompressionShift() {
-        return ReferenceAccess.singleton().getCompressEncoding().getShift();
     }
 }

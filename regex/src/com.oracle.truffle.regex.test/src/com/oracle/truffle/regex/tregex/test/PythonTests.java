@@ -91,7 +91,7 @@ public class PythonTests extends RegexTestBase {
 
     @Test
     public void gr28905() {
-        test("\\B", "y", "abc", 0, false);
+        test("\\B", "", "PythonMethod=match", "abc", 0, false);
         test("\\B", "", "", 0, false);
         test("\\B(b.)\\B", "", "abc bcd bc abxd", 0, true, 12, 14, 12, 14, 1);
         test("\\b(b.)\\b", "a", "abcd abc bcd bx", 0, true, 13, 15, 13, 15, 1);
@@ -99,8 +99,8 @@ public class PythonTests extends RegexTestBase {
 
     @Test
     public void gr28906() {
-        test("^(\\|)?([^()]+)\\1$", "y", "a|", 0, false);
-        test("^(\\|)?([^()]+)\\1$", "y", "|a", 0, false);
+        test("^(\\|)?([^()]+)\\1$", "", "PythonMethod=match", "a|", 0, false);
+        test("^(\\|)?([^()]+)\\1$", "", "PythonMethod=match", "|a", 0, false);
     }
 
     @Test
@@ -160,7 +160,7 @@ public class PythonTests extends RegexTestBase {
 
     @Test
     public void gr32018() {
-        test("\\s*(?:#\\s*)?$", "y", new String(new char[1000000]).replace('\0', '\t') + "##", 0, false);
+        test("\\s*(?:#\\s*)?$", "", "PythonMethod=match", new String(new char[1000000]).replace('\0', '\t') + "##", 0, false);
     }
 
     @Test
@@ -229,5 +229,54 @@ public class PythonTests extends RegexTestBase {
         test("(a)b(?<=a(b))", "", "ab", 0, true, 0, 2, 0, 1, 1, 2, 2);
         test("a(b)(?<=(a)b)", "", "ab", 0, true, 0, 2, 1, 2, 0, 1, 2);
         test("a(b)(?<=a(b))", "", "ab", 0, true, 0, 2, 1, 2, 1, 2, 2);
+    }
+
+    @Test
+    public void gr28565() {
+        test("\\b|:", "", "MustAdvance=false", "a:", 0, true, 0, 0, -1);
+        test("\\b|:", "", "MustAdvance=true", "a:", 0, true, 1, 1, -1);
+        test("\\b|:", "", "MustAdvance=true", "a:", 1, true, 1, 2, -1);
+        test("\\b|:", "", "MustAdvance=false", "a:", 2, false);
+    }
+
+    @Test
+    public void gr28565SimplerAsciiTests() {
+        test("(?=a)|(?<=a)|:", "", "MustAdvance=false", "a:", 0, true, 0, 0, -1);
+        test("(?=a)|(?<=a)|:", "", "MustAdvance=true", "a:", 0, true, 1, 1, -1);
+        test("(?=a)|(?<=a)|:", "", "MustAdvance=true", "a:", 1, true, 1, 2, -1);
+        test("(?=a)|(?<=a)|:", "", "MustAdvance=false", "a:", 2, false);
+    }
+
+    @Test
+    public void mustAdvanceLiteralEngineTests() {
+        test("", "", "MustAdvance=true", "", 0, false);
+        test("", "", "MustAdvance=true", "a", 0, true, 1, 1, -1);
+        test("\\A", "", "MustAdvance=true", "", 0, false);
+        test("\\Z", "", "MustAdvance=true", "", 0, false);
+        test("\\A\\Z", "", "MustAdvance=true", "", 0, false);
+    }
+
+    @Test
+    public void cpythonTestBug817234() {
+        test(".*", "", "MustAdvance=false", "asdf", 0, true, 0, 4, -1);
+        test(".*", "", "MustAdvance=false", "asdf", 4, true, 4, 4, -1);
+        test(".*", "", "MustAdvance=true", "asdf", 4, false);
+    }
+
+    @Test
+    public void cpythonTestDollarMatchesTwice() {
+        test("$", "", "MustAdvance=false", "a\nb\n", 0, true, 3, 3, -1);
+        test("$", "", "MustAdvance=true", "a\nb\n", 3, true, 4, 4, -1);
+        test("$", "", "MustAdvance=true", "a\nb\n", 4, false);
+
+        test("$", "m", "MustAdvance=false", "a\nb\n", 0, true, 1, 1, -1);
+        test("$", "m", "MustAdvance=true", "a\nb\n", 1, true, 3, 3, -1);
+        test("$", "m", "MustAdvance=true", "a\nb\n", 3, true, 4, 4, -1);
+        test("$", "m", "MustAdvance=true", "a\nb\n", 4, false);
+    }
+
+    @Test
+    public void testFullMatch() {
+        test("a|ab", "", "PythonMethod=fullmatch", "ab", 0, true, 0, 2, -1);
     }
 }

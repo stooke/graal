@@ -14,7 +14,7 @@ GraalVM's polyglot capabilities make it possible to mix multiple programming lan
 Here you will find information about installing GraalVM Community Edition, running basic applications with it, and adding support for accompanying features.
 Further, you will learn about the polyglot capabilities of GraalVM and see how to build platform-specific native executables of JVM-based applications.
 
-If you are new to GraaVM, we recommend starting with [Introduction to GraalVM](../../introduction.md), where you will find information about GraalVM's architecture, distributions available, supported platforms, core and additional features, and much more.
+If you are new to GraalVM, we recommend starting with [Introduction to GraalVM](../../introduction.md), where you will find information about GraalVM's architecture, distributions available, supported platforms, core and additional features, and much more.
 
 If you have GraalVM already installed and have experience using it, you can skip this getting started guide and proceed to the in-depth [Reference Manuals](../../reference-manual/reference-manuals.md).
 
@@ -26,10 +26,11 @@ Choose the operating system and proceed to the installation steps:
 * [Linux AArch64](linux-aarch64.md)
 * [macOS](macos.md)
 * [Windows](windows.md)
+* [Docker Container](container-images/graalvm-ce-container-images.md)
 
 ## Start Running Applications
 
-For demonstration purposes here, we will use GraalVM Community Edition based on OpenJDK 11.
+For demonstration purposes here, we will use GraalVM Community Edition based on OpenJDK 17.
 
 The core distribution of GraalVM includes the JVM, the GraalVM compiler, the LLVM runtime, and JavaScript runtime.
 Having downloaded and installed GraalVM, you can already run Java, JavaScript, and LLVM-based applications.
@@ -42,15 +43,15 @@ GraalVM's `/bin` directory is similar to that of a standard JDK, but includes a 
 Check the versions of the runtimes provided by default:
 ```shell
 java -version
-openjdk version "17" 2021-09-14
-OpenJDK Runtime Environment GraalVM CE 21.3.0 (build 17+35-jvmci-21.3-b03)
-OpenJDK 64-Bit Server VM GraalVM CE 21.3.0 (build 17+35-jvmci-21.3-b03, mixed mode, sharing)
+openjdk version "17.0.2" 2022-01-18
+OpenJDK Runtime Environment GraalVM CE 22.0.0 (build 17.0.2+5-jvmci-22.0-b02)
+OpenJDK 64-Bit Server VM GraalVM CE 22.0.0 (build 17.0.2+5-jvmci-22.0-b02, mixed mode, sharing)
 
 js -version
-GraalVM JavaScript (GraalVM CE Native 21.3.0)
+GraalVM JavaScript (GraalVM CE Native 22.0.0)
 
 lli --version
-LLVM 12.0.1 (GraalVM CE Native 21.3.0)
+LLVM 12.0.1 (GraalVM CE Native 22.0.0)
 ```
 
 Further below you will find information on how to add other optionally available GraalVM runtimes including Node.js, Ruby, R, Python, and WebAssembly.
@@ -81,9 +82,10 @@ For more extensive documentation on running Java, proceed to [JVM Languages](../
 
 ## Run JavaScript and Node.js
 
-GraalVM can execute plain JavaScript code, both in REPL mode and by executing script files directly:
+As mentioned above, upon the GraalVM installation completion, the `<graalvm>/bin` directory already includes the `js` launcher to run JavaScript programs.
+It can execute plain JavaScript code, both in REPL mode and by executing script files directly:
 ```shell
-js
+$JAVA_HOME/bin/js
 > 1 + 2
 3
 ```
@@ -93,9 +95,12 @@ Node.js support is not installed by default, but can be easily added with GraalV
 ```shell
 gu install nodejs
 ```
+
+The `node` launcher becomes available in the `<graalvm>/bin` directory.
+
 ```shell
 $JAVA_HOME/bin/node -v
-v14.17.6
+v14.18.1
 ```
 
 More than 100,000 npm packages are regularly tested and are compatible with GraalVM, including modules like express, react, async, request, browserify, grunt, mocha, and underscore.
@@ -167,9 +172,13 @@ The support is not available by default, but you can quickly add it to GraalVM u
 gu install python
 ```
 
-Once it is installed, you can run Python programs:
+It installs the `graalpython` launcher. Check the version, and you can already run Python programs:
 ```shell
-graalpython
+$JAVA_HOME/bin/graalpython --version
+```
+
+```shell
+$JAVA_HOME/bin/graalpython
 ...
 >>> 1 + 2
 3
@@ -188,15 +197,14 @@ gu install ruby
 
 Once it is installed, Ruby launchers like `ruby`, `gem`, `irb`, `rake`, `rdoc`, and `ri` become available to run Ruby programs:
 ```shell
-ruby [options] program.rb
+$JAVA_HOME/bin/ruby [options] program.rb
 ```
 
-GraalVM Ruby runtime environment uses the
-[same options as the standard implementation of Ruby](../../reference-manual/ruby/options.md),
-with some additions. For example:
+GraalVM runtime for Ruby uses the [same options as the standard implementation of Ruby](../../reference-manual/ruby/options.md), with some additions.
+For example:
 ```shell
 gem install chunky_png
-ruby -r chunky_png -e "puts ChunkyPNG::Color.to_hex(ChunkyPNG::Color('mintcream @ 0.5'))"
+$JAVA_HOME/bin/ruby -r chunky_png -e "puts ChunkyPNG::Color.to_hex(ChunkyPNG::Color('mintcream @ 0.5'))"
 #f5fffa80
 ```
 
@@ -256,7 +264,7 @@ emcc -o floyd.wasm floyd.c
 
 Then you can run the compiled WebAssembly binary on GraalVM as follows:
 ```shell
-wasm --Builtins=wasi_snapshot_preview1 floyd.wasm
+$JAVA_HOME/bin/wasm --Builtins=wasi_snapshot_preview1 floyd.wasm
 ```
 
 More details can be found in the [WebAssembly reference manual](../../reference-manual/wasm/README.md).

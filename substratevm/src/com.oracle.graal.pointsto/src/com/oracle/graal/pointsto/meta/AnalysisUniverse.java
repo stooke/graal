@@ -46,6 +46,8 @@ import com.oracle.graal.pointsto.AnalysisPolicy;
 import com.oracle.graal.pointsto.BigBang;
 import com.oracle.graal.pointsto.api.HostVM;
 import com.oracle.graal.pointsto.constraints.UnsupportedFeatureException;
+import com.oracle.graal.pointsto.heap.HeapSnapshotVerifier;
+import com.oracle.graal.pointsto.heap.ImageHeapScanner;
 import com.oracle.graal.pointsto.infrastructure.AnalysisConstantPool;
 import com.oracle.graal.pointsto.infrastructure.SubstitutionProcessor;
 import com.oracle.graal.pointsto.infrastructure.Universe;
@@ -112,10 +114,14 @@ public class AnalysisUniverse implements Universe {
     private final SnippetReflectionProvider snippetReflection;
     private final AnalysisFactory analysisFactory;
 
+    private final AtomicInteger numReachableTypes = new AtomicInteger();
+
     private AnalysisType objectClass;
     private AnalysisType cloneableClass;
     private final JavaKind wordKind;
     private AnalysisPolicy analysisPolicy;
+    private ImageHeapScanner heapScanner;
+    private HeapSnapshotVerifier heapVerifier;
     private BigBang bb;
 
     public JavaKind getWordKind() {
@@ -124,8 +130,7 @@ public class AnalysisUniverse implements Universe {
 
     @SuppressWarnings("unchecked")
     public AnalysisUniverse(HostVM hostVM, JavaKind wordKind, AnalysisPolicy analysisPolicy, SubstitutionProcessor substitutions, MetaAccessProvider originalMetaAccess,
-                    SnippetReflectionProvider originalSnippetReflection,
-                    SnippetReflectionProvider snippetReflection, AnalysisFactory analysisFactory) {
+                    SnippetReflectionProvider originalSnippetReflection, SnippetReflectionProvider snippetReflection, AnalysisFactory analysisFactory) {
         this.hostVM = hostVM;
         this.wordKind = wordKind;
         this.analysisPolicy = analysisPolicy;
@@ -264,7 +269,7 @@ public class AnalysisUniverse implements Universe {
 
         try {
             JavaKind storageKind = getStorageKind(type, originalMetaAccess);
-            AnalysisType newValue = new AnalysisType(this, type, storageKind, objectClass, cloneableClass);
+            AnalysisType newValue = analysisFactory.createType(this, type, storageKind, objectClass, cloneableClass);
 
             synchronized (this) {
                 /*
@@ -389,7 +394,7 @@ public class AnalysisUniverse implements Universe {
         if (sealed) {
             return null;
         }
-        AnalysisField newValue = new AnalysisField(this, field);
+        AnalysisField newValue = analysisFactory.createField(this, field);
         AnalysisField oldValue = fields.putIfAbsent(field, newValue);
         return oldValue != null ? oldValue : newValue;
     }
@@ -521,6 +526,7 @@ public class AnalysisUniverse implements Universe {
      * Register an embedded root, i.e., a JavaConstant embedded in a Graal graph via a ConstantNode.
      */
     public void registerEmbeddedRoot(JavaConstant root, BytecodePosition position) {
+        this.heapScanner.scanEmbeddedRoot(root, position);
         this.embeddedRoots.put(root, position);
     }
 
@@ -683,6 +689,13 @@ public class AnalysisUniverse implements Universe {
         bb.onTypeInstantiated(type, usage);
     }
 
+    public void initializeType(AnalysisType type) {
+        hostVM.initializeType(type);
+        if (bb != null) {
+            bb.onTypeInitialized(type);
+        }
+    }
+
     public SubstitutionProcessor getSubstitutions() {
         return substitutions;
     }
@@ -699,4 +712,31 @@ public class AnalysisUniverse implements Universe {
         this.bb = bb;
     }
 
+    public BigBang getBigbang() {
+        return bb;
+    }
+
+    public void setHeapScanner(ImageHeapScanner heapScanner) {
+        this.heapScanner = heapScanner;
+    }
+
+    public ImageHeapScanner getHeapScanner() {
+        return heapScanner;
+    }
+
+    public void setHeapVerifier(HeapSnapshotVerifier heapVerifier) {
+        this.heapVerifier = heapVerifier;
+    }
+
+    public HeapSnapshotVerifier getHeapVerifier() {
+        return heapVerifier;
+    }
+
+    public void notifyReachableType() {
+        numReachableTypes.incrementAndGet();
+    }
+
+    public int getReachableTypes() {
+        return numReachableTypes.get();
+    }
 }

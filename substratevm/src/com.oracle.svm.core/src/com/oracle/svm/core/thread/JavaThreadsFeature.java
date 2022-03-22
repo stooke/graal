@@ -89,7 +89,7 @@ class JavaThreadsFeature implements Feature {
                      */
                     reachableThreadGroups.get(parent).add(group);
                 } else {
-                    assert group == JavaThreads.singleton().systemGroup;
+                    assert group == PlatformThreads.singleton().systemGroup;
                 }
             }
         }
@@ -126,12 +126,12 @@ class JavaThreadsFeature implements Feature {
             maxAutonumber = Math.max(maxAutonumber, autonumberOf(thread));
         }
         assert maxThreadId >= 1 : "main thread with id 1 must always be found";
-        JavaThreads.singleton().threadSeqNumber.set(maxThreadId);
-        JavaThreads.singleton().threadInitNumber.set(maxAutonumber);
+        JavaThreads.threadSeqNumber.set(maxThreadId);
+        JavaThreads.threadInitNumber.set(maxAutonumber);
     }
 
     static long threadId(Thread thread) {
-        return thread == JavaThreads.singleton().mainThread ? 1 : thread.getId();
+        return thread == PlatformThreads.singleton().mainThread ? 1 : thread.getId();
     }
 
     private static final String AUTONUMBER_PREFIX = "Thread-";
@@ -157,7 +157,6 @@ class ReachableThreadGroup {
     ThreadGroup[] groups;
 
     /* Copy of ThreadGroup.add(). */
-    // Checkstyle: allow synchronization
     synchronized void add(ThreadGroup g) {
         if (groups == null) {
             groups = new ThreadGroup[4];

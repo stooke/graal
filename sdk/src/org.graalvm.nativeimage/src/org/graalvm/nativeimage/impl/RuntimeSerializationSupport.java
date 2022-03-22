@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * The Universal Permissive License (UPL), Version 1.0
@@ -42,10 +42,13 @@ package org.graalvm.nativeimage.impl;
 
 public interface RuntimeSerializationSupport {
 
+    void registerIncludingAssociatedClasses(ConfigurationCondition condition, Class<?> clazz);
+
     void register(ConfigurationCondition condition, Class<?>... classes);
 
     void registerWithTargetConstructorClass(ConfigurationCondition condition, Class<?> clazz, Class<?> customTargetConstructorClazz);
 
     void registerWithTargetConstructorClass(ConfigurationCondition condition, String className, String customTargetConstructorClassName);
 
+    void registerLambdaCapturingClass(ConfigurationCondition condition, String lambdaCapturingClassName);
 }

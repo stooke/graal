@@ -19,7 +19,7 @@ Follow these steps to install GraalVM Community on the macOS operating system:
 1. Navigate to [GraalVM Releases repository on GitHub](https://github.com/graalvm/graalvm-ce-builds/releases). Select Java 11 based or Java 17 based distribution for macOS, and download.
 2. Unzip the archive.
   ```shell
-   tar -xzf graalvm-ce-java<version>-darvin-amd64-<version>.tar.gz
+   tar -xzf graalvm-ce-java<version>-darwin-amd64-<version>.tar.gz
   ```
   Alternatively, open the file in Finder.
   > Note: If you are using macOS Catalina and later you may need to remove the quarantine attribute. See [Installation Notes](#installation-notes) below.
@@ -70,9 +70,9 @@ Tools/Utilities:
 
 Runtimes:
 * [Java on Truffle](../../reference-manual/java-on-truffle/README.md) -- a Java Virtual Machine implementation based on a Truffle interpreter for GraalVM
-* [Node.js](../../reference-manual/js/README.md) -- Node.js v14.17.6 compatible
+* [Node.js](../../reference-manual/js/README.md) -- Node.js v14.18.1 compatible
 * [Python](../../reference-manual/python/README.md) -- Python 3.8.5 compatible
-* [Ruby](../../reference-manual/ruby/README.md) -- Ruby 2.7.2 compatible
+* [Ruby](../../reference-manual/ruby/README.md) -- Ruby 3.0.2 compatible
 * [R](/../../reference-manual/r/README.md) -- GNU R 4.0.3 compatible
 * [Wasm](../../reference-manual/wasm/README.md) -- WebAssembly (Wasm)
 ​

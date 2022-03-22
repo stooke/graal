@@ -24,8 +24,6 @@
  */
 package com.oracle.svm.reflect.hosted;
 
-// Checkstyle: allow reflection
-
 import java.lang.reflect.Field;
 
 import com.oracle.svm.core.annotate.RecomputeFieldValue;
@@ -61,5 +59,10 @@ public class FieldOffsetComputer implements CustomFieldValueComputer {
             /* A value of -1 signals that the field was not marked as unsafe accessed. */
             return -1;
         }
+    }
+
+    @Override
+    public Class<?>[] types() {
+        return new Class<?>[]{int.class};
     }
 }

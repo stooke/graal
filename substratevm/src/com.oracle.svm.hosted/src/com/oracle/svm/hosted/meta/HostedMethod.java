@@ -46,10 +46,13 @@ import com.oracle.svm.core.SubstrateUtil;
 import com.oracle.svm.core.annotate.AlwaysInline;
 import com.oracle.svm.core.annotate.StubCallingConvention;
 import com.oracle.svm.core.deopt.Deoptimizer;
+import com.oracle.svm.core.meta.MethodPointer;
 import com.oracle.svm.core.meta.SharedMethod;
+import com.oracle.svm.core.meta.SubstrateMethodPointerConstant;
 import com.oracle.svm.core.util.VMError;
 import com.oracle.svm.hosted.code.CompilationInfo;
 
+import jdk.internal.vm.annotation.ForceInline;
 import jdk.vm.ci.meta.Constant;
 import jdk.vm.ci.meta.ConstantPool;
 import jdk.vm.ci.meta.ExceptionHandler;
@@ -398,7 +401,7 @@ public class HostedMethod implements SharedMethod, WrappedJavaMethod, GraphProvi
 
     @Override
     public boolean shouldBeInlined() {
-        return getAnnotation(AlwaysInline.class) != null;
+        return getAnnotation(AlwaysInline.class) != null || getAnnotation(ForceInline.class) != null;
     }
 
     @Override
@@ -423,16 +426,12 @@ public class HostedMethod implements SharedMethod, WrappedJavaMethod, GraphProvi
 
     @Override
     public boolean isInVirtualMethodTable(ResolvedJavaType resolved) {
-        /*
-         * This method is used by Graal to decide if method-based inlining guards are possible. As
-         * long as getEncoding() is unimplemented, this method needs to return false.
-         */
-        return false;
+        return hasVTableIndex();
     }
 
     @Override
     public Constant getEncoding() {
-        throw unimplemented();
+        return new SubstrateMethodPointerConstant(new MethodPointer(this));
     }
 
     @Override

@@ -48,7 +48,7 @@ import com.oracle.truffle.espresso.runtime.EspressoContext;
  */
 final class InterfaceTables {
 
-    private static final Comparator<TableData> SORTER = new Comparator<TableData>() {
+    private static final Comparator<TableData> SORTER = new Comparator<>() {
         @Override
         public int compare(TableData o1, TableData o2) {
             return Integer.compare(o1.klass.getKlass().getId(), o2.klass.getKlass().getId());
@@ -136,7 +136,7 @@ final class InterfaceTables {
      * @param declared The declared methods of the interface.
      * @return the requested klass array
      */
-    public static InterfaceCreationResult constructInterfaceItable(ObjectKlass.KlassVersion thisInterfKlass, Method.MethodVersion[] declared) {
+    public static InterfaceCreationResult constructInterfaceItable(ObjectKlass.KlassVersion thisInterfKlass, ObjectKlass[] superInterfaces, Method.MethodVersion[] declared) {
         assert thisInterfKlass.isInterface();
         CompilerAsserts.neverPartOfCompilation();
         ArrayList<Method.MethodVersion> tmpMethodTable = new ArrayList<>();
@@ -152,7 +152,7 @@ final class InterfaceTables {
         Method.MethodVersion[] methods = tmpMethodTable.toArray(Method.EMPTY_VERSION_ARRAY);
         ArrayList<ObjectKlass.KlassVersion> tmpKlassTable = new ArrayList<>();
         tmpKlassTable.add(thisInterfKlass);
-        for (ObjectKlass interf : thisInterfKlass.getKlass().getSuperInterfaces()) {
+        for (ObjectKlass interf : superInterfaces) {
             for (ObjectKlass.KlassVersion supInterf : interf.getVersionIKlassTable()) {
                 if (canInsert(supInterf, tmpKlassTable)) {
                     tmpKlassTable.add(supInterf);

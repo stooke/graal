@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,9 +24,6 @@
  */
 package org.graalvm.compiler.hotspot.replacements;
 
-import static jdk.vm.ci.code.MemoryBarriers.LOAD_STORE;
-import static jdk.vm.ci.code.MemoryBarriers.STORE_LOAD;
-import static jdk.vm.ci.code.MemoryBarriers.STORE_STORE;
 import static org.graalvm.compiler.hotspot.GraalHotSpotVMConfig.INJECTED_OPTIONVALUES;
 import static org.graalvm.compiler.hotspot.GraalHotSpotVMConfig.INJECTED_VMCONFIG;
 import static org.graalvm.compiler.hotspot.meta.HotSpotForeignCallDescriptor.Reexecutability.NOT_REEXECUTABLE;
@@ -271,11 +268,13 @@ public class MonitorSnippets implements Snippets {
             // Copy this unlocked mark word into the lock slot on the stack
             lock.writeWord(lockDisplacedMarkOffset(INJECTED_VMCONFIG), unlockedMark, DISPLACED_MARK_WORD_LOCATION);
 
-            // make sure previous store does not float below compareAndSwap
-            MembarNode.memoryBarrier(STORE_STORE);
-
-            // Test if the object's mark word is unlocked, and if so, store the
-            // (address of) the lock slot into the object's mark word.
+            /*
+             * Test if the object's mark word is unlocked, and if so, store the (address of) the
+             * lock slot into the object's mark word.
+             *
+             * Since pointer cas operations are volatile accesses, previous stores cannot float
+             * below it.
+             */
             Word currentMark = objectPointer.compareAndSwapWord(markOffset(INJECTED_VMCONFIG), unlockedMark, lock, MARK_WORD_LOCATION);
             if (probability(FAST_PATH_PROBABILITY, currentMark.equal(unlockedMark))) {
                 traceObject(trace, "+lock{cas}", object, true);
@@ -470,6 +469,13 @@ public class MonitorSnippets implements Snippets {
                 traceObject(trace, "+lock{stub:inflated:failed-cas}", object, true);
                 counters.inflatedFailedCas.inc();
             }
+        } else if (owner.equal(registerAsWord(threadRegister))) {
+            int recursionsOffset = objectMonitorRecursionsOffset(INJECTED_VMCONFIG);
+            Word recursions = monitor.readWord(recursionsOffset, OBJECT_MONITOR_RECURSION_LOCATION);
+            monitor.writeWord(recursionsOffset, recursions.add(1), OBJECT_MONITOR_RECURSION_LOCATION);
+            traceObject(trace, "+lock{inflated:recursive}", object, true);
+            counters.inflatedRecursive.inc();
+            return true;
         } else {
             traceObject(trace, "+lock{stub:inflated:owned}", object, true);
             counters.inflatedOwned.inc();
@@ -580,7 +586,7 @@ public class MonitorSnippets implements Snippets {
                     // cxq == 0 && entryList == 0
                     // Nobody is waiting, success
                     // release_store
-                    memoryBarrier(LOAD_STORE | STORE_STORE);
+                    memoryBarrier(MembarNode.FenceKind.STORE_RELEASE);
                     monitor.writeWord(ownerOffset, zero());
                     traceObject(trace, "-lock{inflated:simple}", object, false);
                     counters.unlockInflatedSimple.inc();
@@ -591,10 +597,8 @@ public class MonitorSnippets implements Snippets {
                     if (probability(FREQUENT_PROBABILITY, succ.isNonNull())) {
                         // There may be a thread spinning on this monitor. Temporarily setting
                         // the monitor owner to null, and hope that the other thread will grab it.
-                        memoryBarrier(LOAD_STORE | STORE_STORE);
-                        monitor.writeWord(ownerOffset, zero());
-                        memoryBarrier(STORE_STORE | STORE_LOAD);
-                        succ = monitor.readWord(succOffset, OBJECT_MONITOR_SUCC_LOCATION);
+                        monitor.writeWordVolatile(ownerOffset, zero());
+                        succ = monitor.readWordVolatile(succOffset, OBJECT_MONITOR_SUCC_LOCATION);
                         if (probability(NOT_FREQUENT_PROBABILITY, succ.isNonNull())) {
                             // We manage to release the monitor before the other running thread even
                             // notices.
@@ -614,6 +618,12 @@ public class MonitorSnippets implements Snippets {
                         }
                     }
                 }
+            } else {
+                // Recursive inflated unlock
+                monitor.writeWord(recursionsOffset, recursions.subtract(1), OBJECT_MONITOR_RECURSION_LOCATION);
+                counters.unlockInflatedRecursive.inc();
+                traceObject(trace, "-lock{stub:recursive}", object, false);
+                return true;
             }
             counters.unlockStubInflated.inc();
             traceObject(trace, "-lock{stub:inflated}", object, false);
@@ -716,6 +726,7 @@ public class MonitorSnippets implements Snippets {
         public final SnippetCounter lockStubFailedCas;
         public final SnippetCounter inflatedCas;
         public final SnippetCounter inflatedFailedCas;
+        public final SnippetCounter inflatedRecursive;
         public final SnippetCounter inflatedOwned;
         public final SnippetCounter unbiasable;
         public final SnippetCounter revokeBias;
@@ -732,6 +743,7 @@ public class MonitorSnippets implements Snippets {
         public final SnippetCounter unlockStubInflated;
         public final SnippetCounter unlockInflatedSimple;
         public final SnippetCounter unlockInflatedTransfer;
+        public final SnippetCounter unlockInflatedRecursive;
 
         public Counters(SnippetCounter.Group.Factory factory) {
             SnippetCounter.Group enter = factory.createSnippetCounterGroup("MonitorEnters");
@@ -746,6 +758,7 @@ public class MonitorSnippets implements Snippets {
             lockStubFailedCas = new SnippetCounter(enter, "lock{stub:failed-cas/stack}", "stub-locked, failed cas and stack locking");
             inflatedCas = new SnippetCounter(enter, "lock{inflated:cas}", "heavyweight-locked, cas-locked");
             inflatedFailedCas = new SnippetCounter(enter, "lock{inflated:failed-cas}", "heavyweight-locked, failed cas");
+            inflatedRecursive = new SnippetCounter(enter, "lock{inflated:recursive}", "heavyweight-locked, recursive");
             inflatedOwned = new SnippetCounter(enter, "lock{inflated:owned}", "heavyweight-locked, already owned");
             unbiasable = new SnippetCounter(enter, "unbiasable", "object with unbiasable type");
             revokeBias = new SnippetCounter(enter, "revokeBias", "object had bias revoked");
@@ -757,6 +770,7 @@ public class MonitorSnippets implements Snippets {
             unlockStubInflated = new SnippetCounter(exit, "unlock{stub:inflated}", "stub-unlocked an object with inflated monitor");
             unlockInflatedSimple = new SnippetCounter(exit, "unlock{inflated}", "unlocked an object monitor");
             unlockInflatedTransfer = new SnippetCounter(exit, "unlock{inflated:transfer}", "unlocked an object monitor in the presence of ObjectMonitor::_succ");
+            unlockInflatedRecursive = new SnippetCounter(exit, "unlock{inflated:recursive}", "unlocked an object monitor, recursive");
         }
     }
 

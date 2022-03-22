@@ -52,9 +52,11 @@ import com.oracle.graal.pointsto.constraints.UnsupportedFeatureException;
 import com.oracle.graal.pointsto.flow.AllInstantiatedTypeFlow;
 import com.oracle.graal.pointsto.flow.context.object.AnalysisObject;
 import com.oracle.graal.pointsto.flow.context.object.ConstantContextSensitiveObject;
+import com.oracle.graal.pointsto.heap.TypeData;
 import com.oracle.graal.pointsto.infrastructure.OriginalClassProvider;
 import com.oracle.graal.pointsto.infrastructure.WrappedJavaType;
 import com.oracle.graal.pointsto.typestate.TypeState;
+import com.oracle.graal.pointsto.util.AnalysisError;
 import com.oracle.graal.pointsto.util.AnalysisFuture;
 import com.oracle.graal.pointsto.util.AtomicUtils;
 import com.oracle.graal.pointsto.util.ConcurrentLightHashSet;
@@ -70,7 +72,7 @@ import jdk.vm.ci.meta.ResolvedJavaMethod;
 import jdk.vm.ci.meta.ResolvedJavaType;
 import jdk.vm.ci.meta.Signature;
 
-public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Comparable<AnalysisType> {
+public abstract class AnalysisType implements WrappedJavaType, OriginalClassProvider, Comparable<AnalysisType> {
 
     @SuppressWarnings("rawtypes")//
     private static final AtomicReferenceFieldUpdater<AnalysisType, ConcurrentHashMap> UNSAFE_ACCESS_FIELDS_UPDATER = //
@@ -154,6 +156,10 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
     }
 
     private final AnalysisFuture<Void> initializationTask;
+    /**
+     * Additional information that is only available for types that are marked as reachable.
+     */
+    private AnalysisFuture<TypeData> typeData;
 
     AnalysisType(AnalysisUniverse universe, ResolvedJavaType javaType, JavaKind storageKind, AnalysisType objectType, AnalysisType cloneableType) {
         this.universe = universe;
@@ -236,7 +242,11 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
         }
 
         /* The registration task initializes the type. */
-        this.initializationTask = new AnalysisFuture<>(() -> universe.hostVM.initializeType(this), null);
+        this.initializationTask = new AnalysisFuture<>(() -> universe.initializeType(this), null);
+        this.typeData = new AnalysisFuture<>(() -> {
+            AnalysisError.guarantee(universe.getHeapScanner() != null, "Heap scanner is not available.");
+            return universe.getHeapScanner().computeTypeData(this);
+        });
     }
 
     private AnalysisType[] convertTypes(ResolvedJavaType[] originalTypes) {
@@ -267,6 +277,7 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
         constantObjectsCache = null;
         uniqueConstant = null;
         unsafeAccessedFields = null;
+        typeData = null;
     }
 
     public int getId() {
@@ -453,6 +464,7 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
 
     private void markReachable() {
         if (AtomicUtils.atomicMark(isReachable)) {
+            universe.notifyReachableType();
             universe.hostVM.checkForbidden(this, UsageKind.Reachable);
             if (isArray()) {
                 /*
@@ -516,6 +528,11 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
     private synchronized void addAssignableType(BigBang bb, TypeState typeState) {
         assignableTypesState = TypeState.forUnion(((PointsToAnalysis) bb), assignableTypesState, typeState);
         assignableTypesNonNullState = assignableTypesState.forNonNull(((PointsToAnalysis) bb));
+    }
+
+    public TypeData getOrComputeData() {
+        GraalError.guarantee(isReachable.get(), "TypeData is only available for reachable types");
+        return this.typeData.ensureDone();
     }
 
     public void ensureInitialized() {
@@ -585,7 +602,7 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
          * is registered as unsafe during the analysis and then walk down the type hierarchy and
          * invalidate the cached value of all the sub-types.
          */
-        return unsafeAccessedFieldsRegistered || (getSuperclass() != null ? getSuperclass().hasUnsafeAccessedFields() : false);
+        return unsafeAccessedFieldsRegistered || (getSuperclass() != null && getSuperclass().hasUnsafeAccessedFields());
     }
 
     public List<AnalysisField> unsafeAccessedFields() {
@@ -926,7 +943,7 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
                 try {
                     AnalysisField aField = universe.lookup(original[i]);
                     if (aField != null) {
-                        if (listIncludesSuperClassesFields) {
+                        if (listIncludesSuperClassesFields || aField.isStatic()) {
                             /*
                              * If the list includes the super classes fields, register the position.
                              */
@@ -984,7 +1001,7 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
         try {
             return wrapped.isLocal();
         } catch (InternalError e) {
-            universe.hostVM().warn("unknown locality of class " + wrapped.getName() + ", assuming class is not local. To remove the warning report an issue " +
+            System.err.println("warning: unknown locality of class " + wrapped.getName() + ", assuming class is not local. To remove the warning report an issue " +
                             "to the library or language author. The issue is caused by " + wrapped.getName() + " which is not following the naming convention.");
             return false;
         }

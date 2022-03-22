@@ -24,8 +24,6 @@
  */
 package com.oracle.svm.core.jdk;
 
-//Checkstyle: allow reflection
-
 import static com.oracle.svm.core.util.VMError.guarantee;
 
 import java.lang.reflect.Field;
@@ -37,7 +35,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.graalvm.compiler.serviceprovider.GraalUnsafeAccess;
 import org.graalvm.compiler.serviceprovider.JavaVersionUtil;
 import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.hosted.Feature;
@@ -55,9 +52,9 @@ import com.oracle.svm.core.meta.SharedField;
 import com.oracle.svm.core.util.VMError;
 import com.oracle.svm.util.ReflectionUtil;
 
+import jdk.internal.misc.Unsafe;
 import jdk.vm.ci.meta.MetaAccessProvider;
 import jdk.vm.ci.meta.ResolvedJavaField;
-import sun.misc.Unsafe;
 
 /**
  * This file contains most of the code necessary for supporting VarHandle in native images. The
@@ -99,7 +96,6 @@ import sun.misc.Unsafe;
  */
 @AutomaticFeature
 public class VarHandleFeature implements Feature {
-    private static final Unsafe UNSAFE = GraalUnsafeAccess.getUnsafe();
 
     /** The JDK 11 class VarHandleObjects got renamed to VarHandleReferences. */
     static final String OBJECT_SUFFIX = JavaVersionUtil.JAVA_SPEC <= 11 ? "Objects" : "References";
@@ -113,14 +109,12 @@ public class VarHandleFeature implements Feature {
     public void afterRegistration(AfterRegistrationAccess access) {
         try {
             for (String typeName : new String[]{"Booleans", "Bytes", "Chars", "Doubles", "Floats", "Ints", "Longs", "Shorts", OBJECT_SUFFIX}) {
-                // Checkstyle: stop
                 buildInfo(false, "receiverType",
                                 Class.forName("java.lang.invoke.VarHandle" + typeName + "$FieldInstanceReadOnly"),
                                 Class.forName("java.lang.invoke.VarHandle" + typeName + "$FieldInstanceReadWrite"));
                 buildInfo(true, "base",
                                 Class.forName("java.lang.invoke.VarHandle" + typeName + "$FieldStaticReadOnly"),
                                 Class.forName("java.lang.invoke.VarHandle" + typeName + "$FieldStaticReadWrite"));
-                // Checkstyle: resume
             }
         } catch (ClassNotFoundException ex) {
             throw VMError.shouldNotReachHere(ex);
@@ -148,7 +142,7 @@ public class VarHandleFeature implements Feature {
                 /* Search the declared fields for a field with a matching offset. */
                 for (Field field : cur.getDeclaredFields()) {
                     if (Modifier.isStatic(field.getModifiers()) == info.isStatic) {
-                        long fieldOffset = info.isStatic ? UNSAFE.staticFieldOffset(field) : UNSAFE.objectFieldOffset(field);
+                        long fieldOffset = info.isStatic ? Unsafe.getUnsafe().staticFieldOffset(field) : Unsafe.getUnsafe().objectFieldOffset(field);
                         if (fieldOffset == originalFieldOffset) {
                             return field;
                         }
@@ -228,6 +222,11 @@ class VarHandleFieldOffsetComputer implements RecomputeFieldValue.CustomFieldVal
 
         guarantee(sField.isAccessed() && sField.getLocation() > 0, "Field not marked as accessed");
         return Long.valueOf(sField.getLocation());
+    }
+
+    @Override
+    public Class<?>[] types() {
+        return new Class<?>[]{long.class};
     }
 }
 

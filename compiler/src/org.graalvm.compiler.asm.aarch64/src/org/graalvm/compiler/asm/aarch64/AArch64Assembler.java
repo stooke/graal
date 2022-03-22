@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2022, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2018, Red Hat Inc. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
@@ -131,6 +131,7 @@ import static org.graalvm.compiler.asm.aarch64.AArch64Assembler.InstructionType.
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
+import java.util.EnumSet;
 
 import org.graalvm.compiler.asm.Assembler;
 import org.graalvm.compiler.asm.aarch64.AArch64Address.AddressingMode;
@@ -144,6 +145,9 @@ import jdk.vm.ci.code.Register;
 import jdk.vm.ci.code.TargetDescription;
 
 public abstract class AArch64Assembler extends Assembler {
+
+    private final EnumSet<CPUFeature> features;
+    private final EnumSet<Flag> flags;
 
     public static class LogicalBitmaskImmediateEncoding {
 
@@ -815,14 +819,24 @@ public abstract class AArch64Assembler extends Assembler {
 
     public AArch64Assembler(TargetDescription target) {
         super(target);
+        this.features = ((AArch64) target.arch).getFeatures().clone();
+        this.flags = ((AArch64) target.arch).getFlags();
+    }
+
+    public final EnumSet<CPUFeature> getFeatures() {
+        return features;
+    }
+
+    public final EnumSet<Flag> getFlags() {
+        return flags;
     }
 
     public boolean supports(CPUFeature feature) {
-        return ((AArch64) target.arch).getFeatures().contains(feature);
+        return getFeatures().contains(feature);
     }
 
     public boolean isFlagSet(Flag flag) {
-        return ((AArch64) target.arch).getFlags().contains(flag);
+        return getFlags().contains(flag);
     }
 
     /* Conditional Branch (5.2.1) */
@@ -1101,7 +1115,7 @@ public abstract class AArch64Assembler extends Assembler {
      * @param address all addressing modes allowed. May not be null.
      */
     public void ldr(int srcSize, Register rt, AArch64Address address) {
-        assert rt.getRegisterCategory().equals(CPU);
+        assert !rt.equals(sp) && rt.getRegisterCategory().equals(CPU) : rt;
         assert srcSize == 8 || srcSize == 16 || srcSize == 32 || srcSize == 64;
 
         /* When using an immediate or register based addressing mode, then the load flag is set. */
@@ -1119,7 +1133,7 @@ public abstract class AArch64Assembler extends Assembler {
      * @param address all addressing modes allowed. May not be null.
      */
     protected void ldrs(int targetSize, int srcSize, Register rt, AArch64Address address) {
-        assert rt.getRegisterCategory().equals(CPU);
+        assert !rt.equals(sp) && rt.getRegisterCategory().equals(CPU) : rt;
         assert srcSize == 8 || srcSize == 16 || srcSize == 32;
         assert targetSize == 32 || targetSize == 64;
         assert srcSize != targetSize;
@@ -1240,7 +1254,7 @@ public abstract class AArch64Assembler extends Assembler {
      * @param address all addressing modes allowed. May not be null.
      */
     public void str(int destSize, Register rt, AArch64Address address) {
-        assert rt.getRegisterCategory().equals(CPU) : rt;
+        assert !rt.equals(sp) && rt.getRegisterCategory().equals(CPU) : rt;
         assert destSize == 8 || destSize == 16 || destSize == 32 || destSize == 64;
         loadStoreInstruction(STR, rt, address, false, getLog2TransferSize(destSize));
     }
@@ -1299,6 +1313,9 @@ public abstract class AArch64Assembler extends Assembler {
      * Insert ldp/stp at the specified position.
      */
     protected void insertLdpStp(int position, int size, Instruction instr, boolean isFP, Register rt, Register rt2, AArch64Address address) {
+        assert !rt.equals(sp) && rt.getRegisterCategory().equals(isFP ? SIMD : CPU) : rt;
+        assert !rt2.equals(sp) && rt2.getRegisterCategory().equals(isFP ? SIMD : CPU) : rt2;
+
         int instructionEncoding = generateLoadStorePairInstructionEncoding(instr, rt, rt2, address, isFP, getLog2TransferSize(size));
         emitInt(instructionEncoding, position);
     }
@@ -1309,6 +1326,9 @@ public abstract class AArch64Assembler extends Assembler {
      * two registers.
      */
     public void ldp(int size, Register rt, Register rt2, AArch64Address address) {
+        assert !rt.equals(sp) && rt.getRegisterCategory().equals(CPU) : rt;
+        assert !rt2.equals(sp) && rt2.getRegisterCategory().equals(CPU) : rt2;
+
         assert size == 32 || size == 64;
         loadStorePairInstruction(LDP, rt, rt2, address, false, getLog2TransferSize(size));
     }
@@ -1319,6 +1339,9 @@ public abstract class AArch64Assembler extends Assembler {
      * two registers.
      */
     public void stp(int size, Register rt, Register rt2, AArch64Address address) {
+        assert !rt.equals(sp) && rt.getRegisterCategory().equals(CPU) : rt;
+        assert !rt2.equals(sp) && rt2.getRegisterCategory().equals(CPU) : rt2;
+
         assert size == 32 || size == 64;
         loadStorePairInstruction(STP, rt, rt2, address, false, getLog2TransferSize(size));
     }
@@ -1443,7 +1466,8 @@ public abstract class AArch64Assembler extends Assembler {
      */
     private void exclusiveLoadInstruction(Instruction instr, Register rt, Register rn, int log2TransferSize) {
         assert log2TransferSize >= 0 && log2TransferSize < 4;
-        assert rt.getRegisterCategory().equals(CPU) && rn.getRegisterCategory().equals(CPU);
+        assert !rt.equals(sp) && rt.getRegisterCategory().equals(CPU) : rt;
+        assert !rn.equals(zr) && rn.getRegisterCategory().equals(CPU) : rn;
         int transferSizeEncoding = log2TransferSize << LoadStoreTransferSizeOffset;
         emitInt(transferSizeEncoding | instr.encoding | rn(rn) | rt(rt));
     }
@@ -1460,7 +1484,11 @@ public abstract class AArch64Assembler extends Assembler {
      */
     private void exclusiveStoreInstruction(Instruction instr, Register rs, Register rt, Register rn, int log2TransferSize) {
         assert log2TransferSize >= 0 && log2TransferSize < 4;
-        assert rt.getRegisterCategory().equals(CPU) && rs.getRegisterCategory().equals(CPU) && rn.getRegisterCategory().equals(CPU) && (instr == STLR || (!rs.equals(rt) && !rs.equals(rn)));
+        assert !rs.equals(sp) && rs.getRegisterCategory().equals(CPU) : rs;
+        assert !rt.equals(sp) && rt.getRegisterCategory().equals(CPU) : rt;
+        assert !rn.equals(zr) && rn.getRegisterCategory().equals(CPU) : rn;
+        assert instr == STLR || (!rs.equals(rt) && !rs.equals(rn));
+
         int transferSizeEncoding = log2TransferSize << LoadStoreTransferSizeOffset;
         emitInt(transferSizeEncoding | instr.encoding | rs2(rs) | rn(rn) | rt(rt));
     }
@@ -1484,7 +1512,9 @@ public abstract class AArch64Assembler extends Assembler {
 
     private void compareAndSwapInstruction(Instruction instr, Register rs, Register rt, Register rn, int log2TransferSize, boolean acquire, boolean release) {
         assert log2TransferSize >= 0 && log2TransferSize < 4;
-        assert rt.getRegisterCategory().equals(CPU) && rs.getRegisterCategory().equals(CPU) && rn.getRegisterCategory().equals(CPU);
+        assert !rs.equals(sp) && rs.getRegisterCategory().equals(CPU) : rs;
+        assert !rt.equals(sp) && rt.getRegisterCategory().equals(CPU) : rt;
+        assert !rn.equals(zr) && rn.getRegisterCategory().equals(CPU) : rn;
         int transferSizeEncoding = log2TransferSize << LoadStoreTransferSizeOffset;
         emitInt(transferSizeEncoding | instr.encoding | rs2(rs) | rn(rn) | rt(rt) | (acquire ? 1 : 0) << CASAcquireOffset | (release ? 1 : 0) << CASReleaseOffset);
     }
@@ -1508,7 +1538,9 @@ public abstract class AArch64Assembler extends Assembler {
 
     private void loadAndAddInstruction(Instruction instr, Register rs, Register rt, Register rn, int log2TransferSize, boolean acquire, boolean release) {
         assert log2TransferSize >= 0 && log2TransferSize < 4;
-        assert rt.getRegisterCategory().equals(CPU) && rs.getRegisterCategory().equals(CPU) && rn.getRegisterCategory().equals(CPU);
+        assert !rs.equals(sp) && rs.getRegisterCategory().equals(CPU) : rs;
+        assert !rt.equals(sp) && rt.getRegisterCategory().equals(CPU) : rt;
+        assert !rn.equals(zr) && rn.getRegisterCategory().equals(CPU) : rn;
         int transferSizeEncoding = log2TransferSize << LoadStoreTransferSizeOffset;
         emitInt(transferSizeEncoding | instr.encoding | rs2(rs) | rn(rn) | rt(rt) | (acquire ? 1 : 0) << LDADDAcquireOffset | (release ? 1 : 0) << LDADDReleaseOffset);
     }
@@ -1531,7 +1563,9 @@ public abstract class AArch64Assembler extends Assembler {
 
     private void swapInstruction(Instruction instr, Register rs, Register rt, Register rn, int log2TransferSize, boolean acquire, boolean release) {
         assert log2TransferSize >= 0 && log2TransferSize < 4;
-        assert rt.getRegisterCategory().equals(CPU) && rs.getRegisterCategory().equals(CPU) && rn.getRegisterCategory().equals(CPU);
+        assert !rs.equals(sp) && rs.getRegisterCategory().equals(CPU) : rs;
+        assert !rt.equals(sp) && rt.getRegisterCategory().equals(CPU) : rt;
+        assert !rn.equals(zr) && rn.getRegisterCategory().equals(CPU) : rn;
         int transferSizeEncoding = log2TransferSize << LoadStoreTransferSizeOffset;
         emitInt(transferSizeEncoding | instr.encoding | rs2(rs) | rn(rn) | rt(rt) | (acquire ? 1 : 0) << LDADDAcquireOffset | (release ? 1 : 0) << LDADDReleaseOffset);
     }
@@ -1947,7 +1981,7 @@ public abstract class AArch64Assembler extends Assembler {
      * dst = src1 + extendType(src2) << imm.
      *
      * @param size register size. Has to be 32 or 64.
-     * @param dst general purpose register. May not be null or zero-register..
+     * @param dst general purpose register. May not be null or zero-register.
      * @param src1 general purpose register. May not be null or zero-register.
      * @param src2 general purpose register. May not be null or stackpointer.
      * @param extendType defines how src2 is extended to the same size as src1.
@@ -1964,7 +1998,7 @@ public abstract class AArch64Assembler extends Assembler {
      * dst = src1 + extendType(src2) << imm and sets condition flags.
      *
      * @param size register size. Has to be 32 or 64.
-     * @param dst general purpose register. May not be null or stackpointer..
+     * @param dst general purpose register. May not be null or stackpointer.
      * @param src1 general purpose register. May not be null or zero-register.
      * @param src2 general purpose register. May not be null or stackpointer.
      * @param extendType defines how src2 is extended to the same size as src1.
@@ -1981,7 +2015,7 @@ public abstract class AArch64Assembler extends Assembler {
      * dst = src1 - extendType(src2) << imm.
      *
      * @param size register size. Has to be 32 or 64.
-     * @param dst general purpose register. May not be null or zero-register..
+     * @param dst general purpose register. May not be null or zero-register.
      * @param src1 general purpose register. May not be null or zero-register.
      * @param src2 general purpose register. May not be null or stackpointer.
      * @param extendType defines how src2 is extended to the same size as src1.
@@ -1998,7 +2032,7 @@ public abstract class AArch64Assembler extends Assembler {
      * dst = src1 - extendType(src2) << imm and sets flags.
      *
      * @param size register size. Has to be 32 or 64.
-     * @param dst general purpose register. May not be null or stackpointer..
+     * @param dst general purpose register. May not be null or stackpointer.
      * @param src1 general purpose register. May not be null or zero-register.
      * @param src2 general purpose register. May not be null or stackpointer.
      * @param extendType defines how src2 is extended to the same size as src1.

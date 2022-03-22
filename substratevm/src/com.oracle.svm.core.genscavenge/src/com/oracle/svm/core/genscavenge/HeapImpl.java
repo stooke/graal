@@ -32,6 +32,7 @@ import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.compiler.core.common.NumUtil;
 import org.graalvm.compiler.core.common.SuppressFBWarnings;
 import org.graalvm.compiler.nodes.gc.BarrierSet;
+import org.graalvm.compiler.nodes.memory.address.OffsetAddressNode;
 import org.graalvm.compiler.word.Word;
 import org.graalvm.nativeimage.CurrentIsolate;
 import org.graalvm.nativeimage.IsolateThread;
@@ -56,17 +57,19 @@ import com.oracle.svm.core.config.ConfigurationValues;
 import com.oracle.svm.core.genscavenge.AlignedHeapChunk.AlignedHeader;
 import com.oracle.svm.core.genscavenge.ThreadLocalAllocation.Descriptor;
 import com.oracle.svm.core.genscavenge.UnalignedHeapChunk.UnalignedHeader;
+import com.oracle.svm.core.genscavenge.graal.ForcedSerialPostWriteBarrier;
 import com.oracle.svm.core.genscavenge.remset.RememberedSet;
+import com.oracle.svm.core.graal.snippets.SubstrateAllocationSnippets;
 import com.oracle.svm.core.heap.GC;
 import com.oracle.svm.core.heap.Heap;
 import com.oracle.svm.core.heap.NoAllocationVerifier;
 import com.oracle.svm.core.heap.ObjectHeader;
 import com.oracle.svm.core.heap.ObjectVisitor;
 import com.oracle.svm.core.heap.PhysicalMemory;
+import com.oracle.svm.core.heap.ReferenceHandler;
 import com.oracle.svm.core.heap.ReferenceHandlerThread;
 import com.oracle.svm.core.heap.ReferenceInternals;
 import com.oracle.svm.core.heap.RuntimeCodeInfoGCSupport;
-import com.oracle.svm.core.hub.DynamicHub;
 import com.oracle.svm.core.jdk.UninterruptibleUtils.AtomicReference;
 import com.oracle.svm.core.locks.VMCondition;
 import com.oracle.svm.core.locks.VMMutex;
@@ -181,7 +184,7 @@ public final class HeapImpl extends Heap {
 
     @Override
     public void resumeAllocation() {
-        ThreadLocalAllocation.resumeInCurrentThread();
+        // Nothing to do - the next allocation will refill the TLAB.
     }
 
     @Override
@@ -296,7 +299,6 @@ public final class HeapImpl extends Heap {
         if (HeapParameters.getZapProducedHeapChunks() || HeapParameters.getZapConsumedHeapChunks()) {
             log.string("[Heap Chunk zap values: ").indent(true);
             /* Padded with spaces so the columns line up between the int and word variants. */
-            // @formatter:off
             if (HeapParameters.getZapProducedHeapChunks()) {
                 log.string("  producedHeapChunkZapInt: ")
                                 .string("  hex: ").spaces(8).hex(HeapParameters.getProducedHeapChunkZapInt())
@@ -321,7 +323,6 @@ public final class HeapImpl extends Heap {
                                 .string("  unsigned: ").unsigned(HeapParameters.getConsumedHeapChunkZapWord());
             }
             log.redent(false).string("]");
-            // @formatter:on
         }
         return log;
     }
@@ -469,6 +470,13 @@ public final class HeapImpl extends Heap {
     @Override
     public BarrierSet createBarrierSet(MetaAccessProvider metaAccess) {
         return RememberedSet.get().createBarrierSet(metaAccess);
+    }
+
+    @Override
+    public void doReferenceHandling() {
+        if (ReferenceHandler.isExecutedManually()) {
+            GCImpl.doReferenceHandling();
+        }
     }
 
     @SuppressFBWarnings(value = "VO_VOLATILE_INCREMENT", justification = "Only the GC increments the volatile field 'refListOfferCounter'.")
@@ -636,9 +644,8 @@ public final class HeapImpl extends Heap {
         Pointer ptr = (Pointer) value;
         if (printLocationInfo(log, ptr, allowJavaHeapAccess, allowUnsafeOperations)) {
             if (allowJavaHeapAccess && objectHeaderImpl.pointsToObjectHeader(ptr)) {
-                DynamicHub hub = objectHeaderImpl.readDynamicHubFromPointer(ptr);
                 log.indent(true);
-                log.string("hub=").string(hub.getName());
+                SubstrateDiagnostics.printObjectInfo(log, ptr);
                 log.redent(false);
             }
             return true;
@@ -650,6 +657,40 @@ public final class HeapImpl extends Heap {
     public void optionValueChanged(RuntimeOptionKey<?> key) {
         if (!SubstrateUtil.HOSTED) {
             GCImpl.getPolicy().updateSizeParameters();
+        }
+    }
+
+    @Override
+    @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
+    public long getThreadAllocatedMemory(IsolateThread thread) {
+        UnsignedWord allocatedBytes = ThreadLocalAllocation.allocatedBytes.getVolatile(thread);
+
+        /*
+         * The current aligned chunk in the TLAB is only partially filled and therefore not yet
+         * accounted for in ThreadLocalAllocation.allocatedBytes. The reads below are unsynchronized
+         * and unordered with the thread updating its TLAB, so races may occur. We only use the read
+         * values if they are plausible and not obviously racy. We also accept that certain races
+         * can cause that the memory in the current aligned TLAB chunk is counted twice.
+         */
+        ThreadLocalAllocation.Descriptor tlab = ThreadLocalAllocation.getTlab(thread);
+        AlignedHeader alignedTlab = tlab.getAlignedChunk();
+        Pointer top = tlab.getAllocationTop(SubstrateAllocationSnippets.TLAB_TOP_IDENTITY);
+        Pointer start = AlignedHeapChunk.getObjectsStart(alignedTlab);
+
+        if (top.aboveThan(start)) {
+            UnsignedWord usedTlabSize = top.subtract(start);
+            if (usedTlabSize.belowOrEqual(HeapParameters.getAlignedHeapChunkSize())) {
+                return allocatedBytes.add(usedTlabSize).rawValue();
+            }
+        }
+        return allocatedBytes.rawValue();
+    }
+
+    @Override
+    @Uninterruptible(reason = "Ensure that no GC can occur between modification of the object and this call.", callerMustBe = true)
+    public void dirtyAllReferencesOf(Object obj) {
+        if (obj != null) {
+            ForcedSerialPostWriteBarrier.force(OffsetAddressNode.address(obj, 0), false);
         }
     }
 

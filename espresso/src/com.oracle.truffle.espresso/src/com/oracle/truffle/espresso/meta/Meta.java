@@ -81,11 +81,6 @@ public final class Meta implements ContextAccess {
 
         // Core types.
         java_lang_Object = knownKlass(Type.java_lang_Object);
-        if (context.JDWPOptions != null) {
-            HIDDEN_OBJECT_EXTENSION_FIELD = java_lang_Object.requireHiddenField(Name.extensionFieldName);
-        } else {
-            HIDDEN_OBJECT_EXTENSION_FIELD = null;
-        }
         java_lang_Cloneable = knownKlass(Type.java_lang_Cloneable);
         java_io_Serializable = knownKlass(Type.java_io_Serializable);
         ARRAY_SUPERINTERFACES = new ObjectKlass[]{java_lang_Cloneable, java_io_Serializable};
@@ -233,6 +228,7 @@ public final class Meta implements ContextAccess {
         java_lang_reflect_InvocationTargetException = knownKlass(Type.java_lang_reflect_InvocationTargetException);
         java_lang_NegativeArraySizeException = knownKlass(Type.java_lang_NegativeArraySizeException);
         java_lang_IllegalArgumentException = knownKlass(Type.java_lang_IllegalArgumentException);
+        java_lang_IllegalStateException = knownKlass(Type.java_lang_IllegalStateException);
         java_lang_NullPointerException = knownKlass(Type.java_lang_NullPointerException);
         java_lang_ClassNotFoundException = knownKlass(Type.java_lang_ClassNotFoundException);
         java_lang_NoClassDefFoundError = knownKlass(Type.java_lang_NoClassDefFoundError);
@@ -907,7 +903,6 @@ public final class Meta implements ContextAccess {
     // Checkstyle: stop field name check
 
     public final ObjectKlass java_lang_Object;
-    public final Field HIDDEN_OBJECT_EXTENSION_FIELD;
     public final ArrayKlass java_lang_Object_array;
 
     public final ObjectKlass java_lang_String;
@@ -1075,6 +1070,7 @@ public final class Meta implements ContextAccess {
     public final ObjectKlass java_lang_NegativeArraySizeException;
     public final ObjectKlass java_lang_IllegalArgumentException;
     public final ObjectKlass java_lang_IllegalMonitorStateException;
+    public final ObjectKlass java_lang_IllegalStateException;
     public final ObjectKlass java_lang_NullPointerException;
     public final ObjectKlass java_lang_ClassNotFoundException;
     public final ObjectKlass java_lang_NoClassDefFoundError;

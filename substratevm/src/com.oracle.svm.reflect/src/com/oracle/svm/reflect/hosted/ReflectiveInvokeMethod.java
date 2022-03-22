@@ -24,8 +24,6 @@
  */
 package com.oracle.svm.reflect.hosted;
 
-// Checkstyle: allow reflection
-
 import static org.graalvm.compiler.nodeinfo.NodeCycles.CYCLES_0;
 import static org.graalvm.compiler.nodeinfo.NodeSize.SIZE_0;
 
@@ -189,7 +187,7 @@ public class ReflectiveInvokeMethod extends NonBytecodeStaticMethod {
 
         for (InvokeWithExceptionNode invoke : invokes) {
             if (invoke.getInvokeKind().isDirect()) {
-                InvocationPlugin invocationPlugin = providers.getGraphBuilderPlugins().getInvocationPlugins().lookupInvocation(targetMethod);
+                InvocationPlugin invocationPlugin = providers.getGraphBuilderPlugins().getInvocationPlugins().lookupInvocation(targetMethod, ctx.getOptions());
                 if (invocationPlugin != null && !invocationPlugin.inlineOnly()) {
                     /*
                      * The BytecodeParser applies invocation plugins directly during bytecode
