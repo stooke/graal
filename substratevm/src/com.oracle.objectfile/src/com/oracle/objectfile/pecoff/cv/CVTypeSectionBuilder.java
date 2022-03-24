@@ -58,15 +58,16 @@ import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_STATIC;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_VANILLA;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_VIRTUAL;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MPROP_VSF_MASK;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_64PBOOL08;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_64PINT1;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_64PINT2;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_64PINT4;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_64PINT8;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_64PREAL32;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_64PREAL64;
-import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_64PUINT1;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_64PVOID;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_64PWCHAR;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_BOOL08;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_INT1;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_INT2;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_INT4;
@@ -512,7 +513,7 @@ class CVTypeSectionBuilder {
              */
             definePrimitiveType("void", T_VOID, 0, T_64PVOID);
             definePrimitiveType("byte", T_INT1, Byte.BYTES, T_64PINT1);
-            definePrimitiveType("boolean", T_UINT1, 1, T_64PUINT1);
+            definePrimitiveType("boolean", T_BOOL08, 1, T_64PBOOL08);
             definePrimitiveType("char", T_WCHAR, Character.BYTES, T_64PWCHAR);
             definePrimitiveType("short", T_INT2, Short.BYTES, T_64PINT2);
             definePrimitiveType("int", T_INT4, Integer.BYTES, T_64PINT4);
