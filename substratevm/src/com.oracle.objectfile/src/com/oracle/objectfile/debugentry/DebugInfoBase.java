@@ -359,7 +359,7 @@ public abstract class DebugInfoBase {
          * number
          */
         boolean isInline = lineInfo.getCaller() != null;
-        assert (isInline || (lineInfo.name().equals(primaryRange.getMethodName()) && TypeEntry.canonicalize(lineInfo.ownerType().toJavaName()).equals(primaryRange.getClassName())));
+     //   assert (isInline || (lineInfo.name().equals(primaryRange.getMethodName()) && TypeEntry.canonicalize(lineInfo.ownerType().toJavaName()).equals(primaryRange.getClassName())));
 
         Range caller = recursivelyAddSubRanges(lineInfo.getCaller(), primaryRange, classEntry, debugContext);
         final String fileName = lineInfo.fileName();
