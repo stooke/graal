@@ -291,7 +291,7 @@ public abstract class NativeImageViaCC extends NativeImage {
 
             if (SubstrateOptions.GenerateDebugInfo.getValue() > 0) {
                 cmd.add("/DEBUG");
-
+                cmd.add("/MAP");
                 if (SubstrateOptions.DeleteLocalSymbols.getValue()) {
                     String pdbFile = imageName + ".pdb";
                     /* We don't need a full PDB file, so leave it in a temp dir ... */
