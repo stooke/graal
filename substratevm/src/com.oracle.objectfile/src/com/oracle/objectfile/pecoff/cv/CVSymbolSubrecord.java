@@ -307,7 +307,7 @@ abstract class CVSymbolSubrecord {
         private final int typeIndex;
         private final short register;
 
-        CVSymbolRegisterRecord(CVDebugInfo debugInfo, String name, int typeIndex,  short register) {
+        CVSymbolRegisterRecord(CVDebugInfo debugInfo, String name, int typeIndex, short register) {
             super(debugInfo, CVDebugConstants.S_REGISTER);
             this.name = name;
             this.typeIndex = typeIndex;
@@ -327,7 +327,6 @@ abstract class CVSymbolSubrecord {
             return String.format("S_REGISTER   name=%s  r%d type=0x%x)", name, register, typeIndex);
         }
     }
-
 
     public static class CVSymbolLocalRecord extends CVSymbolSubrecord {
 
@@ -356,7 +355,7 @@ abstract class CVSymbolSubrecord {
         }
     }
 
-    private static abstract class CVSymbolDefRangeBase extends CVSymbolSubrecord {
+    private abstract static class CVSymbolDefRangeBase extends CVSymbolSubrecord {
 
         protected final int gapCount;
         protected final String procName;
@@ -374,17 +373,20 @@ abstract class CVSymbolSubrecord {
             }
         }
 
-        void addGap() { /* TODO */}
+        void addGap() {
+            /* TODO */
+        }
 
         int computeRange(byte[] buffer, int initialPos) {
             /* Emit CV_LVAR_ADDR_RANGE. */
-           // int pos = cvDebugInfo.getCVSymbolSection().markRelocationSite(buffer, initialPos, procName, (long) procOffset);
+            // int pos = cvDebugInfo.getCVSymbolSection().markRelocationSite(buffer, initialPos,
+            // procName, (long) procOffset);
             int pos = cvDebugInfo.getCVSymbolSection().markRelocationSite(buffer, initialPos, procName);
             pos = CVUtil.putShort(range, buffer, pos);
             return pos;
         }
 
-        int computeGaps(byte[] buffer, int initialPos) {
+        int computeGaps(@SuppressWarnings("unused") byte[] buffer, int initialPos) {
             /* Emit gaps. Not Yet implemented. */
             assert gapCount == 0;
             return initialPos;
@@ -456,18 +458,10 @@ abstract class CVSymbolSubrecord {
             this.bpOffset = 0;
         }
 
-        /*
-    unsigned short  baseReg;         // Register to hold the base pointer of the symbol
-    unsigned short  spilledUdtMember : 1;   // Spilled member for s.i.
-    unsigned short  padding          : 3;   // Padding for future use.
-    unsigned short  offsetParent     : CV_OFFSET_PARENT_LENGTH_LIMIT;  // Offset in parent variable.
-    CV_off32_t      offBasePointer;  // offset to register
-         */
-
         @Override
         protected int computeContents(byte[] buffer, int initialPos) {
             int pos = CVUtil.putShort(baseRegister, buffer, initialPos);
-            /* bitfield  spilledUDTMember : 1, pad : 3, parentOffset : 12 */
+            /* bitfield spilledUDTMember : 1, pad : 3, parentOffset : 12 */
             pos = CVUtil.putShort((short) (spilledUdtMember + (parentOffset << 4)), buffer, pos);
             pos = CVUtil.putInt(bpOffset, buffer, pos);
             pos = computeRangeAndGaps(buffer, pos);
@@ -476,7 +470,8 @@ abstract class CVSymbolSubrecord {
 
         @Override
         public String toString() {
-            return String.format("S_DEFRANGE_REGISTER_REL r%d spilled=%d parentOffset=0x%x %s+0x%x range=0x%x %d gaps)", baseRegister, spilledUdtMember, parentOffset, procName, procOffset, range, gapCount);
+            return String.format("S_DEFRANGE_REGISTER_REL r%d spilled=%d parentOffset=0x%x %s+0x%x range=0x%x %d gaps)", baseRegister, spilledUdtMember, parentOffset, procName, procOffset, range,
+                            gapCount);
         }
     }
 
@@ -533,8 +528,8 @@ abstract class CVSymbolSubrecord {
     }
 
     public static class CVSymbolBlock32Record extends CVSymbolSubrecord {
-      //  K32 name= parent=0x0 end=0x0 len=0x8 codeoffset=0x0:70
-      //  reloc addr=0x0008e5 type=11 sym=main       IMAGE_REL_AMD64_SECREL(0x0b)
+        // K32 name= parent=0x0 end=0x0 len=0x8 codeoffset=0x0:70
+        // reloc addr=0x0008e5 type=11 sym=main IMAGE_REL_AMD64_SECREL(0x0b)
         final String procName;
         String name = "";
         int parent = 0;
@@ -564,6 +559,7 @@ abstract class CVSymbolSubrecord {
             return String.format("S_BLOCK32   name=%s parent=0x%x end=0x%x len=0x%x offset=0x%x:0x%x", name, parent, end, len, segment, offset);
         }
     }
+
     /*
      * Creating a proc32 record has a side effect: two relocation entries are added to the section
      * relocation table; they refer back to the global symbol.
@@ -629,10 +625,16 @@ abstract class CVSymbolSubrecord {
 
     public static final class CVSymbolFrameProcRecord extends CVSymbolSubrecord {
 
-        public static final int FRAME_ASYNC_EH = 1 << 9; /* Async exception handling (vc++ uses 1, clang uses 0). */
         /* TODO: This may change in the presence of isolates. */
-        public static final int FRAME_LOCAL_BP = 1 << 14; /* Local base pointer = SP (0=none, 1=sp, 2=bp 3=r13). */
-        public static final int FRAME_PARAM_BP = 1 << 16; /* Param base pointer = SP. */
+
+        /* Async exception handling (vc++ uses 1, clang uses 0). */
+        public static final int FRAME_ASYNC_EH = 1 << 9;
+
+        /* Local base pointer = SP (0=none, 1=sp, 2=bp 3=r13). */
+        public static final int FRAME_LOCAL_BP = 1 << 14;
+
+        /* Param base pointer = SP. */
+        public static final int FRAME_PARAM_BP = 1 << 16;
 
         private final int framelen;
         private final int padLen;

@@ -75,7 +75,6 @@ import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_INT8;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_NOTYPE;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_REAL32;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_REAL64;
-import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_UINT1;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_UINT4;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_VOID;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.T_WCHAR;
