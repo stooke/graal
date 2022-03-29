@@ -38,9 +38,12 @@ abstract class CVTypeConstants {
     static final short T_NOTYPE = 0x0000;
     static final short T_VOID = 0x0003;
 
+    static final short T_BOOL08 = 0x0030; /* 8 bit boolean */
+    static final short T_64PBOOL08 = 0x0630; /* 64 bit pointer to 8 bit bool */
+
     static final short T_WCHAR = 0x0071; /* 16 bite wide character (java char type) */
     static final short T_REAL32 = 0x0040; /* 32 bit float (Java float type) */
-    static final short T_REAL64 = 0x0041; /* 64 but double (Java double type) */
+    static final short T_REAL64 = 0x0041; /* 64 bit double (Java double type) */
 
     static final short T_INT1 = 0x0068; /* 8 bit int (java byte type) */
     static final short T_INT2 = 0x0072; /* 16 bit int (java short type) */

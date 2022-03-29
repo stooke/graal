@@ -46,7 +46,6 @@ import org.graalvm.compiler.code.CompilationResult;
 import org.graalvm.compiler.code.SourceMapping;
 import org.graalvm.compiler.core.common.CompressEncoding;
 import org.graalvm.compiler.debug.DebugContext;
-import org.graalvm.compiler.debug.GraalError;
 import org.graalvm.compiler.graph.NodeSourcePosition;
 import org.graalvm.nativeimage.ImageSingletons;
 
@@ -1268,26 +1267,23 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
 
         @Override
         public boolean isConstructor() {
-            GraalError.unimplemented("Use MethodInfo.isConstructor() instead.");
-            return false;
+            return method.isConstructor();
         }
 
         @Override
         public boolean isVirtual() {
-            GraalError.unimplemented("Use MethodInfo.isVirtual() instead.");
-            return false;
+            return method instanceof HostedMethod && ((HostedMethod) method).hasVTableIndex();
         }
 
         @Override
         public boolean isOverride() {
-            GraalError.unimplemented("Use MethodInfo.isOverride() instead.");
-            return false;
+            return method instanceof HostedMethod && allOverrides.contains(method);
         }
 
         @Override
         public int vtableOffset() {
-            GraalError.unimplemented("Use MethodInfo.vtableOffset() instead.");
-            return -1;
+            /* TODO - convert index to offset (+ sizeof DynamicHub) */
+            return isVirtual() ? ((HostedMethod) method).getVTableIndex() : -1;
         }
     }
 

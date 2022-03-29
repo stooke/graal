@@ -35,7 +35,6 @@ import com.oracle.objectfile.debugentry.TypeEntry;
 import com.oracle.objectfile.pecoff.PECoffObjectFile;
 import org.graalvm.compiler.debug.DebugContext;
 
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -43,16 +42,10 @@ import java.util.Set;
 import static com.oracle.objectfile.pecoff.cv.CVConstants.CV_SIGNATURE_C13;
 import static com.oracle.objectfile.pecoff.cv.CVConstants.CV_SYMBOL_SECTION_NAME;
 import static com.oracle.objectfile.pecoff.cv.CVConstants.CV_TYPE_SECTION_NAME;
-import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.ADDRESS_BITS;
-import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_CLASS;
-import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_POINTER;
-import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_STRUCTURE;
-import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MAX_PRIMITIVE;
 
 public final class CVTypeSectionImpl extends CVSectionImpl {
 
     private static final int CV_RECORD_INITIAL_CAPACITY = 200;
-    private static final int CV_TYPENAME_INITIAL_CAPACITY = 20000;
 
     /* CodeView 4 type records below 1000 are pre-defined. */
     private int sequenceCounter = 0x1000;
@@ -60,13 +53,6 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
     /* A sequential map of type records, starting at 1000 */
     /* This map is used to implement deduplication. */
     private final Map<CVTypeRecord, CVTypeRecord> typeMap = new LinkedHashMap<>(CV_RECORD_INITIAL_CAPACITY);
-
-    /* A map of type names to type records - more than one name can map to a record */
-    private final Map<String, CVTypeRecord> typeNameMap = new HashMap<>(CV_TYPENAME_INITIAL_CAPACITY);
-
-    /* For convenience, quick lookup of pointer type indices given class type index */
-    /* Could have saved this in typenameMap. */
-    private final Map<Integer, CVTypeRecord> typePointerMap = new HashMap<>(CV_TYPENAME_INITIAL_CAPACITY);
 
     private final CVTypeSectionBuilder builder;
 
@@ -124,6 +110,40 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
     }
 
     /**
+     * Return either the caller-created instance or a matching existing instance. Every entry in
+     * typeMap is a T, because it is ONLY this function which inserts entries (of type T).
+     *
+     * @param <T> type of new record
+     * @param newRecord record to add if an existing record with same hash hasn't already been added
+     * @return the record (if previously unseen) or old record
+     */
+    @SuppressWarnings("unchecked")
+    <T extends CVTypeRecord> T addOrReference(T newRecord) {
+        final T record;
+        if (typeMap.containsKey(newRecord)) {
+            record = (T) typeMap.get(newRecord);
+        } else {
+            newRecord.setSequenceNumber(sequenceCounter++);
+            typeMap.put(newRecord, newRecord);
+            record = newRecord;
+        }
+        return record;
+    }
+
+    @Override
+    public Set<BuildDependency> getDependencies(Map<ObjectFile.Element, LayoutDecisionMap> decisions) {
+        Set<BuildDependency> deps = super.getDependencies(decisions);
+        PECoffObjectFile.PECoffSection targetSection = (PECoffObjectFile.PECoffSection) getElement().getOwner().elementForName(CV_SYMBOL_SECTION_NAME);
+        LayoutDecision ourContent = decisions.get(getElement()).getDecision(LayoutDecision.Kind.CONTENT);
+        /* Make our content depend on the codeview symbol section. */
+        deps.add(BuildDependency.createOrGet(ourContent, decisions.get(targetSection).getDecision(LayoutDecision.Kind.CONTENT)));
+
+        return deps;
+    }
+
+    /* API for builders to use */
+
+    /**
      * Call builder to build all type records for function.
      *
      * @param entry primaryEntry containing entities whose type records must be added
@@ -142,27 +162,6 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
         return builder.buildType(entry);
     }
 
-    boolean hasType(String typename) {
-        return typeNameMap.containsKey(typename);
-    }
-
-    CVTypeRecord getType(String typename) {
-        return typeNameMap.get(typename);
-    }
-
-    CVTypeRecord getPointerRecordForType(String typeName) {
-        CVTypeRecord t = getType(typeName);
-        if (t != null) {
-            if (t.getSequenceNumber() <= MAX_PRIMITIVE) {
-                verboseLog("Primitive pointer requested for %s", typeName);
-            }
-            assert t.getSequenceNumber() > MAX_PRIMITIVE;
-            return typePointerMap.get(t.getSequenceNumber());
-        } else {
-            return null;
-        }
-    }
-
     CVTypeRecord.CVTypeStringIdRecord getStringId(String string) {
         CVTypeRecord.CVTypeStringIdRecord r = new CVTypeRecord.CVTypeStringIdRecord(string);
         return addOrReference(r);
@@ -170,64 +169,5 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
 
     int getIndexForPointer(TypeEntry typeEntry) {
         return builder.getIndexForPointerOrPrimitive(typeEntry);
-    }
-
-    void definePrimitiveType(String typename, short typeId, int length, short pointerTypeId) {
-        CVTypeRecord record = new CVTypeRecord.CVTypePrimitive(typeId, length);
-        typeNameMap.put(typename, record);
-        if (pointerTypeId != 0) {
-            CVTypeRecord pointerRecord = new CVTypeRecord.CVTypePrimitive(pointerTypeId, ADDRESS_BITS);
-            typePointerMap.put((int) typeId, pointerRecord);
-        }
-    }
-
-    /**
-     * Return either the caller-created instance or a matching existing instance. Every entry in
-     * typeMap is a T, because it is ONLY this function which inserts entries (of type T).
-     *
-     * @param <T> type of new record
-     * @param newRecord record to add if an existing record with same hash hasn't already been added
-     * @return the record (if previously unseen) or old record
-     */
-    @SuppressWarnings("unchecked")
-    <T extends CVTypeRecord> T addOrReference(T newRecord) {
-        final T record;
-        final boolean isInstance = newRecord.type == LF_CLASS || newRecord.type == LF_STRUCTURE;
-        if (typeMap.containsKey(newRecord)) {
-            record = (T) typeMap.get(newRecord);
-        } else if (isInstance) {
-            CVTypeRecord.CVClassRecord cr = (CVTypeRecord.CVClassRecord) newRecord;
-            /* Save off the class definition (or forward reference) */
-            CVTypeRecord.CVClassRecord oldRecord = (CVTypeRecord.CVClassRecord) typeNameMap.get(cr.getClassName());
-            if (oldRecord == null || (oldRecord.isForwardRef() && !cr.isForwardRef())) {
-                newRecord.setSequenceNumber(sequenceCounter++);
-                typeMap.put(newRecord, newRecord);
-                record = newRecord;
-                typeNameMap.put(cr.getClassName(), cr);
-            } else {
-                record = (T) oldRecord;
-            }
-        } else {
-            newRecord.setSequenceNumber(sequenceCounter++);
-            typeMap.put(newRecord, newRecord);
-            record = newRecord;
-            if (newRecord.type == LF_POINTER) {
-                /* convenience to find associated pointer records */
-                CVTypeRecord.CVTypePointerRecord pr = (CVTypeRecord.CVTypePointerRecord) newRecord;
-                typePointerMap.put(pr.getPointsTo(), pr);
-            }
-        }
-        return record;
-    }
-
-    @Override
-    public Set<BuildDependency> getDependencies(Map<ObjectFile.Element, LayoutDecisionMap> decisions) {
-        Set<BuildDependency> deps = super.getDependencies(decisions);
-        PECoffObjectFile.PECoffSection targetSection = (PECoffObjectFile.PECoffSection) getElement().getOwner().elementForName(CV_SYMBOL_SECTION_NAME);
-        LayoutDecision ourContent = decisions.get(getElement()).getDecision(LayoutDecision.Kind.CONTENT);
-        /* Make our content depend on the codeview symbol section. */
-        deps.add(BuildDependency.createOrGet(ourContent, decisions.get(targetSection).getDecision(LayoutDecision.Kind.CONTENT)));
-
-        return deps;
     }
 }

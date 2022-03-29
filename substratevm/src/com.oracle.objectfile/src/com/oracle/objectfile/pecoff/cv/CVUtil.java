@@ -34,7 +34,6 @@ import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_QUADWORD;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_SHORT;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_ULONG;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_USHORT;
-
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 abstract class CVUtil {

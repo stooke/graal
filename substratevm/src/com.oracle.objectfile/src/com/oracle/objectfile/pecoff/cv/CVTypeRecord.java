@@ -591,8 +591,9 @@ abstract class CVTypeRecord {
 
         @Override
         public String toString() {
-            return String.format("LF_MFUNCTION 0x%04x ret=0x%04x this=0x%04x *this=0x%04x+%d calltype=0x%x attr=0x%x(%s), argcount=0x%04x ", getSequenceNumber(), returnType, classType, thisType,
-                            thisAdjust, callType, funcAttr, attrString(funcAttr), argList.getSequenceNumber());
+            String attrString = (funcAttr & 2) == 2 ? "(ctor)" : "";
+            return String.format("LF_MFUNCTION 0x%04x ret=0x%04x this=0x%04x *this=0x%04x+%d calltype=0x%x attr=0x%x%s, argcount=0x%04x ", getSequenceNumber(), returnType, classType, thisType,
+                            thisAdjust, callType, funcAttr, attrString, argList.getSequenceNumber());
         }
 
         @Override
