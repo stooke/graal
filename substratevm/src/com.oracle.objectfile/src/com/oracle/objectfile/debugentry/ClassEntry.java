@@ -226,7 +226,7 @@ public class ClassEntry extends StructureTypeEntry {
     }
 
     @SuppressWarnings("unused")
-    String getFullFileName() {
+    public String getFullFileName() {
         if (fileEntry != null) {
             return fileEntry.getFullName();
         } else {
