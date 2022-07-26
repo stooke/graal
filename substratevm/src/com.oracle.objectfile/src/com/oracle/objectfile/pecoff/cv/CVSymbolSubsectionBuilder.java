@@ -45,7 +45,6 @@ final class CVSymbolSubsectionBuilder {
 
     private final String heapName;
     private final short heapRegister;
-    private boolean noMainFound = true;
 
     CVSymbolSubsectionBuilder(CVDebugInfo cvDebugInfo) {
         this.cvDebugInfo = cvDebugInfo;
@@ -165,16 +164,8 @@ final class CVSymbolSubsectionBuilder {
      * @param range Range contained in the method of interest
      * @return user debugger friendly method name
      */
-    private String getDebuggerName(Range range) {
-        final String methodName;
-        if (noMainFound && Modifier.isStatic(range.getMethodEntry().getModifiers()) && range.getMethodName().equals("main")) {
-            noMainFound = false;
-            methodName = CVNames.staticFunctionNameToCodeViewName(range.getMethodEntry());
-        } else {
-            /* Use a more user-friendly name instead of a hash function. */
-            methodName = CVNames.staticFunctionNameAndArgsToCodeViewName(range.getMethodEntry());
-        }
-        return methodName;
+    private static String getDebuggerName(Range range) {
+        return CVNames.functionNameToCodeViewName(range.getMethodEntry());
     }
 
     private void addLineNumberRecords(PrimaryEntry primaryEntry) {

@@ -30,9 +30,6 @@ import com.oracle.objectfile.debugentry.FieldEntry;
 import com.oracle.objectfile.debugentry.MethodEntry;
 import com.oracle.objectfile.debugentry.TypeEntry;
 
-import java.util.Arrays;
-import java.util.stream.Collectors;
-
 final class CVNames {
 
     static String typeNameToCodeViewName(String typeName) {
@@ -47,25 +44,7 @@ final class CVNames {
         return typeNameToCodeViewName(fieldEntry.ownerType()) + "_" + fieldEntry.fieldName();
     }
 
-    static String staticFunctionNameToCodeViewName(MethodEntry methodEntry) {
-        return typeNameToCodeViewName(methodEntry.ownerType()) + "::" + methodEntry.methodName();
-    }
-
-    static String staticFunctionNameAndArgsToCodeViewName(MethodEntry methodEntry) {
-        return functionNameAndArgsToCodeViewName(methodEntry);
-    }
-
     static String functionNameToCodeViewName(MethodEntry methodEntry) {
         return typeNameToCodeViewName(methodEntry.ownerType()) + "::" + methodEntry.methodName();
-    }
-
-    static String functionNameAndArgsToCodeViewName(MethodEntry methodEntry) {
-        final String paramString;
-        if (methodEntry.getParamCount() > 0) {
-            paramString = "_" + Arrays.stream(methodEntry.getParamTypes()).map(CVNames::typeNameToCodeViewName).collect(Collectors.joining("_"));
-        } else {
-            paramString = "";
-        }
-        return functionNameToCodeViewName(methodEntry) + paramString;
     }
 }

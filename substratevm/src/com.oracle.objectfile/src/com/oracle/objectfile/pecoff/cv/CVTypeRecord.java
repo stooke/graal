@@ -108,7 +108,7 @@ abstract class CVTypeRecord {
         pos = alignPadded4(buffer, pos);
         int length = pos - initialPos - Short.BYTES;
         if (length > CV_TYPE_RECORD_MAX_SIZE) {
-            GraalError.shouldNotReachHere(String.format("Type record too large: %d (maximum %d) bytes: %s", length, CV_TYPE_RECORD_MAX_SIZE, this));
+            throw GraalError.shouldNotReachHere(String.format("Type record too large: %d (maximum %d) bytes: %s", length, CV_TYPE_RECORD_MAX_SIZE, this));
         }
         CVUtil.putShort((short) length, buffer, initialPos);
         return pos;
@@ -617,9 +617,7 @@ abstract class CVTypeRecord {
         }
 
         protected FieldRecord(short leafType) {
-            this.type = leafType;
-            this.attrs = 0;
-            this.name = "";
+            this(leafType, (short) 0, "");
         }
 
         public int computeSize() {
@@ -638,28 +636,26 @@ abstract class CVTypeRecord {
 
         @Override
         public boolean equals(Object obj) {
-            if (!super.equals(obj)) {
-                return false;
-            }
             FieldRecord other = (FieldRecord) obj;
-            return this.hashCode() == other.hashCode();
+            return this.type == other.type && this.attrs == other.attrs && this.name.equals(other.name);
         }
     }
 
     static final class CVOverloadedMethodRecord extends FieldRecord {
 
         private final int methodListIndex; /* index of method list record */
+        private final short count;
 
         CVOverloadedMethodRecord(short count, int methodListIndex, String methodName) {
-            /* Stick 'count' into the attrs field just for convenience. */
-            super(LF_METHOD, count, methodName);
+            super(LF_METHOD, (short) 0, methodName);
             this.methodListIndex = methodListIndex;
+            this.count = count;
         }
 
         @Override
         public int computeContents(byte[] buffer, int initialPos) {
             int pos = CVUtil.putShort(type, buffer, initialPos);
-            pos = CVUtil.putShort(attrs, buffer, pos); /* Remember, this is actually 'count'. */
+            pos = CVUtil.putShort(count, buffer, pos);
             pos = CVUtil.putInt(methodListIndex, buffer, pos);
             pos = CVUtil.putUTF8StringBytes(name, buffer, pos);
             return pos;
@@ -667,13 +663,14 @@ abstract class CVTypeRecord {
 
         @Override
         public String toString() {
-            return String.format("LF_METHOD(0x%04x) count=0x%x listIdx=0x%04x %s", type, attrs, methodListIndex, name);
+            return String.format("LF_METHOD(0x%04x) count=0x%x listIdx=0x%04x %s", type, count, methodListIndex, name);
         }
 
         @Override
         public int hashCode() {
             int h = super.hashCode();
             h = 31 * h + methodListIndex;
+            h = 31 + h + count;
             return h;
         }
 
@@ -683,7 +680,7 @@ abstract class CVTypeRecord {
                 return false;
             }
             CVOverloadedMethodRecord other = (CVOverloadedMethodRecord) obj;
-            return this.methodListIndex == other.methodListIndex;
+            return this.methodListIndex == other.methodListIndex && this.count == other.count;
         }
     }
 
@@ -1037,7 +1034,9 @@ abstract class CVTypeRecord {
     static final class CVFieldListRecord extends CVTypeRecord {
 
         static final int INITIAL_CAPACITY = 10;
-        private int estimatedSize = 0;
+
+        /* Size includes type field but not record length field. */
+        private int estimatedSize = CVUtil.align4(Short.BYTES);
 
         private final ArrayList<FieldRecord> members = new ArrayList<>(INITIAL_CAPACITY);
 
@@ -1047,29 +1046,19 @@ abstract class CVTypeRecord {
 
         void add(FieldRecord m) {
             /* Keep a running total. */
-            estimatedSize += m.computeSize();
-            /* Pad to next 4 byte boundary if required. */
-            while ((estimatedSize % 4) != 0) {
-                estimatedSize++;
-            }
+            estimatedSize += CVUtil.align4(m.computeSize());
             members.add(m);
         }
 
-        int count() {
-            return members.size();
-        }
-
         int getEstimatedSize() {
-            /* Add in size of record type and length fields. */
-            return estimatedSize + Short.BYTES * 2;
+            return estimatedSize;
         }
 
         @Override
         protected int computeContents(byte[] buffer, int initialPos) {
-            int pos = initialPos;
+            int pos = CVTypeRecord.alignPadded4(buffer, initialPos);
             for (FieldRecord field : members) {
                 pos = field.computeContents(buffer, pos);
-                /* Align on 4-byte boundary. */
                 pos = CVTypeRecord.alignPadded4(buffer, pos);
             }
             return pos;
@@ -1124,11 +1113,6 @@ abstract class CVTypeRecord {
         @SuppressWarnings("unused")
         CVTypeArrayRecord(CVTypeRecord elementType, int length) {
             this(elementType.getSequenceNumber(), T_UINT8, length);
-        }
-
-        @Override
-        public int computeSize(int initialPos) {
-            return initialPos + Integer.BYTES * 3;
         }
 
         @Override

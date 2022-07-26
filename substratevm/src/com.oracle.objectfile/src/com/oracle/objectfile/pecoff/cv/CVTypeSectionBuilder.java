@@ -39,6 +39,7 @@ import com.oracle.objectfile.debugentry.TypeEntry;
 import org.graalvm.compiler.debug.GraalError;
 
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
@@ -152,42 +153,56 @@ class CVTypeSectionBuilder {
         return buildMemberFunction(entry.getClassEntry(), entry.getPrimary().getMethodEntry());
     }
 
-    static class FieldListContext {
-        /* Knock 100 bytes off to be safe from off-by-1, padding, LF_INDEX, etc. */
-        static final int FIELD_LIST_MAX_SIZE = CV_TYPE_RECORD_MAX_SIZE - 100;
+    static class FieldListBuilder {
+        final List<CVTypeRecord.FieldRecord> fields = new ArrayList<>();
 
-        final CVTypeRecord.CVFieldListRecord firstFieldList;
-        CVTypeRecord.CVFieldListRecord currentFieldList;
-        final Deque<CVTypeRecord.CVFieldListRecord> lists = new LinkedList<>();
-
-        FieldListContext(CVTypeRecord.CVFieldListRecord initialRecord) {
-            this.firstFieldList = initialRecord;
-            this.currentFieldList = initialRecord;
-            lists.add(firstFieldList);
+        FieldListBuilder() {
         }
 
-        void addRecordToFieldList(CVTypeRecord.FieldRecord field) {
-            if ((currentFieldList.getEstimatedSize() + field.computeSize()) > FIELD_LIST_MAX_SIZE) {
-                /* end this fieldlist with an LF_INDEX to the new field list. */
-                currentFieldList = new CVTypeRecord.CVFieldListRecord();
-                lists.add(currentFieldList);
+        void addField(CVTypeRecord.FieldRecord field) {
+            fields.add(field);
+        }
+
+        int getFieldCount() {
+            return fields.size();
+        }
+
+        CVTypeRecord.CVFieldListRecord buildFieldListRecords(CVTypeSectionBuilder builder) {
+
+            /*
+             * The last FieldList must refer back to the one before it, and must contain the first
+             * fields in the class.
+             */
+
+            CVTypeRecord.CVFieldListRecord currentFieldList = new CVTypeRecord.CVFieldListRecord();
+            Deque<CVTypeRecord.CVFieldListRecord> fl = new LinkedList<>();
+            fl.add(currentFieldList);
+
+            /* Build all Field List records in field order (FIFO). */
+            for (CVTypeRecord.FieldRecord fieldRecord : fields) {
+                if (currentFieldList.getEstimatedSize() + CVUtil.align4(fieldRecord.computeSize()) >= CV_TYPE_RECORD_MAX_SIZE) {
+                    currentFieldList = new CVTypeRecord.CVFieldListRecord();
+                    fl.add(currentFieldList);
+                }
+                currentFieldList.add(fieldRecord);
             }
-            currentFieldList.add(field);
-        }
 
-        CVTypeRecord.CVFieldListRecord addTypeRecords(CVTypeSectionBuilder builder) {
-            /* Add all fieldlist records in the reverse order they were created. */
+            /*
+             * Emit all Field List records in reverse order (LIFO), adding Index records to all but
+             * the first emitted.
+             */
+            CVTypeRecord.CVFieldListRecord fieldListRecord = null;
             int idx = 0;
-            while (!lists.isEmpty()) {
-                CVTypeRecord.CVFieldListRecord fieldList = lists.removeLast();
-                currentFieldList = builder.addTypeRecord(fieldList);
+            while (!fl.isEmpty()) {
+                fieldListRecord = fl.removeLast();
+                fieldListRecord = builder.addTypeRecord(fieldListRecord);
                 /* For all fieldlist but the first, link to the previous record. */
                 if (idx != 0) {
-                    fieldList.add(new CVTypeRecord.CVIndexRecord(idx));
+                    fieldListRecord.add(new CVTypeRecord.CVIndexRecord(idx));
                 }
-                idx = currentFieldList.getSequenceNumber();
+                idx = fieldListRecord.getSequenceNumber();
             }
-            return currentFieldList;
+            return fieldListRecord;
         }
     }
 
@@ -212,18 +227,14 @@ class CVTypeSectionBuilder {
 
         final List<MethodEntry> methods = typeEntry.isClass() ? ((ClassEntry) typeEntry).getMethods() : Collections.emptyList();
 
-        /* process fields */
-
         /* Build fieldlist record */
-        CVTypeRecord.CVFieldListRecord fieldListRecord = new CVTypeRecord.CVFieldListRecord();
-        FieldListContext fieldListContext = new FieldListContext(fieldListRecord);
-
-        log("building fieldlist %s", fieldListRecord);
+        FieldListBuilder fieldListBuilder = new FieldListBuilder();
+        log("building field list");
 
         if (superTypeIndex != 0) {
             CVTypeRecord.CVBaseMemberRecord btype = new CVTypeRecord.CVBaseMemberRecord(MPROP_PUBLIC, superTypeIndex, 0);
             log("basetype %s", btype);
-            fieldListContext.addRecordToFieldList(btype);
+            fieldListBuilder.addField(btype);
         }
 
         /* Only define manifested fields. */
@@ -231,7 +242,7 @@ class CVTypeSectionBuilder {
             log("field %s attr=(%s) offset=%d size=%d valuetype=%s", f.fieldName(), f.getModifiersString(), f.getOffset(), f.getSize(), f.getValueType().getTypeName());
             CVTypeRecord.FieldRecord fieldRecord = buildField(f);
             log("field %s", fieldRecord);
-            fieldListContext.addRecordToFieldList(fieldRecord);
+            fieldListBuilder.addField(fieldRecord);
         });
 
         if (typeEntry.isArray()) {
@@ -250,7 +261,7 @@ class CVTypeSectionBuilder {
             /* Build a field for the 0 length array. */
             CVTypeRecord.CVMemberRecord dm = new CVTypeRecord.CVMemberRecord(MPROP_PUBLIC, array0record.getSequenceNumber(), typeEntry.getSize(), "data");
             log("field %s", dm);
-            fieldListContext.addRecordToFieldList(dm);
+            fieldListBuilder.addField(dm);
         }
 
         /*
@@ -292,25 +303,25 @@ class CVTypeSectionBuilder {
 
                 /* LF_METHOD record */
                 CVTypeRecord.CVOverloadedMethodRecord methodRecord = new CVTypeRecord.CVOverloadedMethodRecord((short) nmlist.count(), nmlist.getSequenceNumber(), mname);
-                fieldListContext.addRecordToFieldList(methodRecord);
+                fieldListBuilder.addField(methodRecord);
             });
 
             methods.stream().filter(methodEntry -> !overloaded.contains(methodEntry.methodName())).forEach(m -> {
                 log("`unique method %s %s %s(...)", m.fieldName(), m.methodName(), m.getModifiersString(), m.getValueType().getTypeName(), m.methodName());
                 CVTypeRecord.CVOneMethodRecord method = buildMethod((ClassEntry) typeEntry, m);
                 log("    unique method %s", method);
-                fieldListContext.addRecordToFieldList(method);
+                fieldListBuilder.addField(method);
             });
         }
         /* Build fieldlist record from manifested fields. */
-        CVTypeRecord.CVFieldListRecord newfieldListRecord = fieldListContext.addTypeRecords(this);
+        CVTypeRecord.CVFieldListRecord newfieldListRecord = fieldListBuilder.buildFieldListRecords(this);
         int fieldListIdx = newfieldListRecord.getSequenceNumber();
-        int fieldListCount = newfieldListRecord.count();
+        int fieldCount = fieldListBuilder.getFieldCount();
         log("finished building fieldlist %s", newfieldListRecord);
 
         /* Build final class record. */
         short attrs = 0; /* property attribute field (prop_t) */
-        CVTypeRecord typeRecord = new CVTypeRecord.CVClassRecord(LF_CLASS, (short) fieldListCount, attrs, fieldListIdx, 0, 0, typeEntry.getSize(), typeEntry.getTypeName(), null);
+        CVTypeRecord typeRecord = new CVTypeRecord.CVClassRecord(LF_CLASS, (short) fieldCount, attrs, fieldListIdx, 0, 0, typeEntry.getSize(), typeEntry.getTypeName(), null);
         typeRecord = addTypeRecord(typeRecord);
 
         if (typeEntry.isClass()) {
