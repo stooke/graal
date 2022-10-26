@@ -100,7 +100,7 @@ class CVTypeSectionBuilder {
         objectHeaderRecordIndex = types.getIndexForForwardRef(OBJ_HEADER_NAME);
     }
 
-    void buildRemainingRecords() {
+    void verifyAllClassesDefined() {
         /* When this is called, all types should be seen already. */
         /* Just in case, check to see if we have some unresolved forward refs. */
         types.testForUndefinedClasses();
@@ -154,6 +154,10 @@ class CVTypeSectionBuilder {
     }
 
     static class FieldListBuilder {
+
+        /* Size of the header part of a field list record (record type + size) */
+        private static final int FIELD_LIST_RECORD_OVERHEAD = Short.BYTES + Short.BYTES;
+
         final List<CVTypeRecord.FieldRecord> fields = new ArrayList<>();
 
         FieldListBuilder() {
@@ -180,7 +184,7 @@ class CVTypeSectionBuilder {
 
             /* Build all Field List records in field order (FIFO). */
             for (CVTypeRecord.FieldRecord fieldRecord : fields) {
-                if (currentFieldList.getEstimatedSize() + CVUtil.align4(fieldRecord.computeSize()) >= CV_TYPE_RECORD_MAX_SIZE) {
+                if (FIELD_LIST_RECORD_OVERHEAD + currentFieldList.getEstimatedSize() + CVUtil.align4(fieldRecord.computeSize()) >= CV_TYPE_RECORD_MAX_SIZE) {
                     currentFieldList = new CVTypeRecord.CVFieldListRecord();
                     fl.add(currentFieldList);
                 }
@@ -314,10 +318,10 @@ class CVTypeSectionBuilder {
             });
         }
         /* Build fieldlist record from manifested fields. */
-        CVTypeRecord.CVFieldListRecord newfieldListRecord = fieldListBuilder.buildFieldListRecords(this);
-        int fieldListIdx = newfieldListRecord.getSequenceNumber();
+        CVTypeRecord.CVFieldListRecord fieldListRecord = fieldListBuilder.buildFieldListRecords(this);
+        int fieldListIdx = fieldListRecord.getSequenceNumber();
         int fieldCount = fieldListBuilder.getFieldCount();
-        log("finished building fieldlist %s", newfieldListRecord);
+        log("finished building fieldlist %s", fieldListRecord);
 
         /* Build final class record. */
         short attrs = 0; /* property attribute field (prop_t) */
@@ -460,7 +464,6 @@ class CVTypeSectionBuilder {
         }
 
         void testForUndefinedClasses() {
-            /* Currently java.lang.Class should be the only type undefined at this point. */
             for (CVTypeRecord record : forwardRefMap.values()) {
                 CVTypeRecord.CVClassRecord classRecord = (CVTypeRecord.CVClassRecord) record;
                 if (!typeNameMap.containsKey(classRecord.getClassName())) {

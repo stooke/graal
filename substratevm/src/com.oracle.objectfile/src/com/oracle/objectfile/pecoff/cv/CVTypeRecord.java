@@ -31,6 +31,7 @@ import org.graalvm.compiler.debug.GraalError;
 import java.util.ArrayList;
 
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.CV_CALL_NEAR_C;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.FUNC_IS_CONSTRUCTOR;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_ARGLIST;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_ARRAY;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.LF_BCLASS;
@@ -167,20 +168,17 @@ abstract class CVTypeRecord {
 
         @Override
         public int computeSize(int initialPos) {
-            GraalError.shouldNotReachHere();
-            return 0;
+            throw GraalError.shouldNotReachHere();
         }
 
         @Override
         protected int computeContents(byte[] buffer, int initialPos) {
-            GraalError.shouldNotReachHere();
-            return 0;
+            throw GraalError.shouldNotReachHere();
         }
 
         @Override
         public int hashCode() {
-            GraalError.shouldNotReachHere();
-            return 0;
+            throw GraalError.shouldNotReachHere();
         }
 
         @Override
@@ -474,7 +472,7 @@ abstract class CVTypeRecord {
 
         @Override
         public String toString() {
-            String attrString = (funcAttr & 2) == 2 ? "(ctor)" : "";
+            String attrString = (funcAttr & FUNC_IS_CONSTRUCTOR) == FUNC_IS_CONSTRUCTOR ? "(ctor)" : "";
             return String.format("LF_MFUNCTION 0x%04x ret=0x%04x this=0x%04x *this=0x%04x+%d calltype=0x%x attr=0x%x%s, argcount=0x%04x ", getSequenceNumber(), returnType, classType, thisType,
                             thisAdjust, callType, funcAttr, attrString, argList.getSequenceNumber());
         }
@@ -519,6 +517,7 @@ abstract class CVTypeRecord {
                 pos = CVUtil.putShort((short) 0, buffer, pos);
                 pos = CVUtil.putInt(funcIdx, buffer, pos);
                 if (hasVtableOffset()) {
+                    assert vtbleOffset >= 0;
                     pos = CVUtil.putInt(vtbleOffset, buffer, pos);
                 }
                 return pos;
@@ -636,6 +635,12 @@ abstract class CVTypeRecord {
 
         @Override
         public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null || obj.getClass() != this.getClass()) {
+                return false;
+            }
             FieldRecord other = (FieldRecord) obj;
             return this.type == other.type && this.attrs == other.attrs && this.name.equals(other.name);
         }
@@ -689,7 +694,6 @@ abstract class CVTypeRecord {
         private final int index; /* index of continuation record */
 
         CVIndexRecord(int index) {
-            /* Stick 'count' into the attrs field just for convenience. */
             super(LF_INDEX);
             this.index = index;
         }
@@ -949,7 +953,7 @@ abstract class CVTypeRecord {
             this.vshapeIndex = vshapeIndex;
             this.size = size;
             this.className = className;
-            this.uniqueName = null;
+            this.uniqueName = uniqueName;
         }
 
         @SuppressWarnings("unused")
@@ -975,10 +979,9 @@ abstract class CVTypeRecord {
             pos = CVUtil.putLfNumeric(size, buffer, pos);
             String fixedName = CVNames.typeNameToCodeViewName(className);
             pos = CVUtil.putUTF8StringBytes(fixedName, buffer, pos);
-            if (uniqueName != null) {
+            if (hasUniqueName()) {
+                assert uniqueName != null;
                 pos = CVUtil.putUTF8StringBytes(uniqueName, buffer, pos);
-            } else {
-                pos = CVUtil.putUTF8StringBytes(fixedName, buffer, pos);
             }
             return pos;
         }
@@ -1056,7 +1059,7 @@ abstract class CVTypeRecord {
 
         @Override
         protected int computeContents(byte[] buffer, int initialPos) {
-            int pos = CVTypeRecord.alignPadded4(buffer, initialPos);
+            int pos = initialPos;
             for (FieldRecord field : members) {
                 pos = field.computeContents(buffer, pos);
                 pos = CVTypeRecord.alignPadded4(buffer, pos);

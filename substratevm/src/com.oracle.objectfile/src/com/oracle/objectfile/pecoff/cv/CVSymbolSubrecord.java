@@ -287,13 +287,17 @@ abstract class CVSymbolSubrecord {
     @SuppressWarnings("unused")
     public static class CVSymbolLData32Record extends CVSymbolData32Record {
 
+        CVSymbolLData32Record(CVDebugInfo cvDebugInfo, String symbolName, String displayName, int typeIndex, int offset, short segment) {
+            super(cvDebugInfo, CVDebugConstants.S_LDATA32, symbolName, displayName, typeIndex, offset, segment);
+        }
+
         CVSymbolLData32Record(CVDebugInfo cvDebugInfo, String symbolName, int typeIndex, int offset, short segment) {
             super(cvDebugInfo, CVDebugConstants.S_LDATA32, symbolName, symbolName, typeIndex, offset, segment);
         }
 
         @Override
         public String toString() {
-            return String.format("S_LDATA32   name=%s offset=0x%x type=0x%x", symbolName, offset, typeIndex);
+            return String.format("S_LDATA32   name=%s(%s) offset=0x%x type=0x%x", symbolName, displayName, offset, typeIndex);
         }
     }
 

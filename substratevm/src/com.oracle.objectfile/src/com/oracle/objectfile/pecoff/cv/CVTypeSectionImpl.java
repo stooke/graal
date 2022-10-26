@@ -73,8 +73,8 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
     public void createContent(DebugContext debugContext) {
         int pos = 0;
         enableLog(debugContext);
-        log("CVTypeSectionImpl.createContent() adding records");
-        addRecords();
+        log("CVTypeSectionImpl.createContent() verifying that all types have been defined");
+        builder.verifyAllClassesDefined();
         log("CVTypeSectionImpl.createContent() start");
         pos = CVUtil.putInt(CV_SIGNATURE_C13, null, pos);
         for (CVTypeRecord record : typeMap.values()) {
@@ -98,15 +98,6 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
             pos = record.computeFullContents(buffer, pos);
         }
         verboseLog("CVTypeSectionImpl.writeContent() end");
-    }
-
-    /**
-     * Add all relevant type records to the type section.
-     */
-    private void addRecords() {
-        /* if an external PDB file is generated, add CVTypeServer2Record */
-        /* for each class, add all members, types, etc */
-        builder.buildRemainingRecords();
     }
 
     /**

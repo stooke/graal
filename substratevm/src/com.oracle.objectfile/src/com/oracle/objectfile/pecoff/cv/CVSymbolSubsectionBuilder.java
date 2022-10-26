@@ -36,6 +36,7 @@ import com.oracle.objectfile.debugentry.TypeEntry;
 import java.lang.reflect.Modifier;
 
 import static com.oracle.objectfile.pecoff.cv.CVConstants.CV_AMD64_R8;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MAX_PRIMITIVE;
 
 final class CVSymbolSubsectionBuilder {
 
@@ -94,7 +95,7 @@ final class CVSymbolSubsectionBuilder {
         /* Add manifested static fields as S_GDATA32 records. */
         classEntry.fields().filter(CVSymbolSubsectionBuilder::isManifestedStaticField).forEach(f -> {
             int typeIndex = cvDebugInfo.getCVTypeSection().getIndexForPointer(f.getValueType());
-            String displayName = CVNames.staticFieldNameToCodeViewName(f);
+            String displayName = CVNames.memberNameToCodeViewName(f);
             if (cvDebugInfo.useHeapBase()) {
                 /*
                  * Isolates are enabled. Static member is located at REL32 offset from heap base
@@ -122,7 +123,7 @@ final class CVSymbolSubsectionBuilder {
         final Range primaryRange = primaryEntry.getPrimary();
 
         /* The name as it will appear in the debugger. */
-        final String debuggerName = getDebuggerName(primaryRange);
+        final String debuggerName = CVNames.memberNameToCodeViewName(primaryRange.getMethodEntry());
 
         /* The name as exposed to the linker. */
         final String externalName = primaryRange.getSymbolName();
@@ -154,20 +155,6 @@ final class CVSymbolSubsectionBuilder {
         addLineNumberRecords(primaryEntry);
     }
 
-    /**
-     * Rename function names for usability or functionality.
-     *
-     * First encountered static main function becomes class_main. This is for usability. All other
-     * functions become package_class_function_arglist. This does not affect external symbols used
-     * by linker.
-     *
-     * @param range Range contained in the method of interest
-     * @return user debugger friendly method name
-     */
-    private static String getDebuggerName(Range range) {
-        return CVNames.functionNameToCodeViewName(range.getMethodEntry());
-    }
-
     private void addLineNumberRecords(PrimaryEntry primaryEntry) {
         CVLineRecord record = lineRecordBuilder.build(primaryEntry);
         /*
@@ -196,12 +183,15 @@ final class CVSymbolSubsectionBuilder {
      */
     private void addTypeRecords(TypeEntry typeEntry) {
         int typeIdx = cvDebugInfo.getCVTypeSection().addTypeRecords(typeEntry).getSequenceNumber();
-        /*
-         * Adding an S_UDT (User Defined Type) record ensures the linker doesn't throw away the type
-         * definition.
-         */
-        CVSymbolSubrecord.CVSymbolUDTRecord udtRecord = new CVSymbolSubrecord.CVSymbolUDTRecord(cvDebugInfo, typeIdx, CVNames.typeNameToCodeViewName(typeEntry.getTypeName()));
-        addSymbolRecord(udtRecord);
+
+        if (typeIdx > MAX_PRIMITIVE) {
+            /*
+             * Adding an S_UDT (User Defined Type) record ensures the linker doesn't throw away the
+             * type definition.
+             */
+            CVSymbolSubrecord.CVSymbolUDTRecord udtRecord = new CVSymbolSubrecord.CVSymbolUDTRecord(cvDebugInfo, typeIdx, CVNames.typeNameToCodeViewName(typeEntry.getTypeName()));
+            addSymbolRecord(udtRecord);
+        }
     }
 
     /**
