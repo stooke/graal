@@ -26,7 +26,8 @@
 
 package com.oracle.objectfile.pecoff.cv;
 
-import com.oracle.objectfile.debugentry.MemberEntry;
+import com.oracle.objectfile.debugentry.FieldEntry;
+import com.oracle.objectfile.debugentry.MethodEntry;
 import com.oracle.objectfile.debugentry.TypeEntry;
 
 final class CVNames {
@@ -39,7 +40,11 @@ final class CVNames {
         return typeNameToCodeViewName(typeEntry.getTypeName());
     }
 
-    static String memberNameToCodeViewName(MemberEntry memberEntry) {
+    static String methodNameToCodeViewName(MethodEntry memberEntry) {
+        return typeNameToCodeViewName(memberEntry.ownerType()) + "::" + memberEntry.methodName();
+    }
+
+    static String fieldNameToCodeViewName(FieldEntry memberEntry) {
         return typeNameToCodeViewName(memberEntry.ownerType()) + "::" + memberEntry.fieldName();
     }
 }

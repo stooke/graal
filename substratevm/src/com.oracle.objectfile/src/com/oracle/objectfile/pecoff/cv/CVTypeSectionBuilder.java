@@ -28,11 +28,11 @@ package com.oracle.objectfile.pecoff.cv;
 
 import com.oracle.objectfile.debugentry.ArrayTypeEntry;
 import com.oracle.objectfile.debugentry.ClassEntry;
+import com.oracle.objectfile.debugentry.CompiledMethodEntry;
 import com.oracle.objectfile.debugentry.FieldEntry;
 import com.oracle.objectfile.debugentry.HeaderTypeEntry;
 import com.oracle.objectfile.debugentry.MemberEntry;
 import com.oracle.objectfile.debugentry.MethodEntry;
-import com.oracle.objectfile.debugentry.PrimaryEntry;
 import com.oracle.objectfile.debugentry.StructureTypeEntry;
 import com.oracle.objectfile.debugentry.TypeEntry;
 
@@ -149,15 +149,13 @@ class CVTypeSectionBuilder {
      * @param entry primaryEntry containing entities whose type records must be added
      * @return type record for this function (may return existing matching record)
      */
-    CVTypeRecord buildFunction(PrimaryEntry entry) {
+    CVTypeRecord buildFunction(CompiledMethodEntry entry) {
         return buildMemberFunction(entry.getClassEntry(), entry.getPrimary().getMethodEntry());
     }
 
     static class FieldListBuilder {
 
-        /* Size of the header part of a field list record (record type + size) */
-        private static final int FIELD_LIST_RECORD_OVERHEAD = Short.BYTES + Short.BYTES;
-
+        static final int CV_INDEX_RECORD_SIZE = CVUtil.align4(new CVTypeRecord.CVIndexRecord(0).computeSize());
         final List<CVTypeRecord.FieldRecord> fields = new ArrayList<>();
 
         FieldListBuilder() {
@@ -184,7 +182,13 @@ class CVTypeSectionBuilder {
 
             /* Build all Field List records in field order (FIFO). */
             for (CVTypeRecord.FieldRecord fieldRecord : fields) {
-                if (FIELD_LIST_RECORD_OVERHEAD + currentFieldList.getEstimatedSize() + CVUtil.align4(fieldRecord.computeSize()) >= CV_TYPE_RECORD_MAX_SIZE) {
+                /*
+                 * Calculate the potential size of the fieldList if the current fieldRecord and a
+                 * (potential) index record are added to it.
+                 */
+                int sizeOfExpandedFieldList = currentFieldList.getEstimatedSize() + CVUtil.align4(fieldRecord.computeSize()) + CV_INDEX_RECORD_SIZE;
+                /* If there isn't enough room for the new fieldRecord, start a new CVFieldList. */
+                if (sizeOfExpandedFieldList >= CV_TYPE_RECORD_MAX_SIZE) {
                     currentFieldList = new CVTypeRecord.CVFieldListRecord();
                     fl.add(currentFieldList);
                 }
@@ -296,7 +300,7 @@ class CVTypeSectionBuilder {
 
                 /* LF_MFUNCTION records */
                 methods.stream().filter(methodEntry -> methodEntry.methodName().equals(mname)).forEach(m -> {
-                    log("overloaded method %s(%s) attr=(%s) valuetype=%s", m.fieldName(), m.methodName(), m.getModifiersString(), m.getValueType().getTypeName());
+                    log("overloaded method %s attr=(%s) valuetype=%s", m.methodName(), m.getModifiersString(), m.getValueType().getTypeName());
                     CVTypeRecord.CVTypeMFunctionRecord mFunctionRecord = buildMemberFunction((ClassEntry) typeEntry, m);
                     short attr = modifiersToAttr(m);
                     log("    overloaded method %s", mFunctionRecord);
@@ -311,7 +315,7 @@ class CVTypeSectionBuilder {
             });
 
             methods.stream().filter(methodEntry -> !overloaded.contains(methodEntry.methodName())).forEach(m -> {
-                log("`unique method %s %s %s(...)", m.fieldName(), m.methodName(), m.getModifiersString(), m.getValueType().getTypeName(), m.methodName());
+                log("`unique method %s %s(...)", m.methodName(), m.getModifiersString(), m.getValueType().getTypeName(), m.methodName());
                 CVTypeRecord.CVOneMethodRecord method = buildMethod((ClassEntry) typeEntry, m);
                 log("    unique method %s", method);
                 fieldListBuilder.addField(method);
@@ -335,7 +339,7 @@ class CVTypeSectionBuilder {
              * Try to find a line number for the first function - if none, don't bother to create
              * the record.
              */
-            int line = classEntry.getPrimaryEntries().isEmpty() ? 0 : classEntry.getPrimaryEntries().get(0).getPrimary().getLine();
+            int line = classEntry.getMethods().isEmpty() ? 0 : classEntry.getMethods().get(0).getLine();
             if (line > 0) {
                 int idIdx = typeSection.getStringId(classEntry.getFullFileName()).getSequenceNumber();
                 CVTypeRecord.CVUdtTypeLineRecord udt = new CVTypeRecord.CVUdtTypeLineRecord(typeRecord.getSequenceNumber(), idIdx, line);

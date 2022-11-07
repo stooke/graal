@@ -85,7 +85,7 @@ final class CVSymbolSubsectionBuilder {
     private void buildClass(ClassEntry classEntry) {
 
         /* Define all the functions in this class all functions defined in this class. */
-        classEntry.compiledEntries().forEach(compiledEntry -> buildFunction(compiledEntry));
+        classEntry.compiledEntries().forEach(this::buildFunction);
 
         /* Define the class itself. */
         addTypeRecords(classEntry);
@@ -93,7 +93,7 @@ final class CVSymbolSubsectionBuilder {
         /* Add manifested static fields as S_GDATA32 records. */
         classEntry.fields().filter(CVSymbolSubsectionBuilder::isManifestedStaticField).forEach(f -> {
             int typeIndex = cvDebugInfo.getCVTypeSection().getIndexForPointer(f.getValueType());
-            String displayName = CVNames.memberNameToCodeViewName(f);
+            String displayName = CVNames.fieldNameToCodeViewName(f);
             if (cvDebugInfo.useHeapBase()) {
                 /*
                  * Isolates are enabled. Static member is located at REL32 offset from heap base
@@ -121,7 +121,7 @@ final class CVSymbolSubsectionBuilder {
         final Range primaryRange = compiledEntry.getPrimary();
 
         /* The name as it will appear in the debugger. */
-        final String debuggerName = CVNames.memberNameToCodeViewName(primaryRange.getMethodEntry());
+        final String debuggerName = CVNames.methodNameToCodeViewName(primaryRange.getMethodEntry());
 
         /* The name as exposed to the linker. */
         final String externalName = primaryRange.getSymbolName();
@@ -197,7 +197,7 @@ final class CVSymbolSubsectionBuilder {
      * @param entry compiled method containing entities whos type records must be added
      * @return type index of function type
      */
-    private int addTypeRecords(@SuppressWarnings("unused") CompiledMethodEntry entry) {
+    private int addTypeRecords(CompiledMethodEntry entry) {
         return cvDebugInfo.getCVTypeSection().addTypeRecords(entry).getSequenceNumber();
     }
 }

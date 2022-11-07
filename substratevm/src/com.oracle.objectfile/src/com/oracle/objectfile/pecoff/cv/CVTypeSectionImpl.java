@@ -30,7 +30,7 @@ import com.oracle.objectfile.BuildDependency;
 import com.oracle.objectfile.LayoutDecision;
 import com.oracle.objectfile.LayoutDecisionMap;
 import com.oracle.objectfile.ObjectFile;
-import com.oracle.objectfile.debugentry.PrimaryEntry;
+import com.oracle.objectfile.debugentry.CompiledMethodEntry;
 import com.oracle.objectfile.debugentry.TypeEntry;
 import com.oracle.objectfile.pecoff.PECoffObjectFile;
 import org.graalvm.compiler.debug.DebugContext;
@@ -140,7 +140,7 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
      * @param entry primaryEntry containing entities whose type records must be added
      * @return type index of function type
      */
-    CVTypeRecord addTypeRecords(PrimaryEntry entry) {
+    CVTypeRecord addTypeRecords(CompiledMethodEntry entry) {
         return builder.buildFunction(entry);
     }
 
