@@ -22,7 +22,9 @@
  */
 package com.oracle.truffle.espresso.nodes.interop;
 
-import com.oracle.truffle.api.CompilerDirectives;
+import java.util.HashSet;
+import java.util.Set;
+
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
@@ -33,15 +35,12 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.espresso.descriptors.Symbol;
 import com.oracle.truffle.espresso.impl.ClassRegistry;
+import com.oracle.truffle.espresso.impl.EspressoClassLoadingException;
 import com.oracle.truffle.espresso.impl.Klass;
 import com.oracle.truffle.espresso.impl.ObjectKlass;
 import com.oracle.truffle.espresso.meta.EspressoError;
 import com.oracle.truffle.espresso.nodes.EspressoNode;
 import com.oracle.truffle.espresso.runtime.EspressoContext;
-import com.oracle.truffle.espresso.runtime.PolyglotInterfaceMappings;
-
-import java.util.HashSet;
-import java.util.Set;
 
 @GenerateUncached
 public abstract class LookupProxyKlassNode extends EspressoNode {
@@ -50,46 +49,28 @@ public abstract class LookupProxyKlassNode extends EspressoNode {
     LookupProxyKlassNode() {
     }
 
-    public abstract ObjectKlass execute(Object metaObject, Klass targetType) throws ClassCastException;
-
-    static String getMetaName(Object metaObject, InteropLibrary interop) {
-        assert interop.isMetaObject(metaObject);
-        try {
-            return interop.asString(interop.getMetaQualifiedName(metaObject));
-        } catch (UnsupportedMessageException e) {
-            CompilerDirectives.transferToInterpreterAndInvalidate();
-            throw EspressoError.shouldNotReachHere();
-        }
-    }
-
-    static boolean isSame(Object metaObject, String metaQualifiedName, InteropLibrary interop) {
-        assert interop.isMetaObject(metaObject);
-        return getMetaName(metaObject, interop).equals(metaQualifiedName);
-    }
+    public abstract ObjectKlass execute(Object metaObject, String metaName, Klass targetType) throws ClassCastException;
 
     @SuppressWarnings("unused")
-    @Specialization(guards = {"isSame(metaObject, metaName, interop)", "targetType == cachedTargetType"}, limit = "LIMIT")
-    ObjectKlass doCached(Object metaObject, Klass targetType,
+    @Specialization(guards = {"targetType == cachedTargetType", "cachedMetaName.equals(metaName)"}, limit = "LIMIT")
+    ObjectKlass doCached(Object metaObject, String metaName, Klass targetType,
+                    @Cached("metaObject") Object cachedMetaObject,
                     @Cached("targetType") Klass cachedTargetType,
                     @CachedLibrary(limit = "LIMIT") InteropLibrary interop,
-                    @Cached("getMetaName(metaObject, interop)") String metaName,
-                    @Cached("doUncached(metaObject, targetType, interop)") ObjectKlass cachedProxyKlass) throws ClassCastException {
-        assert cachedProxyKlass == doUncached(metaObject, targetType, interop);
+                    @Cached("metaName") String cachedMetaName,
+                    @Cached("doUncached(metaObject, metaName, targetType, interop)") ObjectKlass cachedProxyKlass) throws ClassCastException {
+        assert cachedProxyKlass == doUncached(metaObject, metaName, targetType, interop);
         return cachedProxyKlass;
     }
 
     @TruffleBoundary
     @Specialization(replaces = "doCached")
-    ObjectKlass doUncached(Object metaObject, Klass targetType,
+    ObjectKlass doUncached(Object metaObject, String metaName, Klass targetType,
                     @CachedLibrary(limit = "LIMIT") InteropLibrary interop) throws ClassCastException {
-
-        assert interop.isMetaObject(metaObject);
-        String metaName;
-        try {
-            metaName = interop.asString(interop.getMetaQualifiedName(metaObject));
-        } catch (UnsupportedMessageException e) {
-            throw EspressoError.shouldNotReachHere();
+        if (!getContext().interfaceMappingsEnabled()) {
+            return null;
         }
+        assert interop.isMetaObject(metaObject);
         EspressoForeignProxyGenerator.GeneratedProxyBytes proxyBytes = getContext().getProxyBytesOrNull(metaName);
         if (proxyBytes == null) {
             // cache miss
@@ -114,14 +95,18 @@ public abstract class LookupProxyKlassNode extends EspressoNode {
         ClassRegistry registry = context.getRegistries().getClassRegistry(context.getBindings().getBindingsLoader());
 
         Symbol<Symbol.Type> proxyName = context.getTypes().fromClassGetName(proxyBytes.name);
-        Klass proxyKlass = registry.findLoadedKlass(proxyName);
+        Klass proxyKlass = registry.findLoadedKlass(context.getClassLoadingEnv(), proxyName);
         if (proxyKlass == null) {
-            proxyKlass = registry.defineKlass(proxyName, proxyBytes.bytes);
+            try {
+                proxyKlass = registry.defineKlass(context, proxyName, proxyBytes.bytes);
+            } catch (EspressoClassLoadingException e) {
+                throw EspressoError.shouldNotReachHere(e);
+            }
         }
         return proxyKlass;
     }
 
-    private static void fillParentInterfaces(Object metaObject, InteropLibrary interop, PolyglotInterfaceMappings mappings, Set<ObjectKlass> parents) throws ClassCastException {
+    private static void fillParentInterfaces(Object metaObject, InteropLibrary interop, PolyglotTypeMappings mappings, Set<ObjectKlass> parents) throws ClassCastException {
         try {
             if (interop.hasMetaParents(metaObject)) {
                 Object metaParents = interop.getMetaParents(metaObject);
@@ -129,7 +114,7 @@ public abstract class LookupProxyKlassNode extends EspressoNode {
                 long arraySize = interop.getArraySize(metaParents);
                 for (long i = 0; i < arraySize; i++) {
                     Object parent = interop.readArrayElement(metaParents, i);
-                    ObjectKlass mappedKlass = mappings.mapName(interop.asString(interop.getMetaQualifiedName(parent)));
+                    ObjectKlass mappedKlass = mappings.mapInterfaceName(interop.asString(interop.getMetaQualifiedName(parent)));
                     if (mappedKlass != null) {
                         parents.add(mappedKlass);
                     }

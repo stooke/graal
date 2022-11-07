@@ -81,8 +81,8 @@ final class SourceAccessor extends Accessor {
         return ACCESSOR.languageSupport().getTruffleFile(path, fileSystemContext);
     }
 
-    static boolean hasAllAccess(Object fileSystemContext) {
-        return ACCESSOR.languageSupport().hasAllAccess(fileSystemContext);
+    static boolean isSocketIOAllowed(Object fileSystemContext) {
+        return ACCESSOR.languageSupport().isSocketIOAllowed(fileSystemContext);
     }
 
     static void onSourceCreated(Source source) {
@@ -147,6 +147,11 @@ final class SourceAccessor extends Accessor {
         @Override
         public void setEmbedderSource(SourceBuilder builder, boolean enabled) {
             builder.embedderSource(enabled);
+        }
+
+        @Override
+        public void setURL(SourceBuilder builder, URL url) {
+            builder.url(url);
         }
 
         @Override

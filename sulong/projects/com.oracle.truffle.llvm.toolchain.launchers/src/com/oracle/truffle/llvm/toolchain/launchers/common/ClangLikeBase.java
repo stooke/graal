@@ -43,6 +43,25 @@ import java.util.Objects;
 
 public abstract class ClangLikeBase extends Driver {
 
+    public enum Tool {
+        Clang,
+        ClangXX,
+        ClangCL;
+
+        public String getToolName() {
+            switch (this) {
+                case Clang:
+                    return "clang";
+                case ClangXX:
+                    return "clang++";
+                case ClangCL:
+                    return "clang-cl";
+                default:
+                    throw new IllegalArgumentException("Unknown Tool " + this.toString());
+            }
+        }
+    }
+
     public static final String NATIVE_PLATFORM = "native";
     public static final String XCRUN = "/usr/bin/xcrun";
     /**
@@ -53,7 +72,7 @@ public abstract class ClangLikeBase extends Driver {
     protected final boolean needCompilerFlags;
     protected final boolean verbose;
     protected final boolean help;
-    protected final boolean cxx;
+    protected final Tool tool;
     protected final boolean earlyExit;
     protected final OS os;
     protected final Arch arch;
@@ -62,9 +81,9 @@ public abstract class ClangLikeBase extends Driver {
     protected final int outputFlagPos;
     protected final boolean nostdincxx;
 
-    protected ClangLikeBase(String[] args, boolean cxx, OS os, Arch arch, String platform) {
-        super(cxx ? "clang++" : "clang");
-        this.cxx = cxx;
+    protected ClangLikeBase(String[] args, Tool tool, OS os, Arch arch, String platform) {
+        super(tool.getToolName());
+        this.tool = tool;
         this.os = os;
         this.arch = arch;
         this.platform = platform;
@@ -173,23 +192,26 @@ public abstract class ClangLikeBase extends Driver {
         return sulongArgs;
     }
 
-    protected void getCompilerArgs(List<String> sulongArgs) {
+    protected void getDebugCompilerArgs(List<String> sulongArgs) {
         // use -gdwarf-5 instead of -g to enable source file checksums
-        sulongArgs.addAll(Arrays.asList("-flto=full", "-gdwarf-5", "-O1"));
+        sulongArgs.add("-gdwarf-5");
+    }
+
+    protected void getCompilerArgs(List<String> sulongArgs) {
+        sulongArgs.addAll(Arrays.asList("-flto=full", "-O1"));
         sulongArgs.addAll(getVectorInstructionSetFlags());
+        getDebugCompilerArgs(sulongArgs);
+
+        if (os == OS.WINDOWS) {
+            sulongArgs.add("-stdlib++-isystem");
+            sulongArgs.add(getSulongHome().resolve("include").resolve("c++").resolve("v1").toString());
+        }
     }
 
     private List<String> getVectorInstructionSetFlags() {
         switch (arch) {
             case X86_64:
                 return Arrays.asList("-mno-sse3", "-mno-avx");
-            case AARCH_64:
-                /*
-                 * Avoid NEON intrinsics to be used. There are no perf gains from a Sulong
-                 * perspective and they aren't implemented by Sulong. Usages in C should be guarded
-                 * by `__ARM_NEON` and provide a fallback.
-                 */
-                return Arrays.asList("-Xclang", "-target-feature", "-Xclang", "-neon");
             default:
                 return Collections.emptyList();
         }

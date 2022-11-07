@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2016, Intel Corporation. All rights reserved.
  * Intel Math Library (LIBM) Source Code
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -111,11 +111,11 @@ import jdk.vm.ci.code.Register;
  * </pre>
  */
 // @formatter:off
-@StubPort(path      = "src/hotspot/cpu/x86/macroAssembler_x86_pow.cpp",
-          lineStart = 0,
-          lineEnd   = 1880,
-          commit    = "e58c12e61828485bfffbc9d1b865302b93a94158",
-          sha1      = "ff1905731c30cf343460e72d58537d4672b0dce2")
+@StubPort(path      = "src/hotspot/cpu/x86/stubGenerator_x86_64_pow.cpp",
+          lineStart = 32,
+          lineEnd   = 1863,
+          commit    = "090cdfc7a2e280c620a0926512fb67f0ce7f3c21",
+          sha1      = "5fb4d3fb54c31061660fd921a7c6b7a99f2f0dea")
 // @formatter:on
 public final class AMD64MathPowOp extends AMD64MathIntrinsicBinaryOp {
 
@@ -1742,7 +1742,7 @@ public final class AMD64MathPowOp extends AMD64MathIntrinsicBinaryOp {
         masm.subl(rax, 1022);
         masm.cvtsi2sdl(xmm7, rax);
         masm.mulpd(xmm5, xmm0);
-        masm.leaq(r11, recordExternalAddress(crb, lTbl));
+        masm.leaq(tmp4, recordExternalAddress(crb, lTbl));
         masm.movq(xmm4, recordExternalAddress(crb, coeffH));           // 0x00000000, 0xbfd61a00,
                                                                        // 0x00000000, 0xbf5dabe1
         masm.mulsd(xmm3, xmm0);

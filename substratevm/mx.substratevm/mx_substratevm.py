@@ -52,7 +52,6 @@ import mx_substratevm_benchmark  # pylint: disable=unused-import
 from mx_compiler import GraalArchiveParticipant
 from mx_gate import Task
 from mx_unittest import _run_tests, _VMLauncher
-from mx_substratevm_sync_stubs import _sync_graal_stubs, _check_graal_stubs_synced
 
 import sys
 
@@ -101,7 +100,18 @@ if mx.primary_suite() == suite:
 def classpath(args):
     if not args:
         return [] # safeguard against mx.classpath(None) behaviour
-    return mx.classpath(args, jdk=mx_compiler.jdk)
+
+    transitive_excludes = set()
+    def include_in_excludes(dep, dep_edge):
+        # We need to exclude on the granularity of mx.Project entries so that classpath()
+        # can also give us a builder-free classpath if args contains mx.Project entries.
+        if dep.isJavaProject() or dep.isDistribution():
+            transitive_excludes.add(dep)
+
+    implicit_excludes_deps = [mx.dependency(entry) for entry in mx_sdk_vm_impl.NativePropertiesBuildTask.implicit_excludes]
+    mx.walk_deps(implicit_excludes_deps, visit=include_in_excludes)
+    cpEntries = mx.classpath_entries(names=args, includeSelf=True, preferProjects=False, excludes=transitive_excludes)
+    return mx._entries_to_classpath(cpEntries=cpEntries, resolve=True, includeBootClasspath=False, jdk=mx_compiler.jdk, unique=False, ignoreStripped=False)
 
 def platform_name():
     return mx.get_os() + "-" + mx.get_arch()
@@ -322,9 +332,7 @@ def image_demo_task(extra_image_args=None, flightrecorder=True):
     javac_command = ['--javac-command', ' '.join(javac_image_command(svmbuild_dir()))]
     helloworld(image_args + javac_command)
     helloworld(image_args + ['--shared'])  # Build and run helloworld as shared library
-    # JFR is currently not supported on JDK 19 [GR-39564] [GR-39642]
-    is_jdk_version_supported = mx.get_jdk().version < mx.VersionSpec("19")
-    if is_jdk_version_supported and not mx.is_windows() and flightrecorder:
+    if not mx.is_windows() and flightrecorder:
         helloworld(image_args + ['-J-XX:StartFlightRecording=dumponexit=true'])  # Build and run helloworld with FlightRecorder at image build time
     cinterfacetutorial(extra_image_args)
     clinittest([])
@@ -361,6 +369,7 @@ def svm_gate_body(args, tasks):
         if t:
             with native_image_context(IMAGE_ASSERTION_FLAGS) as native_image:
                 image_demo_task()
+                helloworld(["-H:+RunMainInNewThread"])
 
     with Task('image demos debuginfo', tasks, tags=[GraalTags.helloworld_debug]) as t:
         if t:
@@ -410,23 +419,21 @@ def svm_gate_body(args, tasks):
     with Task('Run Truffle NFI unittests with SVM image', tasks, tags=["svmjunit"]) as t:
         if t:
             with native_image_context(IMAGE_ASSERTION_FLAGS) as native_image:
-                testlib = mx_subst.path_substitutions.substitute('-Dnative.test.lib=<path:truffle:TRUFFLE_TEST_NATIVE>/<lib:nativetest>')
-                isolation_testlib = mx_subst.path_substitutions.substitute('-Dnative.isolation.test.lib=<path:truffle:TRUFFLE_TEST_NATIVE>/<lib:isolationtest>')
+                testlib = mx_subst.path_substitutions.substitute('-Dnative.test.path=<path:truffle:TRUFFLE_TEST_NATIVE>')
                 native_unittest_args = ['com.oracle.truffle.nfi.test', '--force-builder-on-cp', '--build-args', '--language:nfi',
                                         '-H:MaxRuntimeCompileMethods=2000',
                                         '-H:+TruffleCheckBlackListedMethods',
-                                        '--run-args', testlib, isolation_testlib, '--very-verbose', '--enable-timing']
+                                        '--run-args', testlib, '--very-verbose', '--enable-timing']
                 native_unittest(native_unittest_args)
 
     with Task('Run Truffle NFI unittests with SVM image with quickbuild', tasks, tags=["svmjunit_quickbuild"]) as t:
         if t:
             with native_image_context(IMAGE_ASSERTION_FLAGS) as native_image:
-                testlib = mx_subst.path_substitutions.substitute('-Dnative.test.lib=<path:truffle:TRUFFLE_TEST_NATIVE>/<lib:nativetest>')
-                isolation_testlib = mx_subst.path_substitutions.substitute('-Dnative.isolation.test.lib=<path:truffle:TRUFFLE_TEST_NATIVE>/<lib:isolationtest>')
+                testlib = mx_subst.path_substitutions.substitute('-Dnative.test.path=<path:truffle:TRUFFLE_TEST_NATIVE>')
                 native_unittest_args = ['com.oracle.truffle.nfi.test', '--force-builder-on-cp', '--build-args', '--language:nfi',
                                         '-H:MaxRuntimeCompileMethods=2000',
                                         '-H:+TruffleCheckBlackListedMethods'] + DEVMODE_FLAGS + [
-                                            '--run-args', testlib, isolation_testlib, '--very-verbose', '--enable-timing']
+                                            '--run-args', testlib, '--very-verbose', '--enable-timing']
                 native_unittest(native_unittest_args)
 
     with Task('Musl static hello world and JVMCI version check', tasks, tags=[GraalTags.muslcbuild]) as t:
@@ -449,11 +456,6 @@ def svm_gate_body(args, tasks):
                 mx.abort('mx native-image --help does not seem to output the proper message. This can happen if you add extra arguments the mx native-image call without checking if an argument was --help or --help-extra.')
 
             mx.log('mx native-image --help output check detected no errors.')
-
-    with Task('Check if generated stub code is in sync', tasks, tags=[GraalTags.checkstubs]) as t:
-        if t:
-            if check_graal_stubs_synced([]) != 0:
-                mx.abort('mx svm-sync-graal-stubs-check found differences when re-generating stub code, you may need to run "mx svm-sync-graal-stubs"')
 
     with Task('JavaScript', tasks, tags=[GraalTags.js]) as t:
         if t:
@@ -485,7 +487,7 @@ def svm_gate_body(args, tasks):
                 from jsonschema.exceptions import ValidationError, SchemaError
             except ImportError:
                 mx.abort('Unable to import jsonschema')
-            with open(join(suite.dir, '..', 'docs', 'reference-manual', 'native-image', 'assets', 'build-output-schema-v0.9.0.json')) as f:
+            with open(join(suite.dir, '..', 'docs', 'reference-manual', 'native-image', 'assets', 'build-output-schema-v0.9.1.json')) as f:
                 json_schema = json.load(f)
             with tempfile.NamedTemporaryFile(prefix='build_json') as json_file:
                 helloworld(['--output-path', svmbuild_dir(), f'-H:BuildOutputJSONFile={json_file.name}'])
@@ -623,7 +625,7 @@ def _native_junit(native_image, unittest_args, build_args=None, run_args=None, b
             mx.abort('No matching unit tests found. Skip image build and execution.')
         with open(unittest_file, 'r') as f:
             mx.log('Building junit image for matching: ' + ' '.join(l.rstrip() for l in f))
-        extra_image_args = mx.get_runtime_jvm_args(unittest_deps, jdk=mx_compiler.jdk, exclude_names=['substratevm:LIBRARY_SUPPORT'])
+        extra_image_args = mx.get_runtime_jvm_args(unittest_deps, jdk=mx_compiler.jdk, exclude_names=mx_sdk_vm_impl.NativePropertiesBuildTask.implicit_excludes)
         macro_junit = '--macro:junit'
         if force_builder_on_cp:
             macro_junit += 'cp'
@@ -990,6 +992,12 @@ def _native_image_launcher_extra_jvm_args():
         res.extend(['-XX:+UnlockExperimentalVMOptions', '-XX:+EnableJVMCI'])
     return res
 
+driver_build_args = [
+    '-H:-ParseRuntimeOptions',
+    '--features=com.oracle.svm.driver.APIOptionFeature',
+    '--initialize-at-build-time=com.oracle.svm.driver',
+    '--link-at-build-time=com.oracle.svm.driver,com.oracle.svm.driver.metainf',
+]
 
 mx_sdk_vm.register_graalvm_component(mx_sdk_vm.GraalVmJreComponent(
     suite=suite,
@@ -1008,7 +1016,7 @@ mx_sdk_vm.register_graalvm_component(mx_sdk_vm.GraalVmJreComponent(
             destination="bin/<exe:native-image>",
             jar_distributions=["substratevm:SVM_DRIVER"],
             main_class=_native_image_launcher_main_class(),
-            build_args=[],
+            build_args=driver_build_args,
             extra_jvm_args=_native_image_launcher_extra_jvm_args(),
         ),
     ],
@@ -1022,7 +1030,7 @@ mx_sdk_vm.register_graalvm_component(mx_sdk_vm.GraalVmJreComponent(
                 'substratevm:JVMTI_AGENT_BASE',
                 'substratevm:SVM_AGENT',
             ],
-            build_args=[
+            build_args=driver_build_args + [
                 '--features=com.oracle.svm.agent.NativeImageAgent$RegistrationFeature',
                 '--enable-url-protocols=jar',
             ],
@@ -1035,7 +1043,7 @@ mx_sdk_vm.register_graalvm_component(mx_sdk_vm.GraalVmJreComponent(
                 'substratevm:JVMTI_AGENT_BASE',
                 'substratevm:SVM_DIAGNOSTICS_AGENT',
             ],
-            build_args=[
+            build_args=driver_build_args + [
                 '--features=com.oracle.svm.diagnosticsagent.NativeImageDiagnosticsAgent$RegistrationFeature',
             ],
         ),
@@ -1062,29 +1070,34 @@ mx_sdk_vm.register_graalvm_component(mx_sdk_vm.GraalVmJreComponent(
     jlink=False,
 ))
 
+ce_llvm_backend = mx_sdk_vm.GraalVmJreComponent(
+    suite=suite,
+    name='Native Image LLVM Backend',
+    short_name='svml',
+    dir_name='svm',
+    installable_id='native-image-llvm-backend',
+    license_files=[],
+    third_party_license_files=[],
+    dependencies=[
+        'SubstrateVM',
+        'LLVM.org toolchain',
+    ],
+    builder_jar_distributions=[
+        'substratevm:SVM_LLVM',
+        'substratevm:LLVM_WRAPPER_SHADOWED',
+        'substratevm:JAVACPP_SHADOWED',
+        'substratevm:LLVM_PLATFORM_SPECIFIC_SHADOWED',
+        'substratevm:JAVACPP_PLATFORM_SPECIFIC_SHADOWED',
+    ],
+    stability="experimental-earlyadopter",
+    installable=True,
+    extra_installable_qualifiers=['ce'],
+    jlink=False,
+)
 # GR-34811
 llvm_supported = not (mx.is_windows() or (mx.is_darwin() and mx.get_arch() == "aarch64"))
 if llvm_supported:
-    mx_sdk_vm.register_graalvm_component(mx_sdk_vm.GraalVmJreComponent(
-        suite=suite,
-        name='SubstrateVM LLVM',
-        short_name='svml',
-        dir_name='svm',
-        installable_id='native-image',
-        license_files=[],
-        third_party_license_files=[],
-        dependencies=['SubstrateVM'],
-        builder_jar_distributions=[
-            'substratevm:SVM_LLVM',
-            'substratevm:LLVM_WRAPPER_SHADOWED',
-            'substratevm:JAVACPP_SHADOWED',
-            'substratevm:LLVM_PLATFORM_SPECIFIC_SHADOWED',
-            'substratevm:JAVACPP_PLATFORM_SPECIFIC_SHADOWED',
-        ],
-        stability="experimental-earlyadopter",
-        jlink=False,
-        installable=True,
-    ))
+    mx_sdk_vm.register_graalvm_component(ce_llvm_backend)
 
 
 mx_sdk_vm.register_graalvm_component(mx_sdk_vm.GraalVmJreComponent(
@@ -1142,8 +1155,7 @@ mx_sdk_vm.register_graalvm_component(mx_sdk_vm.GraalVMSvmMacro(
 
 libgraal_jar_distributions = [
     'substratevm:GRAAL_HOTSPOT_LIBRARY',
-    'compiler:GRAAL_TRUFFLE_COMPILER_LIBGRAAL',
-    'compiler:GRAAL_MANAGEMENT_LIBGRAAL']
+    'compiler:GRAAL_TRUFFLE_COMPILER_LIBGRAAL']
 
 libgraal_build_args = [
     ## Pass via JVM args opening up of packages needed for image builder early on
@@ -1157,8 +1169,8 @@ libgraal_build_args = [
     '-J--add-exports=org.graalvm.nativeimage.builder/com.oracle.svm.core.annotate=ALL-UNNAMED',
     '-J--add-exports=org.graalvm.nativeimage.builder/com.oracle.svm.core.option=ALL-UNNAMED',
     ## Packages used after option-processing can be opened by the builder (`-J`-prefix not needed)
-    # LibGraalFeature implements com.oracle.svm.core.graal.GraalFeature (needed to be able to instantiate LibGraalFeature)
-    '--add-exports=org.graalvm.nativeimage.builder/com.oracle.svm.core.graal=ALL-UNNAMED',
+    # LibGraalFeature implements com.oracle.svm.core.feature.InternalFeature (needed to be able to instantiate LibGraalFeature)
+    '--add-exports=org.graalvm.nativeimage.builder/com.oracle.svm.core.feature=ALL-UNNAMED',
     # Make ModuleSupport accessible to do the remaining opening-up in LibGraalFeature constructor
     '--add-exports=org.graalvm.nativeimage.base/com.oracle.svm.util=ALL-UNNAMED',
 
@@ -1168,6 +1180,7 @@ libgraal_build_args = [
     '-H:+ReportExceptionStackTraces',
     '-Djdk.vm.ci.services.aot=true',
     '-Dtruffle.TruffleRuntime=',
+    '-H:InitialCollectionPolicy=AggressiveShrink',
 
     # These 2 arguments provide walkable call stacks for a crash in libgraal
     '-H:+PreserveFramePointer',
@@ -1196,6 +1209,7 @@ libgraal = mx_sdk_vm.GraalVmJreComponent(
             jvm_library=True,
             jar_distributions=libgraal_jar_distributions,
             build_args=libgraal_build_args + ['--features=com.oracle.svm.graal.hotspot.libgraal.LibGraalFeature'],
+            add_to_module='java.base',
         ),
     ],
     stability="supported",
@@ -1279,6 +1293,17 @@ def debuginfotest(args, config=None):
         config=config
     )
 
+@mx.command(suite_name=suite.name, command_name='debuginfotestshared', usage_msg='[options]')
+def debuginfotestshared(args, config=None):
+    """
+    builds a debuginfo ctutorial image but does not yet test it with gdb"
+    """
+    # set an explicit path to the source tree for the tutorial code
+    sourcepath = mx.project('com.oracle.svm.tutorial').source_dirs()[0]
+    all_args = ['-H:GenerateDebugInfo=1', '-H:+SourceLevelDebug', '-H:DebugInfoSourceSearchPath=' + sourcepath, '-H:-DeleteLocalSymbols'] + args
+    # build and run the native image using debug info
+    # ideally we ought to script a gdb run
+    native_image_context_run(_cinterfacetutorial, all_args)
 
 @mx.command(suite_name=suite.name, command_name='helloworld', usage_msg='[options]')
 def helloworld(args, config=None):
@@ -1302,8 +1327,7 @@ def hellomodule(args):
     proj_dir = join(suite.dir, 'src', 'native-image-module-tests', 'hello.app')
     mx.run_maven(['-e', 'install'], cwd=proj_dir)
     module_path.append(join(proj_dir, 'target', 'hello-app-1.0-SNAPSHOT.jar'))
-    config = GraalVMConfig.build(native_images=['native-image', 'lib:native-image-agent', 'lib:native-image-diagnostics-agent'])
-    with native_image_context(hosted_assertions=False, config=config) as native_image:
+    with native_image_context(hosted_assertions=False) as native_image:
         module_path_sep = ';' if mx.is_windows() else ':'
         moduletest_run_args = [
             '-ea',
@@ -1314,16 +1338,13 @@ def hellomodule(args):
         mx.log('Running module-tests on JVM:')
         build_dir = join(svmbuild_dir(), 'hellomodule')
         mx.run([
-            vm_executable_path('java', config),
-            # also test if native-image-agent works
-            '-agentlib:native-image-agent=config-output-dir=' + join(build_dir, 'config-output-dir-{pid}-{datetime}/'),
+            vm_executable_path('java'),
             ] + moduletest_run_args)
 
         # Build module into native image
         mx.log('Building image from java modules: ' + str(module_path))
         built_image = native_image([
             '--verbose', '-H:Path=' + build_dir,
-            '--trace-class-initialization=hello.lib.Greeter', # also test native-image-diagnostics-agent
             ] + moduletest_run_args)
         mx.log('Running image ' + built_image + ' built from module:')
         mx.run([built_image])
@@ -1628,8 +1649,6 @@ class SubstrateCompilerFlagsBuilder(mx.ArchivableProject):
     def __init__(self):
         mx.ArchivableProject.__init__(self, suite, 'svm-compiler-flags-builder', [], None, None)
         self.buildDependencies = list(SubstrateCompilerFlagsBuilder.flags_build_dependencies)
-        if llvm_supported:
-            self.buildDependencies += ['substratevm:SVM_LLVM']
 
     def config_file(self, ver):
         return 'graal-compiler-flags-' + str(ver) + '.config'
@@ -1806,13 +1825,3 @@ if is_musl_supported():
     def musl_helloworld(args, config=None):
         final_args = ['--static', '--libc=musl'] + args
         run_helloworld_command(final_args, config, 'muslhelloworld')
-
-
-@mx.command(suite.name, 'svm-sync-graal-stubs-check')
-def check_graal_stubs_synced(_args):
-    return _check_graal_stubs_synced(suite)
-
-
-@mx.command(suite.name, 'svm-sync-graal-stubs')
-def sync_graal_stubs(_args):
-    _sync_graal_stubs(suite)

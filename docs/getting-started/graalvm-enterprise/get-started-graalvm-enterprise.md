@@ -24,11 +24,12 @@ You can get Oracle GraalVM Enterprise Edition by:
 
 Choose your operating system and proceed to the installation steps for your specific platform:
 
-* Oracle Cloud 
-  * [OCI Compute with Oracle Linux 7/8](oci/installation-compute-instance-with-OL.md)
-  * [OCI DevOps Build Pipelines](oci/installation-devops-build-pipeline.md)
+* Oracle Cloud (OCI) 
+  * [Code Editor](oci/code-editor.md)
+  * [Cloud Shell](oci/cloud-shell.md)
+  * [Compute with Oracle Linux 7/8](oci/installation-compute-instance-with-OL.md)
+  * [DevOps Build Pipelines](oci/installation-devops-build-pipeline.md)
 * [Linux](installation-linux.md)
-* [Linux ARM64](installation-linux-aarch64.md)
 * [macOS](installation-macos.md)
 * [Windows](installation-windows.md)
 * [Container Images](container-images/graalvm-ee-container-images.md)
@@ -184,13 +185,13 @@ The support is not available by default, but you can quickly add it to GraalVM w
 gu install python
 ```
 
-It installs the `graalpython` launcher. Check the version, and you can already run Python programs:
+It installs the `graalpy` launcher. Check the version, and you can already run Python programs:
 ```shell
-$GRAALVM_HOME/bin/graalpython --version
+$GRAALVM_HOME/bin/graalpy --version
 ```
 
 ```shell
-$GRAALVM_HOME/bin/graalpython
+$GRAALVM_HOME/bin/graalpy
 ...
 >>> 1 + 2
 3
@@ -293,7 +294,6 @@ gu install native-image
 
 The `HelloWorld` example from above is used here to demonstrate how to generate a native executable:
 ```java
-// HelloWorld.java
 public class HelloWorld {
   public static void main(String[] args) {
     System.out.println("Hello, World!");

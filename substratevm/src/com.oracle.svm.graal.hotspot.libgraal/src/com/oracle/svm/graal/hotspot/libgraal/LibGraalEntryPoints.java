@@ -29,28 +29,42 @@ import static jdk.vm.ci.hotspot.HotSpotJVMCIRuntime.runtime;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.graalvm.collections.EconomicMap;
+import org.graalvm.collections.EconomicSet;
+import org.graalvm.compiler.core.common.spi.ForeignCallSignature;
+import org.graalvm.compiler.core.target.Backend;
 import org.graalvm.compiler.debug.GlobalMetrics;
 import org.graalvm.compiler.hotspot.CompilationContext;
 import org.graalvm.compiler.hotspot.CompilationTask;
+import org.graalvm.compiler.hotspot.HotSpotForeignCallLinkageImpl.CodeInfo;
 import org.graalvm.compiler.hotspot.HotSpotGraalCompiler;
 import org.graalvm.compiler.hotspot.HotSpotGraalRuntime;
 import org.graalvm.compiler.hotspot.HotSpotGraalServices;
+import org.graalvm.compiler.hotspot.stubs.Stub;
 import org.graalvm.compiler.options.OptionDescriptors;
 import org.graalvm.compiler.options.OptionKey;
 import org.graalvm.compiler.options.OptionValues;
 import org.graalvm.compiler.options.OptionsParser;
 import org.graalvm.compiler.serviceprovider.IsolateUtil;
+import org.graalvm.jniutils.JNI.JNIEnv;
+import org.graalvm.jniutils.JNIMethodScope;
 import org.graalvm.libgraal.LibGraal;
 import org.graalvm.libgraal.LibGraalScope;
 import org.graalvm.nativeimage.Isolate;
 import org.graalvm.nativeimage.IsolateThread;
 import org.graalvm.nativeimage.ObjectHandles;
+import org.graalvm.nativeimage.UnmanagedMemory;
 import org.graalvm.nativeimage.c.function.CEntryPoint;
 import org.graalvm.nativeimage.c.function.CEntryPoint.Builtin;
 import org.graalvm.nativeimage.c.function.CEntryPoint.IsolateContext;
+import org.graalvm.nativeimage.c.struct.RawField;
+import org.graalvm.nativeimage.c.struct.RawFieldAddress;
+import org.graalvm.nativeimage.c.struct.RawStructure;
+import org.graalvm.nativeimage.c.struct.SizeOf;
+import org.graalvm.nativeimage.c.type.CIntPointer;
 import org.graalvm.util.OptionsEncoder;
 import org.graalvm.word.Pointer;
 import org.graalvm.word.PointerBase;
@@ -62,6 +76,8 @@ import com.oracle.svm.core.heap.Heap;
 
 import jdk.internal.misc.Unsafe;
 import jdk.vm.ci.code.InstalledCode;
+import jdk.vm.ci.code.Register;
+import jdk.vm.ci.code.RegisterArray;
 import jdk.vm.ci.hotspot.HotSpotCompilationRequest;
 import jdk.vm.ci.hotspot.HotSpotInstalledCode;
 import jdk.vm.ci.hotspot.HotSpotJVMCIRuntime;
@@ -79,21 +95,118 @@ public final class LibGraalEntryPoints {
      */
     static final CGlobalData<Pointer> LOG_FILE_BARRIER = CGlobalDataFactory.createWord((Pointer) WordFactory.zero());
 
-    /**
-     * The spin lock field for the
-     * {@code org.graalvm.compiler.hotspot.management.libgraal.MBeanProxy#defineClassesInHotSpot}.
-     */
-    static final CGlobalData<Pointer> MANAGEMENT_BARRIER = CGlobalDataFactory.createWord((Pointer) WordFactory.zero());
-
-    /**
-     * A flag used by the
-     * {@code org.graalvm.compiler.hotspot.management.libgraal.LibGraalHotSpotGraalManagement#initialize}
-     * to show a deprecated option warning only once even in case of multiple compiler isolates per
-     * process.
-     */
-    static final CGlobalData<Pointer> MANAGEMENT_OPTION_WARNING = CGlobalDataFactory.createWord((Pointer) WordFactory.zero());
-
     static final CGlobalData<Pointer> GLOBAL_TIMESTAMP = CGlobalDataFactory.createBytes(() -> 8);
+
+    /**
+     * Map from a foreign call signature to a C global word that is the address of a pointer to a
+     * {@link RuntimeStubInfo} struct.
+     *
+     * This map is used to mitigate against libgraal isolates compiling and installing duplicate
+     * {@code RuntimeStub}s for a foreign call. Completely preventing duplicates requires
+     * inter-isolate synchronization for which there is currently no support. A small number of
+     * duplicates is acceptable given how few foreign call runtime stubs there are in practice.
+     * Duplicates will only result when libgraal isolates race to install code for the same stub.
+     * Testing shows that this is extremely rare.
+     */
+    static final Map<ForeignCallSignature, CGlobalData<Pointer>> STUBS = new HashMap<>();
+
+    /**
+     * A struct that encapsulates the address of the first instruction of and the registers killed
+     * by a HotSpot {@code RuntimeStub}. One such struct is allocated for each entry in
+     * {@link LibGraalEntryPoints#STUBS}.
+     *
+     * <pre>
+     * struct RuntimeStubInfo {
+     *     long start;
+     *     int killedRegistersLength;
+     *     int[killedRegistersLength] killedRegisters;
+     * }
+     * </pre>
+     */
+    @RawStructure
+    public interface RuntimeStubInfo extends PointerBase {
+        // Checkstyle: stop
+        // @formatter:off
+        /**
+         * Address of first instruction in the stub.
+         */
+        @RawField long getStart();
+        @RawField void setStart(long value);
+
+        /**
+         * Length of the killedRegisters array.
+         */
+        @RawField int  getKilledRegistersLength();
+        @RawField void setKilledRegistersLength(int value);
+
+        /**
+         * First element of the killedRegisters array.
+         */
+        @RawField int firstKilledRegister();
+        @RawFieldAddress CIntPointer addressOf_firstKilledRegister();
+        // @formatter:on
+        // Checkstyle: resume
+
+        class Util {
+
+            static RuntimeStubInfo allocateRuntimeStubInfo(int killedRegistersLength) {
+                // The first element of the killedRegister array is part of
+                // the RuntimeStubInfo size computation
+                int registersTailSize = Integer.BYTES * (killedRegistersLength - 1);
+                return UnmanagedMemory.malloc(SizeOf.get(RuntimeStubInfo.class) + registersTailSize);
+            }
+
+            /**
+             * Allocates and initializes a {@code RuntimeStubInfo} from {@code stub}.
+             */
+            static RuntimeStubInfo newRuntimeStubInfo(Stub stub, Backend backend) {
+                long start = stub.getCode(backend).getStart();
+                EconomicSet<Register> registers = stub.getDestroyedCallerRegisters();
+
+                RuntimeStubInfo rsi = allocateRuntimeStubInfo(registers.size());
+                rsi.setStart(start);
+                rsi.setKilledRegistersLength(registers.size());
+                copyIntoCIntArray(registers, rsi.addressOf_firstKilledRegister());
+                return rsi;
+            }
+
+            /**
+             * Copies the {@linkplain Register#number register numbers} for the entries in
+             * {@code register} into a newly allocated C int array and returns it.
+             */
+            static void copyIntoCIntArray(EconomicSet<Register> registers, CIntPointer dst) {
+                int i = 0;
+                for (Register r : registers) {
+                    dst.write(i, r.number);
+                    i++;
+                }
+            }
+
+            /**
+             * Selects entries from {@code allRegisters} corresponding to
+             * {@linkplain Register#number register numbers} in the C int array {@code regNums} of
+             * length {@code len} and returns them in a set.
+             */
+            static EconomicSet<Register> toRegisterSet(RegisterArray allRegisters, int len, CIntPointer regNums) {
+                EconomicSet<Register> res = EconomicSet.create(len);
+                for (int i = 0; i < len; i++) {
+                    res.add(allRegisters.get(regNums.read(i)));
+                }
+                return res;
+            }
+
+            /**
+             * Creates and returns a {@link CodeInfo} from the data in {@code rsi}.
+             */
+            static CodeInfo newCodeInfo(RuntimeStubInfo rsi, Backend backend) {
+                RegisterArray allRegisters = backend.getCodeCache().getTarget().arch.getRegisters();
+                long start = rsi.getStart();
+                return new CodeInfo(start, toRegisterSet(allRegisters,
+                                rsi.getKilledRegistersLength(),
+                                rsi.addressOf_firstKilledRegister()));
+            }
+        }
+    }
 
     @CEntryPoint(builtin = Builtin.GET_CURRENT_THREAD, name = "Java_org_graalvm_libgraal_LibGraalScope_getIsolateThreadIn")
     private static native IsolateThread getIsolateThreadIn(PointerBase env, PointerBase hsClazz, @IsolateContext Isolate isolate);
@@ -211,7 +324,7 @@ public final class LibGraalEntryPoints {
      */
     @SuppressWarnings({"unused", "try"})
     @CEntryPoint(name = "Java_org_graalvm_compiler_hotspot_test_CompileTheWorld_compileMethodInLibgraal", include = LibGraalFeature.IsEnabled.class)
-    private static long compileMethod(PointerBase jniEnv,
+    private static long compileMethod(JNIEnv jniEnv,
                     PointerBase jclass,
                     @CEntryPoint.IsolateThreadContext long isolateThread,
                     long methodHandle,
@@ -223,7 +336,7 @@ public final class LibGraalEntryPoints {
                     int optionsHash,
                     long stackTraceAddress,
                     int stackTraceCapacity) {
-        try {
+        try (JNIMethodScope jniScope = new JNIMethodScope("compileMethod", jniEnv)) {
             HotSpotJVMCIRuntime runtime = runtime();
             HotSpotGraalCompiler compiler = (HotSpotGraalCompiler) runtime.getCompiler();
             if (methodHandle == 0L) {

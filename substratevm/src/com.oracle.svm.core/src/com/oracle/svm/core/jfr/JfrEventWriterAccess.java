@@ -30,13 +30,13 @@ import org.graalvm.compiler.serviceprovider.JavaVersionUtil;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 
-import com.oracle.svm.core.annotate.Uninterruptible;
+import com.oracle.svm.core.Uninterruptible;
 import com.oracle.svm.util.ReflectionUtil;
 
 import jdk.internal.misc.Unsafe;
 
 /**
- * Used to access the Java event writer class, see {@link jdk.jfr.internal.EventWriter}.
+ * Used to access the Java event writer class, see {@code jdk.jfr.internal.EventWriter}.
  */
 public final class JfrEventWriterAccess {
     private static final Unsafe UNSAFE = Unsafe.getUnsafe();

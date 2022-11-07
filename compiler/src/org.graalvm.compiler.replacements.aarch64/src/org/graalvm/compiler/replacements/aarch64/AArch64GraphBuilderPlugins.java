@@ -38,6 +38,7 @@ import java.lang.reflect.Type;
 import org.graalvm.compiler.core.common.GraalOptions;
 import org.graalvm.compiler.core.common.Stride;
 import org.graalvm.compiler.core.common.calc.Condition;
+import org.graalvm.compiler.core.common.memory.MemoryOrderMode;
 import org.graalvm.compiler.nodes.ComputeObjectAddressNode;
 import org.graalvm.compiler.nodes.ConstantNode;
 import org.graalvm.compiler.nodes.NamedLocationIdentity;
@@ -45,7 +46,6 @@ import org.graalvm.compiler.nodes.NodeView;
 import org.graalvm.compiler.nodes.ValueNode;
 import org.graalvm.compiler.nodes.calc.AddNode;
 import org.graalvm.compiler.nodes.calc.CopySignNode;
-import org.graalvm.compiler.nodes.calc.EncodeArrayNode;
 import org.graalvm.compiler.nodes.calc.LeftShiftNode;
 import org.graalvm.compiler.nodes.calc.MaxNode;
 import org.graalvm.compiler.nodes.calc.MinNode;
@@ -77,6 +77,7 @@ import org.graalvm.compiler.replacements.nodes.ArrayIndexOfNode;
 import org.graalvm.compiler.replacements.nodes.BinaryMathIntrinsicNode;
 import org.graalvm.compiler.replacements.nodes.CountLeadingZerosNode;
 import org.graalvm.compiler.replacements.nodes.CountTrailingZerosNode;
+import org.graalvm.compiler.replacements.nodes.EncodeArrayNode;
 import org.graalvm.compiler.replacements.nodes.FusedMultiplyAddNode;
 import org.graalvm.compiler.replacements.nodes.UnaryMathIntrinsicNode;
 import org.graalvm.compiler.replacements.nodes.UnaryMathIntrinsicNode.UnaryOperation;
@@ -475,7 +476,7 @@ public class AArch64GraphBuilderPlugins implements TargetGraphBuilderPlugins {
             public boolean apply(GraphBuilderContext b, ResolvedJavaMethod targetMethod, Receiver receiver, ValueNode arg1, ValueNode arg2) {
                 b.addPush(JavaKind.Char, new JavaReadNode(JavaKind.Char,
                                 new IndexAddressNode(arg1, new LeftShiftNode(arg2, ConstantNode.forInt(1)), JavaKind.Byte),
-                                NamedLocationIdentity.getArrayLocation(JavaKind.Byte), OnHeapMemoryAccess.BarrierType.NONE, false));
+                                NamedLocationIdentity.getArrayLocation(JavaKind.Byte), OnHeapMemoryAccess.BarrierType.NONE, MemoryOrderMode.PLAIN, false));
                 return true;
             }
         });
@@ -496,7 +497,7 @@ public class AArch64GraphBuilderPlugins implements TargetGraphBuilderPlugins {
                 ComputeObjectAddressNode src = b.add(new ComputeObjectAddressNode(sa, srcOffset));
                 ComputeObjectAddressNode dst = b.add(new ComputeObjectAddressNode(da, dstOffset));
 
-                b.addPush(JavaKind.Int, new EncodeArrayNode(src, dst, len, ISO_8859_1));
+                b.addPush(JavaKind.Int, new EncodeArrayNode(src, dst, len, ISO_8859_1, JavaKind.Byte));
                 return true;
             }
         });
@@ -516,7 +517,7 @@ public class AArch64GraphBuilderPlugins implements TargetGraphBuilderPlugins {
                 ComputeObjectAddressNode src = b.add(new ComputeObjectAddressNode(sa, srcOffset));
                 ComputeObjectAddressNode dst = b.add(new ComputeObjectAddressNode(da, dstOffset));
 
-                b.addPush(JavaKind.Int, new EncodeArrayNode(src, dst, len, ASCII));
+                b.addPush(JavaKind.Int, new EncodeArrayNode(src, dst, len, ASCII, JavaKind.Char));
                 return true;
             }
 
@@ -534,7 +535,7 @@ public class AArch64GraphBuilderPlugins implements TargetGraphBuilderPlugins {
                 try (InvocationPluginHelper helper = new InvocationPluginHelper(b, targetMethod)) {
                     ValueNode src = helper.arrayElementPointer(sa, JavaKind.Char, sp);
                     ValueNode dst = helper.arrayElementPointer(da, JavaKind.Byte, dp);
-                    b.addPush(JavaKind.Int, new EncodeArrayNode(src, dst, len, ISO_8859_1));
+                    b.addPush(JavaKind.Int, new EncodeArrayNode(src, dst, len, ISO_8859_1, JavaKind.Char));
                     return true;
                 }
             }

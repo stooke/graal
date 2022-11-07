@@ -28,8 +28,8 @@ package com.oracle.objectfile.pecoff.cv;
 
 import com.oracle.objectfile.SectionName;
 import com.oracle.objectfile.debugentry.ClassEntry;
+import com.oracle.objectfile.debugentry.CompiledMethodEntry;
 import com.oracle.objectfile.debugentry.FieldEntry;
-import com.oracle.objectfile.debugentry.PrimaryEntry;
 import com.oracle.objectfile.debugentry.Range;
 import com.oracle.objectfile.debugentry.TypeEntry;
 
@@ -85,9 +85,7 @@ final class CVSymbolSubsectionBuilder {
     private void buildClass(ClassEntry classEntry) {
 
         /* Define all the functions in this class all functions defined in this class. */
-        for (PrimaryEntry primaryEntry : classEntry.getPrimaryEntries()) {
-            buildFunction(primaryEntry);
-        }
+        classEntry.compiledEntries().forEach(compiledEntry -> buildFunction(compiledEntry));
 
         /* Define the class itself. */
         addTypeRecords(classEntry);
@@ -117,10 +115,10 @@ final class CVSymbolSubsectionBuilder {
      * Emit records for each function: PROC32 S_FRAMEPROC S_END and line number records. (later:
      * type records as required).
      *
-     * @param primaryEntry primary entry for this function
+     * @param compiledEntry compiled method for this function
      */
-    private void buildFunction(PrimaryEntry primaryEntry) {
-        final Range primaryRange = primaryEntry.getPrimary();
+    private void buildFunction(CompiledMethodEntry compiledEntry) {
+        final Range primaryRange = compiledEntry.getPrimary();
 
         /* The name as it will appear in the debugger. */
         final String debuggerName = CVNames.memberNameToCodeViewName(primaryRange.getMethodEntry());
@@ -129,9 +127,8 @@ final class CVSymbolSubsectionBuilder {
         final String externalName = primaryRange.getSymbolName();
 
         /* S_PROC32 add function definition. */
-        int functionTypeIndex = addTypeRecords(primaryEntry);
+        int functionTypeIndex = addTypeRecords(compiledEntry);
         byte funcFlags = 0;
-
         CVSymbolSubrecord.CVSymbolGProc32Record proc32 = new CVSymbolSubrecord.CVSymbolGProc32Record(cvDebugInfo, externalName, debuggerName, 0, 0, 0, primaryRange.getHi() - primaryRange.getLo(), 0,
                         0, functionTypeIndex, (short) 0, funcFlags);
         addSymbolRecord(proc32);
@@ -142,7 +139,7 @@ final class CVSymbolSubsectionBuilder {
         int localBP = 1 << 14; /* Local base pointer = SP (0=none, 1=sp, 2=bp 3=r13). */
         int paramBP = 1 << 16; /* Param base pointer = SP. */
         int frameFlags = asynceh + localBP + paramBP; /* NB: LLVM uses 0x14000. */
-        addSymbolRecord(new CVSymbolSubrecord.CVSymbolFrameProcRecord(cvDebugInfo, primaryEntry.getFrameSize(), frameFlags));
+        addSymbolRecord(new CVSymbolSubrecord.CVSymbolFrameProcRecord(cvDebugInfo, compiledEntry.getFrameSize(), frameFlags));
 
         /* TODO: add parameter definitions (types have been added already). */
         /* TODO: add local variables, and their types. */
@@ -152,11 +149,11 @@ final class CVSymbolSubsectionBuilder {
         addSymbolRecord(new CVSymbolSubrecord.CVSymbolEndRecord(cvDebugInfo));
 
         /* Add line number records. */
-        addLineNumberRecords(primaryEntry);
+        addLineNumberRecords(compiledEntry);
     }
 
-    private void addLineNumberRecords(PrimaryEntry primaryEntry) {
-        CVLineRecord record = lineRecordBuilder.build(primaryEntry);
+    private void addLineNumberRecords(CompiledMethodEntry compiledEntry) {
+        CVLineRecord record = lineRecordBuilder.build(compiledEntry);
         /*
          * If there are no file entries (perhaps for a synthetic function?), we don't add this
          * record.
@@ -195,12 +192,12 @@ final class CVSymbolSubsectionBuilder {
     }
 
     /**
-     * Add type records for function.
+     * Add type records for a class and all its members.
      *
-     * @param entry primaryEntry containing entities whose type records must be added
+     * @param entry compiled method containing entities whos type records must be added
      * @return type index of function type
      */
-    private int addTypeRecords(PrimaryEntry entry) {
+    private int addTypeRecords(@SuppressWarnings("unused") CompiledMethodEntry entry) {
         return cvDebugInfo.getCVTypeSection().addTypeRecords(entry).getSequenceNumber();
     }
 }

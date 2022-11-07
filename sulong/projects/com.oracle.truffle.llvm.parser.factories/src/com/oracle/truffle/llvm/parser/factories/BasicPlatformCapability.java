@@ -97,6 +97,8 @@ public abstract class BasicPlatformCapability<S extends Enum<S> & LLVMSyscallEnt
     }
 
     private static final Path SULONG_LIBDIR = Paths.get("native", "lib");
+    public static final String LIBCXX_FILENAME = NativeContextExtension.getNativeLibrary("c++");
+    public static final String LIBCXXABI_FILENAME = NativeContextExtension.getNativeLibrary("c++abi");
     public static final String LIBSULONG_FILENAME = NativeContextExtension.getNativeLibrary("sulong");
     public static final String LIBSULONGXX_FILENAME = NativeContextExtension.getNativeLibrary("sulong++");
 
@@ -125,6 +127,16 @@ public abstract class BasicPlatformCapability<S extends Enum<S> & LLVMSyscallEnt
     }
 
     @Override
+    public String getCxxFilename() {
+        return LIBCXX_FILENAME;
+    }
+
+    @Override
+    public String getCxxAbiFilename() {
+        return LIBCXXABI_FILENAME;
+    }
+
+    @Override
     public LLVMSyscallOperationNode createSyscallNode(long index) {
         try {
             return createSyscallNode(getSyscall(index));
@@ -134,8 +146,18 @@ public abstract class BasicPlatformCapability<S extends Enum<S> & LLVMSyscallEnt
     }
 
     @Override
+    public String getLibraryPrefix() {
+        return NativeContextExtension.getNativeLibraryPrefix();
+    }
+
+    @Override
     public String getLibrarySuffix() {
         return NativeContextExtension.getNativeLibrarySuffix();
+    }
+
+    @Override
+    public String getLibrarySuffixVersioned(int version) {
+        return NativeContextExtension.getNativeLibrarySuffixVersioned(version);
     }
 
     protected abstract LLVMSyscallOperationNode createSyscallNode(S syscall);
