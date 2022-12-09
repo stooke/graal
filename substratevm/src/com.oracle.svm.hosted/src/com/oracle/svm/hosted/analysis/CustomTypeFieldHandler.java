@@ -85,7 +85,7 @@ public abstract class CustomTypeFieldHandler {
                  * Register a primitive field as containing unknown values(s), i.e., is usually
                  * written only in hosted code.
                  */
-                field.registerAsWritten(null);
+                field.registerAsWritten("@UnknownPrimitiveField annotated field");
             }
         }
         processedFields.add(field);
@@ -108,7 +108,7 @@ public abstract class CustomTypeFieldHandler {
     private void injectFieldTypes(AnalysisField field, List<AnalysisType> customTypes) {
         for (AnalysisType type : customTypes) {
             if (!type.isPrimitive()) {
-                type.registerAsAllocated(null);
+                type.registerAsAllocated("Is declared as the type of an unknown object field.");
             }
         }
 
