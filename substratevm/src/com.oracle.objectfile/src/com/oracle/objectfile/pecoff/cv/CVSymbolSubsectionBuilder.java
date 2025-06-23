@@ -50,6 +50,7 @@ import static com.oracle.objectfile.pecoff.cv.CVSymbolSubrecord.CVSymbolFramePro
 import static com.oracle.objectfile.pecoff.cv.CVSymbolSubrecord.CVSymbolFrameProcRecord.FRAME_PARAM_BP;
 import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.MAX_PRIMITIVE;
 import static com.oracle.objectfile.pecoff.cv.CVRegisterUtil.CV_AMD64_R8;
+import static com.oracle.objectfile.pecoff.cv.CVTypeConstants.STATIC_GLOBAL_LOCAL_NAME;
 
 final class CVSymbolSubsectionBuilder {
 
@@ -95,6 +96,15 @@ final class CVSymbolSubsectionBuilder {
                 addTypeRecords(typeEntry);
             }
         }
+        if (cvDebugInfo.useHeapBase()) {
+            /* The 'static' class is synthesized from all static members,
+             * with offset from 0, or heap base (when isolates are enabled).
+             */
+            CVTypeRecord statics = cvDebugInfo.getCVTypeSection().buildStaticGlobalClass(cvSymbolSubsection);
+            /* build variable */
+            CVSymbolSubrecord.CVSymbolUDTRecord udtRecord = new CVSymbolSubrecord.CVSymbolUDTRecord(cvDebugInfo, statics.getSequenceNumber(), "_svm_cv_statics_");
+            addSymbolRecord(udtRecord);
+        }
         cvDebugInfo.getCVSymbolSection().addRecord(cvSymbolSubsection);
     }
 
@@ -112,20 +122,14 @@ final class CVSymbolSubsectionBuilder {
         addTypeRecords(classEntry);
 
         /* Add manifested static fields as S_GDATA32 records. */
-        classEntry.fields().filter(CVSymbolSubsectionBuilder::isManifestedStaticField).forEach(f -> {
-            int typeIndex = cvDebugInfo.getCVTypeSection().getIndexForPointer(f.getValueType());
-            String displayName = CVNames.fieldNameToCodeViewName(f);
-            if (cvDebugInfo.useHeapBase()) {
-                /*
-                 * Isolates are enabled. Static member is located at REL32 offset from heap base
-                 * register.
-                 */
-                addSymbolRecord(new CVSymbolSubrecord.CVSymbolRegRel32Record(cvDebugInfo, displayName, typeIndex, f.getOffset(), heapRegister));
-            } else {
-                /* Isolates are disabled. Static member is located at offset from heap begin. */
+        if (!cvDebugInfo.useHeapBase()) {
+            /* Isolates are disabled. Static member is located at offset from heap begin. */
+            classEntry.fields().filter(CVSymbolSubsectionBuilder::isManifestedStaticField).forEach(f -> {
+                int typeIndex = cvDebugInfo.getCVTypeSection().getIndexForPointer(f.getValueType());
+                String displayName = CVNames.fieldNameToCodeViewName(f);
                 addSymbolRecord(new CVSymbolSubrecord.CVSymbolGData32Record(cvDebugInfo, heapName, displayName, typeIndex, f.getOffset(), (short) 0));
-            }
-        });
+            });
+        }
     }
 
     private static boolean isManifestedStaticField(FieldEntry fieldEntry) {
@@ -191,6 +195,14 @@ final class CVSymbolSubsectionBuilder {
             final TypeEntry typeEntry = method.getParamType(i);
             final int typeIndex = cvDebugInfo.getCVTypeSection().addTypeRecords(typeEntry).getSequenceNumber();
             emitLocal(paramInfo, varRangeMap, paramInfo.name(), typeEntry, typeIndex, true, externalName, primaryRange);
+        }
+
+        /* define global static accessor (as a local register variable) if isolates are enabled */
+        if (cvDebugInfo.useHeapBase()) {
+            final int typeIndex = cvDebugInfo.getCVTypeSection().getStaticGlobalClassRecordIndex();
+            addSymbolRecord(new CVSymbolSubrecord.CVSymbolLocalRecord(cvDebugInfo, STATIC_GLOBAL_LOCAL_NAME, typeIndex, 0));
+            addSymbolRecord(new CVSymbolSubrecord.CVSymbolDefRangeRegisterRecord(cvDebugInfo, externalName, 0, (short) (primaryRange.getHi() - primaryRange.getLo()),
+                            heapRegister));
         }
     }
 
@@ -270,7 +282,7 @@ final class CVSymbolSubsectionBuilder {
      *
      * @param record the symbol subrecord to add.
      */
-    private void addSymbolRecord(CVSymbolSubrecord record) {
+    void addSymbolRecord(CVSymbolSubrecord record) {
         cvSymbolSubsection.addRecord(record);
     }
 

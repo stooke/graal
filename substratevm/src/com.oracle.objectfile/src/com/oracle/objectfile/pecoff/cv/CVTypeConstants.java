@@ -33,6 +33,8 @@ abstract class CVTypeConstants {
 
     static final String JAVA_LANG_OBJECT_NAME = "java.lang.Object";
     static final String OBJ_HEADER_NAME = "_objhdr";
+    static final String STATIC_GLOBAL_TYPE_NAME = "_staticglobaltype_";
+    static final String STATIC_GLOBAL_LOCAL_NAME = "_heap_";
 
     static final int FUNC_IS_CONSTRUCTOR = 2;
 

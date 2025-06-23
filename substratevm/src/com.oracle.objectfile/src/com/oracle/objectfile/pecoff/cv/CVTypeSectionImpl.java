@@ -161,4 +161,12 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
     int getIndexForPointer(TypeEntry typeEntry) {
         return builder.getIndexForPointerOrPrimitive(typeEntry);
     }
+
+    CVTypeRecord buildStaticGlobalClass(CVSymbolSubsection symbolSubsection) {
+        return builder.buildStaticGlobalClass(symbolSubsection);
+    }
+
+    int getStaticGlobalClassRecordIndex() {
+        return builder.getStaticGlobalClassRecordIndex();
+    }
 }
