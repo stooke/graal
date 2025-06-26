@@ -54,14 +54,13 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
     /* This map is used to implement deduplication. */
     private final Map<CVTypeRecord, CVTypeRecord> typeMap = new LinkedHashMap<>(CV_RECORD_INITIAL_CAPACITY);
 
-    private final CVTypeSectionBuilder builder;
+    private CVTypeSectionBuilder builder;
 
     CVTypeSectionImpl(CVDebugInfo cvDebugInfo) {
         /*
          * At this point, there is no debugContext in debugInfo, so no logging should be attempted.
          */
         super(cvDebugInfo);
-        builder = new CVTypeSectionBuilder(this);
     }
 
     @Override
@@ -134,6 +133,20 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
 
     /* API for builders to use */
 
+    CVTypeRecord.CVTypeStringIdRecord getStringId(String string) {
+        CVTypeRecord.CVTypeStringIdRecord r = new CVTypeRecord.CVTypeStringIdRecord(string);
+        return addOrReference(r);
+    }
+
+    /**
+     * Initialize the type builder.
+     * Called by the symbol section createContent(), which runs before the type section createContent().
+     * Most type records are created by calls below, from the symbol section builder.
+     * By the time the type section createContent() is called, almost all type records have been created.
+     */
+    void initializeTypeSectionBuilder() {
+        builder = new CVTypeSectionBuilder(this);
+    }
     /**
      * Call builder to build all type records for function.
      *
@@ -151,11 +164,6 @@ public final class CVTypeSectionImpl extends CVSectionImpl {
      */
     CVTypeRecord addTypeRecords(TypeEntry entry) {
         return builder.buildType(entry);
-    }
-
-    CVTypeRecord.CVTypeStringIdRecord getStringId(String string) {
-        CVTypeRecord.CVTypeStringIdRecord r = new CVTypeRecord.CVTypeStringIdRecord(string);
-        return addOrReference(r);
     }
 
     int getIndexForPointer(TypeEntry typeEntry) {

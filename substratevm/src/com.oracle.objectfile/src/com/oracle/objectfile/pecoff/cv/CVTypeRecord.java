@@ -191,13 +191,11 @@ abstract class CVTypeRecord {
         }
     }
 
-    static final class CVTypePointerRecord extends CVTypeRecord {
+    static class CVTypePointerRecord extends CVTypeRecord {
 
         static final int KIND_64 = 0x0000c;
         static final int SIZE_8 = 8 << 13;
-
-        /* Standard 64-bit absolute pointer type. */
-        static final int NORMAL_64 = KIND_64 | SIZE_8;
+        static final int SIZE_4 = 4 << 13;
 
         private final int pointsTo;
 

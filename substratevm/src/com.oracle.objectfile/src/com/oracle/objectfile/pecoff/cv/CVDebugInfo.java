@@ -48,11 +48,14 @@ public final class CVDebugInfo extends DebugInfoBase {
     public static final byte RHEAPBASE_X86 = (byte) 14;
     public static final byte RTHREAD_X86 = (byte) 15;
 
+    private final boolean emitStaticGlobalVariable;
     private final byte heapbaseRegister;
     private final byte threadRegister;
 
     public CVDebugInfo(PECoffMachine machine, ByteOrder byteOrder) {
         super(byteOrder);
+        /* TDDO - use an option to set emitStaticGlobalVariable */
+        emitStaticGlobalVariable = true;
         cvSymbolSection = new CVSymbolSectionImpl(this);
         cvTypeSection = new CVTypeSectionImpl(this);
         if (machine == PECoffMachine.X86_64) {
@@ -62,6 +65,10 @@ public final class CVDebugInfo extends DebugInfoBase {
             /* room for future aach64 port */
             throw GraalError.shouldNotReachHere("Unsupported architecture on Windows"); // ExcludeFromJacocoGeneratedReport
         }
+    }
+
+    public boolean emitStaticGlobalVariable() {
+        return emitStaticGlobalVariable;
     }
 
     public CVSymbolSectionImpl getCVSymbolSection() {

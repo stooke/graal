@@ -48,7 +48,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -95,125 +94,22 @@ import static java.lang.reflect.Modifier.STATIC;
 
 class CVTypeSectionBuilder {
 
-    private final int objectHeaderRecordIndex;
-
-    /*
-     * StaticGlobalBuilder - emit CodeView directives to access java static members
-     * when Graal isolates are enabled.
-     *
-     * When isolates are enabled, statics are no longer in global, fixed static memory,
-     * but are on the isolate's heap, referenced via the heap base register.
-     * CodeView does not have directives to handle this cleanly.
-     *
-     * This implementation defines a union type for each class that contains static members.
-     * This union type ("staticClass") defined an instance member for each static member of the
-     * Java class, and these instance members are defined to have offsets equal to their offset
-     * in the isolate heap.
-     *
-     * There is also a global union type defined ("staticGlobalclass") that is a union of all
-     * of the synthetic "staticClass" unions, all defined to start at offset 0.
-     *
-     * In each function, there is a function scope variable (of type pointer to staticGlobalClass)
-     * defined.  this variable is named _heap_.
-     *
-     * Using this implementation, all static members of a class can be defined by examining
-     *
-     *    _heap_->package_classname
-     */
-    static class StaticGlobalBuilder {
-
-        private final CVTypeSectionBuilder typeSectionBuilder;
-        private final boolean isolatesEnabled;
-        private final int staticTypeClassRecordIndex;
-        private final ClassEntry staticGlobalClass;
-        private final SortedSet<FieldEntry> staticClassFields = new TreeSet<>(new Comparator<FieldEntry>() {
-            @Override
-            public int compare(FieldEntry o1, FieldEntry o2) {
-                return o1.fieldName().compareTo(o2.fieldName());
-            }
-        });
-
-        StaticGlobalBuilder(CVTypeSectionBuilder typeSectionBuilder, boolean isolatesEnabled) {
-            this.typeSectionBuilder = typeSectionBuilder;
-            this.isolatesEnabled = isolatesEnabled;
-            this.staticGlobalClass = isolatesEnabled ? new ClassEntry(STATIC_GLOBAL_TYPE_NAME, null, 0x7fffffff) : null;
-            this.staticTypeClassRecordIndex = isolatesEnabled ? typeSectionBuilder.types.getIndexForPointerOrPrimitive(staticGlobalClass) : 0;
-        }
-
-        void processClass(TypeEntry typeEntry) {
-            if (!typeEntry.getTypeName().contains("listdir")) {
-                return;
-            }
-            if (isolatesEnabled && typeEntry.isClass()) {
-                ClassEntry cls = (ClassEntry) typeEntry;
-                /* Build a sparse class of all static members made into instance members. */
-                /* this class can be used to access stait members using the heap register as 'this' */
-                ClassEntry staticClass = new ClassEntry(typeEntry.getTypeName() + "_statics", cls.getFileEntry(), 0x7fffffff);
-                /* Only define manifested fields. */
-                cls.fields().filter(CVTypeSectionBuilder::isManifestedField).forEach(f -> {
-                    if (Modifier.isStatic(f.getModifiers())) {
-                        /* add a field to the global static class (actually union) */
-                        FieldEntry wasStaticField = buildFieldFromStaticField(staticClass, f);
-                        staticClass.addField(wasStaticField);
-                        FieldEntry fff = buildFieldFromStaticField(staticGlobalClass, f);
-                        staticClassFields.add(fff);
-                    }
-                });
-                if (staticClass.fieldCount() > 0) {
-                    FieldEntry e = buildFieldFromStaticClass(CVNames.typeNameToCodeViewName(typeEntry.getTypeName()), staticGlobalClass, staticClass);
-                    staticClassFields.add(e);
-                    CVTypeRecord record = typeSectionBuilder.buildSimpleStruct(staticClass);
-                    typeSectionBuilder.types.typeNameMap.put(staticClass.getTypeName(), record);
-                }
-            }
-        }
-
-        CVTypeRecord buildStaticGlobalClass(CVSymbolSubsection symbolSubsection) {
-            /* Note that 'size' is a lie; the staticGlobal struct represents the isolate heap.
-             * As such, members may have random offsets and don't start at 0.
-             */
-            for (FieldEntry f : staticClassFields) {
-                staticGlobalClass.addField(f);
-                TypeEntry staticType = f.getValueType();
-                int staticTypeId = typeSectionBuilder.types.getExistingType(staticType).getSequenceNumber();
-                CVSymbolSubrecord.CVSymbolUDTRecord udtRecord = new CVSymbolSubrecord.CVSymbolUDTRecord(null, staticTypeId, CVNames.typeNameToCodeViewName(staticType.getTypeName()));
-                symbolSubsection.addRecord(udtRecord);
-            }
-            return typeSectionBuilder.buildSimpleStruct(staticGlobalClass);
-        }
-
-        int getStaticGlobalClassRecordIndex() {
-            return staticTypeClassRecordIndex;
-        }
-
-        /* Return an instance field that mirrors a synthetic static global class. */
-        private FieldEntry buildFieldFromStaticClass(String fieldName, ClassEntry cls, TypeEntry valueType) {
-            int fieldSize = valueType.getSize();
-            return new FieldEntry(cls.getFileEntry(), fieldName, staticGlobalClass, valueType, fieldSize, 0, false, PUBLIC);
-        }
-
-        /* Return an instance field that mirrors a static field. Offset == offset into global heap. */
-        private FieldEntry buildFieldFromStaticField(ClassEntry cls, FieldEntry f) {
-            String fieldName = f.fieldName();
-            TypeEntry valueTypeEntry = f.getValueType();
-            // String valueTypeName = valueTypeEntry.getTypeName();
-            int fieldSize = f.getSize();
-            int fieldoffset = f.getOffset();
-            int fieldModifiers = f.getModifiers() & ~STATIC;
-            return new FieldEntry(f.getFileEntry(), fieldName, cls, valueTypeEntry, fieldSize, fieldoffset, false, fieldModifiers);
-        }
-    }
-
     private final StaticGlobalBuilder staticGlobalBuilder;
 
     private final CVTypeSectionImpl typeSection;
 
     private final TypeTable types;
 
+    private final int objectHeaderRecordIndex;
+
+    private final boolean useHeapBase;
+
     CVTypeSectionBuilder(CVTypeSectionImpl typeSection) {
         this.typeSection = typeSection;
         this.types = new TypeTable(typeSection);
-        this.staticGlobalBuilder = new StaticGlobalBuilder(this, true);
+        this.useHeapBase = typeSection.getCvDebugInfo().useHeapBase();
+        this.staticGlobalBuilder = typeSection.getCvDebugInfo().emitStaticGlobalVariable()
+                    ? new StaticGlobalBuilder(this) : null;
         objectHeaderRecordIndex = types.getIndexForForwardRef(OBJ_HEADER_NAME);
     }
 
@@ -236,7 +132,7 @@ class CVTypeSectionBuilder {
 
     CVTypeRecord buildType(TypeEntry typeEntry) {
 
-        CVTypeRecord typeRecord = types.getExistingType(typeEntry);
+        CVTypeRecord typeRecord = types.getExistingTypeOrNull(typeEntry);
         /*
          * If we've never seen the class or only defined it as a forward reference, define it now.
          */
@@ -246,7 +142,7 @@ class CVTypeSectionBuilder {
             log("buildType() %s %s size=%d - begin", typeEntry.typeKind().name(), typeEntry.getTypeName(), typeEntry.getSize());
             switch (typeEntry.typeKind()) {
                 case PRIMITIVE: {
-                    typeRecord = types.getExistingType(typeEntry);
+                    assert typeRecord != null;
                     break;
                 }
                 case ARRAY:
@@ -366,21 +262,24 @@ class CVTypeSectionBuilder {
 
         final List<MethodEntry> methods = typeEntry.isClass() ? ((ClassEntry) typeEntry).getMethods() : Collections.emptyList();
 
-        /* Build fieldlist record */
+        /* Build fieldList record */
         FieldListBuilder fieldListBuilder = new FieldListBuilder();
-        staticGlobalBuilder.processClass(typeEntry);
+        if (staticGlobalBuilder != null) {
+            staticGlobalBuilder.processClass(typeEntry);
+        }
 
         log("building field list");
 
         if (superTypeIndex != 0) {
             CVTypeRecord.CVBaseMemberRecord btype = new CVTypeRecord.CVBaseMemberRecord(MPROP_PUBLIC, superTypeIndex, 0);
-            log("basetype %s", btype);
+            log("baseType %s", btype);
             fieldListBuilder.addField(btype);
         }
 
         if (typeEntry.isHeader()) {
+            assert typeEntry instanceof HeaderTypeEntry;
             FieldEntry hubField = ((HeaderTypeEntry)typeEntry).getHubField();
-            log("field %s attr=(%s) offset=%d size=%d valuetype=%s", hubField.fieldName(), hubField.getModifiersString(), hubField.getOffset(), hubField.getSize(), hubField.getValueType().getTypeName());
+            log("field %s attr=(%s) offset=%d size=%d valueType=%s", hubField.fieldName(), hubField.getModifiersString(), hubField.getOffset(), hubField.getSize(), hubField.getValueType().getTypeName());
             CVTypeRecord.FieldRecord fieldRecord = buildField(hubField);
             log("field %s", fieldRecord);
             fieldListBuilder.addField(fieldRecord);
@@ -388,7 +287,7 @@ class CVTypeSectionBuilder {
 
         /* Only define manifested fields. */
         typeEntry.fields().filter(CVTypeSectionBuilder::isManifestedField).forEach(f -> {
-            log("field %s attr=(%s) offset=%d size=%d valuetype=%s", f.fieldName(), f.getModifiersString(), f.getOffset(), f.getSize(), f.getValueType().getTypeName());
+            log("field %s attr=(%s) offset=%d size=%d valueType=%s", f.fieldName(), f.getModifiersString(), f.getOffset(), f.getSize(), f.getValueType().getTypeName());
             CVTypeRecord.FieldRecord fieldRecord = buildField(f);
             log("field %s", fieldRecord);
             fieldListBuilder.addField(fieldRecord);
@@ -415,10 +314,10 @@ class CVTypeSectionBuilder {
 
         /*
          * Functions go into the main fieldList if they are not overloaded. Overloaded functions get
-         * a M_FUNCTION entry in the field list, and a LF_METHODLIST record pointing to M_MFUNCTION
+         * an M_FUNCTION entry in the field list, and a LF_METHODLIST record pointing to M_MFUNCTION
          * records for each overload.
          */
-        if (methods.size() > 0) {
+        if (!methods.isEmpty()) {
 
             log("building methods");
 
@@ -433,14 +332,14 @@ class CVTypeSectionBuilder {
                 }
             });
 
-            /* TODO: if methodlist is too big, split it up using LF_INDEX records. */
-            overloaded.forEach(mname -> {
+            /* TODO: if methodList is too big, split it up using LF_INDEX records. */
+            overloaded.forEach(methodName -> {
 
                 /* LF_METHODLIST */
                 CVTypeRecord.CVTypeMethodListRecord mlist = new CVTypeRecord.CVTypeMethodListRecord();
 
                 /* LF_MFUNCTION records */
-                methods.stream().filter(methodEntry -> methodEntry.methodName().equals(mname)).forEach(m -> {
+                methods.stream().filter(methodEntry -> methodEntry.methodName().equals(methodName)).forEach(m -> {
                     log("overloaded method %s attr=(%s) valuetype=%s", m.methodName(), m.getModifiersString(), m.getValueType().getTypeName());
                     CVTypeRecord.CVTypeMFunctionRecord mFunctionRecord = buildMemberFunction((ClassEntry) typeEntry, m);
                     short attr = modifiersToAttr(m);
@@ -451,7 +350,7 @@ class CVTypeSectionBuilder {
                 CVTypeRecord.CVTypeMethodListRecord nmlist = addTypeRecord(mlist);
 
                 /* LF_METHOD record */
-                CVTypeRecord.CVOverloadedMethodRecord methodRecord = new CVTypeRecord.CVOverloadedMethodRecord((short) nmlist.count(), nmlist.getSequenceNumber(), mname);
+                CVTypeRecord.CVOverloadedMethodRecord methodRecord = new CVTypeRecord.CVOverloadedMethodRecord((short) nmlist.count(), nmlist.getSequenceNumber(), methodName);
                 fieldListBuilder.addField(methodRecord);
             });
 
@@ -462,11 +361,11 @@ class CVTypeSectionBuilder {
                 fieldListBuilder.addField(method);
             });
         }
-        /* Build fieldlist record from manifested fields. */
+        /* Build fieldList record from manifested fields. */
         CVTypeRecord.CVFieldListRecord fieldListRecord = fieldListBuilder.buildFieldListRecords(this);
         int fieldListIdx = fieldListRecord.getSequenceNumber();
         int fieldCount = fieldListBuilder.getFieldCount();
-        log("finished building fieldlist %s", fieldListRecord);
+        log("finished building fieldList %s", fieldListRecord);
 
         /* Build final class record. */
         short attrs = 0; /* property attribute field (prop_t) */
@@ -480,7 +379,7 @@ class CVTypeSectionBuilder {
              * Try to find a line number for the first function - if none, don't bother to create
              * the record.
              */
-            int line = classEntry.getMethods().isEmpty() ? 0 : classEntry.getMethods().get(0).getLine();
+            int line = classEntry.getMethods().isEmpty() ? 0 : classEntry.getMethods().getFirst().getLine();
             if (line > 0) {
                 int idIdx = typeSection.getStringId(classEntry.getFullFileName()).getSequenceNumber();
                 CVTypeRecord.CVUdtTypeLineRecord udt = new CVTypeRecord.CVUdtTypeLineRecord(typeRecord.getSequenceNumber(), idIdx, line);
@@ -488,7 +387,7 @@ class CVTypeSectionBuilder {
             }
         }
 
-        types.typeNameMap.put(typeEntry.getTypeName(), typeRecord);
+        types.addType(typeEntry.getTypeName(), typeRecord);
 
         /* CVSymbolSubsectionBuilder will add associated S_UDT record to symbol table. */
         log("  finished class %s", typeRecord);
@@ -509,7 +408,7 @@ class CVTypeSectionBuilder {
         typeEntry.fields().filter(CVTypeSectionBuilder::isManifestedField).forEach(f -> {
             log("field %s attr=(%s) offset=%d size=%d valuetype=%s", f.fieldName(), f.getModifiersString(), f.getOffset(), f.getSize(), f.getValueType().getTypeName());
             TypeEntry valueType = f.getValueType();
-            int valueTypeIndex = types.getIndexForInstanceOrPrimitive(valueType);
+            int valueTypeIndex = types.getExistingType(valueType).getSequenceNumber();
             short attr = modifiersToAttr(f);
             CVTypeRecord.FieldRecord fieldRecord = new CVTypeRecord.CVMemberRecord(attr, valueTypeIndex, f.getOffset(), f.fieldName());
             log("field %s", fieldRecord);
@@ -534,7 +433,7 @@ class CVTypeSectionBuilder {
              * Try to find a line number for the first function - if none, don't bother to create
              * the record.
              */
-            int line = classEntry.getMethods().isEmpty() ? 0 : classEntry.getMethods().get(0).getLine();
+            int line = classEntry.getMethods().isEmpty() ? 0 : classEntry.getMethods().getFirst().getLine();
             if (line > 0) {
                 int idIdx = typeSection.getStringId(classEntry.getFullFileName()).getSequenceNumber();
                 CVTypeRecord.CVUdtTypeLineRecord udt = new CVTypeRecord.CVUdtTypeLineRecord(typeRecord.getSequenceNumber(), idIdx, line);
@@ -542,7 +441,7 @@ class CVTypeSectionBuilder {
             }
         }
 
-        types.typeNameMap.put(typeEntry.getTypeName(), typeRecord);
+        types.addType(typeEntry.getTypeName(), typeRecord);
 
         /* CVSymbolSubsectionBuilder will add associated S_UDT record to symbol table. */
         log("  finished class %s", typeRecord);
@@ -556,7 +455,7 @@ class CVTypeSectionBuilder {
 
     private CVTypeRecord.FieldRecord buildField(FieldEntry fieldEntry) {
         TypeEntry valueType = fieldEntry.getValueType();
-        int valueTypeIndex = types.getIndexForPointerOrPrimitive(valueType);
+        int valueTypeIndex = useHeapBase ? types.getIndexForHeapPointerOrPrimitive(valueType) : types.getIndexForPointerOrPrimitive(valueType);
         short attr = modifiersToAttr(fieldEntry);
         if (Modifier.isStatic(fieldEntry.getModifiers())) {
             return new CVTypeRecord.CVStaticMemberRecord(attr, valueTypeIndex, fieldEntry.fieldName());
@@ -607,7 +506,7 @@ class CVTypeSectionBuilder {
         return attr;
     }
 
-    CVTypeRecord.CVTypeMFunctionRecord buildMemberFunction(ClassEntry classEntry, MethodEntry methodEntry) {
+    private CVTypeRecord.CVTypeMFunctionRecord buildMemberFunction(ClassEntry classEntry, MethodEntry methodEntry) {
         CVTypeRecord.CVTypeMFunctionRecord mFunctionRecord = new CVTypeRecord.CVTypeMFunctionRecord();
         mFunctionRecord.setClassType(types.getIndexForForwardRef(classEntry));
         mFunctionRecord.setCallType((byte) (CV_CALL_NEAR_C));
@@ -625,7 +524,7 @@ class CVTypeSectionBuilder {
         return addTypeRecord(mFunctionRecord);
     }
 
-    CVTypeRecord buildFuncIdRecord(CVTypeRecord.CVTypeMFunctionRecord mFunctionRecord, String functionName) {
+    private CVTypeRecord buildFuncIdRecord(CVTypeRecord.CVTypeMFunctionRecord mFunctionRecord, String functionName) {
         if (mFunctionRecord.getClassType() != 0) {
             return addTypeRecord(new CVTypeRecord.CVTypeMFuncIdRecord(mFunctionRecord.getClassType(), mFunctionRecord.getSequenceNumber(), functionName));
         } else {
@@ -645,23 +544,23 @@ class CVTypeSectionBuilder {
         typeSection.log(fmt, args);
     }
 
-    static class TypeTable {
+    private static class TypeTable {
 
         private static final int CV_TYPENAME_INITIAL_CAPACITY = 20000;
 
-        /* A map of typename to type records, */
-        private final Map<String, CVTypeRecord> typeNameMap = new HashMap<>(CV_TYPENAME_INITIAL_CAPACITY);
+        private static class TypeTableEntry {
+            String typeName;
+            CVTypeRecord typeRecord;
+            CVTypeRecord forwardRefRecord;
+            CVTypeRecord pointerRecord;
+            CVTypeRecord heapPointerRecord;
+            TypeTableEntry(String typeName) {
+                this.typeName = typeName;
+            }
+        }
 
-        /* For convenience, quick lookup of pointer type indices given class type index */
-        /* Could have saved this in typeNameMap. */
-        /* maps type index to pointer to forward ref record */
-        private final Map<Integer, CVTypeRecord> typePointerMap = new HashMap<>(CV_TYPENAME_INITIAL_CAPACITY);
-
-        /*
-         * A map of type names to type records. Only forward references are stored here, and only
-         * until they are defined.
-         */
-        private final Map<String, CVTypeRecord> forwardRefMap = new HashMap<>(CV_TYPENAME_INITIAL_CAPACITY);
+        /* A map of typename to type records. */
+        private final Map<String, TypeTableEntry> typemap = new HashMap<>(CV_TYPENAME_INITIAL_CAPACITY);
 
         private final CVTypeSectionImpl typeSection;
 
@@ -671,12 +570,21 @@ class CVTypeSectionBuilder {
         }
 
         void testForUndefinedClasses() {
-            for (CVTypeRecord record : forwardRefMap.values()) {
-                CVTypeRecord.CVClassRecord classRecord = (CVTypeRecord.CVClassRecord) record;
-                if (!typeNameMap.containsKey(classRecord.getClassName())) {
-                    GraalError.shouldNotReachHere("no typeentry for " + classRecord.getClassName() + "; type remains incomplete");
+            for (TypeTableEntry entry : typemap.values()) {
+                if (entry.typeRecord == null) {
+                    GraalError.shouldNotReachHere("no typeentry for " + entry.typeName + "; type remains incomplete");
                 }
             }
+        }
+
+        public void addType(String typeName, CVTypeRecord record) {
+            TypeTableEntry entry = getOrCreateTypeEntry(typeName);
+            assert entry.typeRecord == null;
+            entry.typeRecord = record;
+        }
+
+        private TypeTableEntry getOrCreateTypeEntry(String typeName) {
+            return typemap.computeIfAbsent(typeName, TypeTableEntry::new);
         }
 
         private <T extends CVTypeRecord> T addTypeRecord(T record) {
@@ -686,80 +594,84 @@ class CVTypeSectionBuilder {
         /**
          * Return a CV type index for a pointer to a java type, or the type itself if a primitive.
          *
-         * @param entry The java type to return a typeindex for. If the type has not been seen, a
+         * @param typeEntry The java type to return a typeindex for. If the type has not been seen, a
          *            forward reference is generated.
          * @return The index for the typeentry for a pointer to the type. If the type is a primitive
          *         type, the index returned is for the type, not a pointer to the type.
          */
-        int getIndexForPointerOrPrimitive(TypeEntry entry) {
-            if (entry.isPrimitive()) {
-                CVTypeRecord record = getExistingType(entry);
-                assert record != null;
-                return record.getSequenceNumber();
+        private int getIndexForPointerOrPrimitive(TypeEntry typeEntry) {
+            TypeTableEntry entry = getOrCreateTypeEntry(typeEntry.getTypeName());
+            if (typeEntry.isPrimitive()) {
+                assert entry.typeRecord != null;
+                return entry.typeRecord.getSequenceNumber();
             }
-            CVTypeRecord forwardRefRecord = getExistingForwardReference(entry);
-            if (forwardRefRecord == null) {
-                forwardRefRecord = addTypeRecord(new CVTypeRecord.CVClassRecord((short) ATTR_FORWARD_REF, entry.getTypeName(), null));
-                forwardRefMap.put(entry.getTypeName(), forwardRefRecord);
+            if (entry.forwardRefRecord == null) {
+                entry.forwardRefRecord = addTypeRecord(new CVTypeRecord.CVClassRecord((short) ATTR_FORWARD_REF, typeEntry.getTypeName(), null));
             }
             /* We now have a class record but must create a pointer record. */
-            CVTypeRecord ptrRecord = typePointerMap.get(forwardRefRecord.getSequenceNumber());
-            if (ptrRecord == null) {
-                ptrRecord = addTypeRecord(new CVTypeRecord.CVTypePointerRecord(forwardRefRecord.getSequenceNumber(), CVTypeRecord.CVTypePointerRecord.NORMAL_64));
-                typePointerMap.put(forwardRefRecord.getSequenceNumber(), ptrRecord);
+            if (entry.pointerRecord == null) {
+                entry.pointerRecord = addTypeRecord(new CVGraalAbsolutePointer(entry.forwardRefRecord.getSequenceNumber()));
             }
-            return ptrRecord.getSequenceNumber();
+            return entry.pointerRecord.getSequenceNumber();
         }
 
         /**
          * Return a CV type index for a pointer to a java type, or the type itself if a primitive.
          *
-         * @param entry The java type to return a typeindex for. If the type has not been seen, a
+         * @param typeEntry The java type to return a typeindex for. If the type has not been seen, a
          *            forward reference is generated.
          * @return The index for the typeentry for a pointer to the type. If the type is a primitive
          *         type, the index returned is for the type, not a pointer to the type.
          */
-        int getIndexForInstanceOrPrimitive(TypeEntry entry) {
-            if (entry.isPrimitive()) {
-                CVTypeRecord record = getExistingType(entry);
-                assert record != null;
-                return record.getSequenceNumber();
+        private int getIndexForHeapPointerOrPrimitive(TypeEntry typeEntry) {
+            assert typeSection.getCvDebugInfo().useHeapBase();
+            TypeTableEntry entry = getOrCreateTypeEntry(typeEntry.getTypeName());
+            if (typeEntry.isPrimitive()) {
+                assert entry.typeRecord != null;
+                return entry.typeRecord.getSequenceNumber();
             }
-            CVTypeRecord forwardRefRecord = getExistingForwardReference(entry);
-            if (forwardRefRecord == null) {
-                forwardRefRecord = addTypeRecord(new CVTypeRecord.CVClassRecord((short) ATTR_FORWARD_REF, entry.getTypeName(), null));
-                forwardRefMap.put(entry.getTypeName(), forwardRefRecord);
+            if (entry.forwardRefRecord == null) {
+                entry.forwardRefRecord = addTypeRecord(new CVTypeRecord.CVClassRecord((short) ATTR_FORWARD_REF, typeEntry.getTypeName(), null));
             }
-            return forwardRefRecord.getSequenceNumber();
+            /* We now have a class record but must create a pointer record. */
+            if (entry.heapPointerRecord == null) {
+                entry.heapPointerRecord = addTypeRecord(new CVGraalHeapPointer(entry.forwardRefRecord.getSequenceNumber()));
+            }
+            return entry.heapPointerRecord.getSequenceNumber();
         }
 
         private int getIndexForForwardRef(ClassEntry entry) {
             return getIndexForForwardRef(entry.getTypeName());
         }
 
-        int getIndexForForwardRef(String className) {
-            CVTypeRecord clsRecord = forwardRefMap.get(className);
-            if (clsRecord == null) {
-                clsRecord = addTypeRecord(new CVTypeRecord.CVClassRecord((short) ATTR_FORWARD_REF, className, null));
-                forwardRefMap.put(className, clsRecord);
+        private int getIndexForForwardRef(String className) {
+            TypeTableEntry entry = getOrCreateTypeEntry(className);
+            if (entry.forwardRefRecord == null) {
+                entry.forwardRefRecord = addTypeRecord(new CVTypeRecord.CVClassRecord((short) ATTR_FORWARD_REF, className, null));
             }
-            return clsRecord.getSequenceNumber();
+            return entry.forwardRefRecord.getSequenceNumber();
         }
 
-        CVTypeRecord getExistingType(TypeEntry typeEntry) {
-            return typeNameMap.get(typeEntry.getTypeName());
+        private CVTypeRecord getExistingType(TypeEntry typeEntry) {
+            TypeTableEntry entry = typemap.get(typeEntry.getTypeName());
+            assert entry != null;
+            assert entry.typeRecord != null;
+            return entry.typeRecord;
         }
 
-        CVTypeRecord getExistingForwardReference(TypeEntry typeEntry) {
-            return forwardRefMap.get(typeEntry.getTypeName());
+        /* Return null if new, class record or forward ref in no class record */
+        private CVTypeRecord getExistingTypeOrNull(TypeEntry typeEntry) {
+            TypeTableEntry entry = typemap.get(typeEntry.getTypeName());
+            return entry == null ? null : (entry.typeRecord != null ? entry.typeRecord : entry.forwardRefRecord);
         }
 
-        void definePrimitiveType(String typename, short typeId, int length, short pointerTypeId) {
+        private void definePrimitiveType(String typename, short typeId, int length, short pointerTypeId) {
             CVTypeRecord record = new CVTypeRecord.CVTypePrimitive(typeId, length);
-            typeNameMap.put(typename, record);
+            TypeTableEntry entry = new TypeTableEntry(typename);
+            entry.typeRecord = record;
+            typemap.put(typename, entry);
             if (pointerTypeId != 0) {
-                CVTypeRecord pointerRecord = new CVTypeRecord.CVTypePrimitive(pointerTypeId, ADDRESS_BITS);
-                typePointerMap.put((int) typeId, pointerRecord);
+                entry.pointerRecord = new CVTypeRecord.CVTypePrimitive(pointerTypeId, ADDRESS_BITS);
             }
         }
 
@@ -778,4 +690,125 @@ class CVTypeSectionBuilder {
             definePrimitiveType("double", T_REAL64, Double.BYTES, T_64PREAL64);
         }
     }
+
+    /*
+     * StaticGlobalBuilder - emit CodeView directives to access java static members
+     * when Graal isolates are enabled.
+     *
+     * When isolates are enabled, statics are no longer in global, fixed static memory,
+     * but are on the isolate's heap, referenced via the heap base register.
+     * CodeView does not have directives to handle this cleanly.
+     *
+     * This implementation defines a union type for each class that contains static members.
+     * This union type ("staticClass") defined an instance member for each static member of the
+     * Java class, and these instance members are defined to have offsets equal to their offset
+     * in the isolate heap.
+     *
+     * There is also a global union type defined ("staticGlobalclass") that is a union of all
+     * the synthetic "staticClass" unions, all defined to start at offset 0.
+     *
+     * In each function, there is a function scope variable (of type pointer to staticGlobalClass)
+     * defined.  this variable is named _heap_.
+     *
+     * Using this implementation, all static members of a class can be defined by examining
+     *
+     *    _heap_->package_classname
+     */
+    static class StaticGlobalBuilder {
+
+        private final CVTypeSectionBuilder typeSectionBuilder;
+        private final int staticTypeClassRecordIndex;
+        private final ClassEntry staticGlobalClass;
+        private final SortedSet<FieldEntry> staticClassFields = new TreeSet<>(new Comparator<FieldEntry>() {
+            @Override
+            public int compare(FieldEntry o1, FieldEntry o2) {
+                return o1.fieldName().compareTo(o2.fieldName());
+            }
+        });
+
+        StaticGlobalBuilder(CVTypeSectionBuilder typeSectionBuilder) {
+            this.typeSectionBuilder = typeSectionBuilder;
+            this.staticGlobalClass = new ClassEntry(STATIC_GLOBAL_TYPE_NAME, null, 0x7fffffff);
+            this.staticTypeClassRecordIndex = typeSectionBuilder.types.getIndexForPointerOrPrimitive(staticGlobalClass);
+        }
+
+        void processClass(TypeEntry typeEntry) {
+            if (typeEntry.isClass()) {
+                ClassEntry cls = (ClassEntry) typeEntry;
+                /* Build a sparse class of all static members made into instance members. */
+                /* this class can be used to access static members using the heap register as 'this' */
+                ClassEntry staticClass = new ClassEntry(typeEntry.getTypeName() + "_statics", cls.getFileEntry(), 0x7fffffff);
+                /* Only define manifested fields. */
+                cls.fields().filter(CVTypeSectionBuilder::isManifestedField).forEach(f -> {
+                    if (Modifier.isStatic(f.getModifiers())) {
+                        /* add a field to the global static class (actually union) */
+                        FieldEntry wasStaticField = buildFieldFromStaticField(staticClass, f);
+                        staticClass.addField(wasStaticField);
+                    }
+                });
+                if (staticClass.fieldCount() > 0) {
+                    /* generate class definition */
+                    typeSectionBuilder.buildStructureTypeEntry(staticClass);
+                    /* add (classname)_statics member to global statics list. */
+                    FieldEntry e = buildFieldFromStaticClass(CVNames.typeNameToCodeViewName(typeEntry.getTypeName()), staticGlobalClass, staticClass);
+                    staticClassFields.add(e);
+                }
+            }
+        }
+
+        CVTypeRecord buildStaticGlobalClass(CVSymbolSubsection symbolSubsection) {
+            /* Note that 'size' is a lie; the staticGlobal struct represents the isolate heap.
+             * As such, members may have random offsets and don't start at 0.
+             */
+            for (FieldEntry f : staticClassFields) {
+                staticGlobalClass.addField(f);
+                TypeEntry staticType = f.getValueType();
+                int staticTypeId = typeSectionBuilder.types.getExistingType(staticType).getSequenceNumber();
+                CVSymbolSubrecord.CVSymbolUDTRecord udtRecord = new CVSymbolSubrecord.CVSymbolUDTRecord(null, staticTypeId, CVNames.typeNameToCodeViewName(staticType.getTypeName()));
+                symbolSubsection.addRecord(udtRecord);
+            }
+            return typeSectionBuilder.buildSimpleStruct(staticGlobalClass);
+        }
+
+        int getStaticGlobalClassRecordIndex() {
+            return staticTypeClassRecordIndex;
+        }
+
+        /* Return an instance field that mirrors a synthetic static global class. */
+        private FieldEntry buildFieldFromStaticClass(String fieldName, ClassEntry cls, TypeEntry valueType) {
+            int fieldSize = valueType.getSize();
+            return new FieldEntry(cls.getFileEntry(), fieldName, staticGlobalClass, valueType, fieldSize, 0, false, PUBLIC);
+        }
+
+        /* Return an instance field that mirrors a static field. Offset == offset into global heap. */
+        private FieldEntry buildFieldFromStaticField(ClassEntry cls, FieldEntry f) {
+            String fieldName = f.fieldName();
+            TypeEntry valueTypeEntry = f.getValueType();
+            int fieldSize = f.getSize();
+            int fieldOffset = f.getOffset();
+            int fieldModifiers = f.getModifiers() & ~STATIC;
+            return new FieldEntry(f.getFileEntry(), fieldName, cls, valueTypeEntry, fieldSize, fieldOffset, false, fieldModifiers);
+        }
+    }
+
+    private static final class CVGraalAbsolutePointer extends CVTypeRecord.CVTypePointerRecord {
+
+        /* Standard 64-bit absolute pointer type. */
+        static final int NORMAL_64 = KIND_64 | SIZE_8;
+
+        public CVGraalAbsolutePointer(int pointsToIdx) {
+            super(pointsToIdx, NORMAL_64);
+        }
+    }
+
+    private static final class CVGraalHeapPointer extends CVTypeRecord.CVTypePointerRecord {
+
+        /* heap pointer type */
+        static final int HEAP_32 = KIND_64 | SIZE_4;
+
+        public CVGraalHeapPointer(int pointsToIdx) {
+            super(pointsToIdx, HEAP_32);
+        }
+    }
+
 }

@@ -87,6 +87,7 @@ final class CVSymbolSubsectionBuilder {
      * class.
      */
     void build() {
+        cvDebugInfo.getCVTypeSection().initializeTypeSectionBuilder();
         /* Loop over all classes defined in this module. */
         for (TypeEntry typeEntry : cvDebugInfo.getTypes()) {
             /* Add type record for this entry. */
@@ -96,7 +97,7 @@ final class CVSymbolSubsectionBuilder {
                 addTypeRecords(typeEntry);
             }
         }
-        if (cvDebugInfo.useHeapBase()) {
+        if (cvDebugInfo.emitStaticGlobalVariable()) {
             /* The 'static' class is synthesized from all static members,
              * with offset from 0, or heap base (when isolates are enabled).
              */
@@ -198,7 +199,7 @@ final class CVSymbolSubsectionBuilder {
         }
 
         /* define global static accessor (as a local register variable) if isolates are enabled */
-        if (cvDebugInfo.useHeapBase()) {
+        if (cvDebugInfo.emitStaticGlobalVariable()) {
             final int typeIndex = cvDebugInfo.getCVTypeSection().getStaticGlobalClassRecordIndex();
             addSymbolRecord(new CVSymbolSubrecord.CVSymbolLocalRecord(cvDebugInfo, STATIC_GLOBAL_LOCAL_NAME, typeIndex, 0));
             addSymbolRecord(new CVSymbolSubrecord.CVSymbolDefRangeRegisterRecord(cvDebugInfo, externalName, 0, (short) (primaryRange.getHi() - primaryRange.getLo()),
